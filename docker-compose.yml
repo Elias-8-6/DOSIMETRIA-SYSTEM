@@ -1,0 +1,52 @@
+# ============================================================
+# Docker Compose — Desarrollo
+# Levanta el backend NestJS y el frontend React.
+# Supabase corre por separado — antes de levantar esto ejecutar:
+#   supabase start
+# ============================================================
+
+version: '3.9'
+
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dosimetria_backend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/src:/app/src
+    command: npm run start:dev
+    networks:
+      - dosimetria_net
+    restart: unless-stopped
+
+  # ── Frontend React ────────────────────────────────────────
+  # Descomentar cuando esté listo el frontend
+  # frontend-web:
+  #   build:
+  #     context: ./frontend-web
+  #     dockerfile: Dockerfile
+  #   container_name: dosimetria_web
+  #   ports:
+  #     - "5173:5173"
+  #   env_file:
+  #     - ./frontend-web/.env
+  #   volumes:
+  #     - ./frontend-web/src:/app/src
+  #     - /app/node_modules
+  #   networks:
+  #     - dosimetria_net
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - backend
+
+networks:
+  dosimetria_net:
+    driver: bridge
