@@ -3,28 +3,31 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
-import { SupabaseService } from './config/supabase.config';
+import { SupabaseModule } from './config/supabase.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 /**
  * AppModule — módulo raíz de la aplicación.
  *
- * Registra globalmente:
- * - ConfigModule: carga variables de entorno desde .env
- * - ValidationPipe: valida todos los DTOs automáticamente
- * - HttpExceptionFilter: estandariza todas las respuestas de error
+ * SupabaseModule es @Global() — SupabaseService queda disponible
+ * en todos los módulos sin importarlo en cada uno.
+ * Esto es necesario para que PermissionsGuard pueda consultar
+ * user_permissions en cualquier módulo que lo use.
  *
- * A medida que agregues módulos (clients, dosimeters, etc.)
- * los importás aquí.
+ * Sistema de autorización en cada controller:
+ *   @UseGuards(JwtGuard, PermissionsGuard)
+ *   @CheckPermission('modulo', 'accion')
  */
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true,   // disponible en todos los módulos sin importar
+      isGlobal:    true,
       envFilePath: '.env',
     }),
+    SupabaseModule,   // @Global() — SupabaseService disponible en toda la app
     AuthModule,
     // próximos módulos:
+    // UsersModule,
     // ClientsModule,
     // DosimetersModule,
     // ServiceOrdersModule,
@@ -33,7 +36,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     // ReportsModule,
   ],
   providers: [
-    SupabaseService,
     {
       provide:  APP_FILTER,
       useClass: HttpExceptionFilter,
@@ -41,9 +43,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
-        whitelist:            true,  // ignora campos no declarados en el DTO
-        forbidNonWhitelisted: true,  // lanza error si llegan campos extra
-        transform:            true,  // convierte strings a tipos correctos automáticamente
+        whitelist:            true,
+        forbidNonWhitelisted: true,
+        transform:            true,
       }),
     },
   ],

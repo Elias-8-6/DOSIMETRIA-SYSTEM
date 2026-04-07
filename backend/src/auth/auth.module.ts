@@ -5,21 +5,30 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { SupabaseService } from '@config/supabase.config';
 
+/**
+ * AuthModule — módulo de autenticación.
+ *
+ * SupabaseService ya no se declara aquí porque viene del
+ * SupabaseModule global registrado en AppModule.
+ *
+ * Rutas expuestas:
+ *   POST /api/v1/auth/login
+ *   GET  /api/v1/auth/profile
+ */
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject:  [ConfigService],
+      imports:    [ConfigModule],
+      inject:     [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret:      config.getOrThrow<string>('JWT_SECRET'),
         signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '8h') },
       }),
     }),
   ],
-  providers:   [AuthService, JwtStrategy, SupabaseService],
+  providers:   [AuthService, JwtStrategy],
   controllers: [AuthController],
   exports:     [JwtModule, PassportModule],
 })

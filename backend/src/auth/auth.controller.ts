@@ -9,11 +9,22 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { SelectRoleDto } from './dto/select-role.dto';
-import { JwtGuard } from '@common/guards/jwt.guard';
-import { CurrentUser } from '@common/decorators/current-user.decorator';
-import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
+import { JwtGuard } from '../common/guards/jwt.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
+/**
+ * AuthController — rutas de autenticación.
+ *
+ * Endpoints públicos (sin guard):
+ *   POST /auth/login → retorna JWT directamente
+ *
+ * Endpoints protegidos (requieren JWT válido):
+ *   GET /auth/profile → datos del usuario + roles + permisos activos
+ *
+ * No existe /auth/select-role — el sistema de permisos granulares
+ * hace innecesaria la selección de rol activo.
+ */
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -21,8 +32,8 @@ export class AuthController {
   /**
    * POST /auth/login
    * Login con email y contraseña.
-   * Si el usuario tiene múltiples roles, retorna requires_role_selection: true
-   * y el frontend debe llamar a /auth/select-role.
+   * Retorna el JWT y los datos básicos del usuario.
+   * Respuesta 200 en lugar de 201 (no estamos creando un recurso).
    */
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -31,25 +42,11 @@ export class AuthController {
   }
 
   /**
-   * POST /auth/select-role
-   * Selecciona el rol activo para la sesión.
-   * Requiere el token temporal recibido en /login.
-   * Retorna un nuevo JWT con active_role definitivo.
-   */
-  @Post('select-role')
-  @UseGuards(JwtGuard)
-  @HttpCode(HttpStatus.OK)
-  selectRole(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: SelectRoleDto,
-  ) {
-    return this.authService.selectRole(user, dto);
-  }
-
-  /**
    * GET /auth/profile
-   * Retorna el perfil del usuario autenticado.
-   * Incluye sus roles asignados y la organización.
+   * Retorna el perfil completo del usuario autenticado:
+   * datos personales, roles asignados y permisos activos.
+   * La UI usa esto para construir el menú y habilitar/deshabilitar
+   * opciones según los permisos del usuario.
    */
   @Get('profile')
   @UseGuards(JwtGuard)

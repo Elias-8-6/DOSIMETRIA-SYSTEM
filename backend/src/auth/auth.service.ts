@@ -6,10 +6,9 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { SupabaseService } from '@config/supabase.config';
-import { JwtPayload, Role } from '@common/interfaces/jwt-payload.interface';
+import { SupabaseService } from '../config/supabase.config';
+import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { LoginDto } from './dto/login.dto';
-import { SelectRoleDto } from './dto/select-role.dto';
 
 @Injectable()
 export class AuthService {
@@ -20,12 +19,14 @@ export class AuthService {
 
   /**
    * login()
+   * Flujo simplificado:
    * 1. Busca el usuario por email
    * 2. Verifica la contraseña con bcrypt
-   * 3. Carga los roles asignados al usuario
-   * 4. Si tiene un solo rol: genera JWT con active_role directamente
-   * 5. Si tiene múltiples roles: genera JWT temporal sin active_role
-   *    para que el frontend muestre el selector de rol
+   * 3. Genera el JWT directamente — sin selección de rol
+   *
+   * El JWT contiene: sub, email, full_name, organization_id.
+   * Los permisos no van en el token — se consultan en DB
+   * por PermissionsGuard en cada request que lo requiera.
    */
   async login(dto: LoginDto) {
     const client = this.supabase.getClient();
@@ -51,146 +52,92 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    // Cargar roles del usuario
+    // Verificar que el usuario tenga al menos un rol asignado
     const { data: userRoles } = await client
       .from('user_roles')
       .select('roles(code, name)')
       .eq('user_id', user.id);
 
-    const roles = (userRoles ?? []).map((ur: any) => ur.roles);
-
-    if (!roles.length) {
+    if (!userRoles?.length) {
       throw new ForbiddenException('El usuario no tiene roles asignados');
     }
 
-    // Si tiene un solo rol, seleccionarlo automáticamente
-    if (roles.length === 1) {
-      const token = this.generateToken(user, roles[0].code);
-      return {
-        access_token:   token,
-        requires_role_selection: false,
-        user: {
-          id:          user.id,
-          full_name:   user.full_name,
-          email:       user.email,
-          active_role: roles[0].code,
-          role_name:   roles[0].name,
-        },
-      };
-    }
-
-    // Múltiples roles: retornar lista para que el frontend muestre selector
-    const tempToken = this.generateTempToken(user);
-    return {
-      access_token:   tempToken,
-      requires_role_selection: true,
-      available_roles: roles,
-      user: {
-        id:        user.id,
-        full_name: user.full_name,
-        email:     user.email,
-      },
-    };
-  }
-
-  /**
-   * selectRole()
-   * El usuario elige con qué rol operar en esta sesión.
-   * Verifica que el rol solicitado esté asignado al usuario.
-   * Genera un nuevo JWT con active_role definitivo.
-   */
-  async selectRole(user: JwtPayload, dto: SelectRoleDto) {
-    const client = this.supabase.getClient();
-
-    // Verificar que el usuario tenga ese rol asignado
-    const { data: roleAssignment } = await client
-      .from('user_roles')
-      .select('roles(code, name)')
-      .eq('user_id', user.sub)
-      .eq('roles.code', dto.role)
-      .single();
-
-    if (!roleAssignment) {
-      throw new ForbiddenException(
-        `No tenés el rol '${dto.role}' asignado en tu cuenta`,
-      );
-    }
-
-    // Buscar datos completos del usuario
-    const { data: userData } = await client
-      .from('users')
-      .select('id, full_name, email, organization_id')
-      .eq('id', user.sub)
-      .single();
-
-    if (!userData) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
-
-    const token = this.generateToken(userData, dto.role);
+    // Generar JWT directamente — sin paso de selección de rol
+    const token = this.generateToken(user);
 
     return {
       access_token: token,
       user: {
-        id:          userData.id,
-        full_name:   userData.full_name,
-        email:       userData.email,
-        active_role: dto.role,
+        id:        user.id,
+        full_name: user.full_name,
+        email:     user.email,
+        roles:     userRoles.map((ur: any) => ur.roles),
       },
     };
   }
 
   /**
    * getProfile()
-   * Retorna los datos del usuario autenticado desde el JWT.
+   * Retorna datos completos del usuario autenticado:
+   * sus roles asignados y sus permisos activos.
+   * La UI puede usar esto para mostrar el menú y las opciones
+   * disponibles según los permisos del usuario.
    */
   async getProfile(user: JwtPayload) {
     const client = this.supabase.getClient();
 
-    const { data } = await client
+    const { data, error } = await client
       .from('users')
       .select(`
-        id, full_name, email, status, created_at,
-        organizations(name),
-        user_roles(roles(code, name))
+        id,
+        full_name,
+        email,
+        status,
+        created_at,
+        organizations ( name ),
+        user_roles ( roles ( code, name ) ),
+        user_permissions (
+          granted,
+          permissions ( code, module, action, description )
+        )
       `)
       .eq('id', user.sub)
       .single();
 
-    return data;
+    if (error || !data) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Filtrar solo permisos activos (granted = true)
+    const activePermissions = (data.user_permissions as any[])
+      .filter((up) => up.granted)
+      .map((up) => up.permissions);
+
+    return {
+      id:           data.id,
+      full_name:    data.full_name,
+      email:        data.email,
+      status:       data.status,
+      organization: (data.organizations as any)?.name,
+      roles:        (data.user_roles as any[]).map((ur) => ur.roles),
+      permissions:  activePermissions,
+    };
   }
 
-  // ── Métodos privados ────────────────────────────────────────
+  // ── Métodos privados ──────────────────────────────────────
 
-  private generateToken(
-    user: { id: string; full_name: string; email: string; organization_id: string },
-    activeRole: string,
-  ): string {
+  private generateToken(user: {
+    id:              string;
+    full_name:       string;
+    email:           string;
+    organization_id: string;
+  }): string {
     const payload: JwtPayload = {
       sub:             user.id,
       email:           user.email,
       full_name:       user.full_name,
       organization_id: user.organization_id,
-      active_role:     activeRole,
     };
     return this.jwt.sign(payload);
-  }
-
-  /**
-   * Token temporal usado cuando el usuario tiene múltiples roles.
-   * No incluye active_role — solo sirve para llamar a /auth/select-role.
-   */
-  private generateTempToken(
-    user: { id: string; full_name: string; email: string; organization_id: string },
-  ): string {
-    const payload = {
-      sub:             user.id,
-      email:           user.email,
-      full_name:       user.full_name,
-      organization_id: user.organization_id,
-      active_role:     'pending_role_selection',
-    };
-    // Token temporal con expiración corta — solo para seleccionar rol
-    return this.jwt.sign(payload, { expiresIn: '5m' });
   }
 }
