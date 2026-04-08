@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { AuthModule } from './auth/auth.module';
-import { SupabaseModule } from './config/supabase.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AuthModule } from '@auth/auth.module';
+import { SupabaseModule } from '@config/supabase.module';
+import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 
 /**
  * AppModule — módulo raíz de la aplicación.

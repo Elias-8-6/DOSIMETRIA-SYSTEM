@@ -26,6 +26,8 @@ services:
     networks:
       - dosimetria_net
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # ── Frontend React ────────────────────────────────────────
   # Descomentar cuando esté listo el frontend

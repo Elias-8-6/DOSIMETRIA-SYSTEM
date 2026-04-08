@@ -52,7 +52,6 @@ export class AuditLogInterceptor implements NestInterceptor {
         try {
           await this.supabase.getClient().from('audit_logs').insert({
             user_id:     user?.sub ?? null,
-            active_role: user?.active_role ?? null,
             entity_name: entity,
             entity_id:   entityId ?? null,
             action,

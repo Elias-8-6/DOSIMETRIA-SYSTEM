@@ -67,7 +67,7 @@ INSERT INTO users (id, organization_id, full_name, email, password_hash, status)
    '00000000-0000-0000-0000-000000000001',
    'Administrador del Sistema',
    'admin@laboratorio.com',
-   '$2b$10$placeholder_hash_change_before_production',
+   '$2b$10$EoYe2P9jISfblisOh2ZlNespYs231FP0s2zZQ5mivlUrwK45Grcwe',
    'active');
 
 -- Asignar rol admin_lab al usuario inicial

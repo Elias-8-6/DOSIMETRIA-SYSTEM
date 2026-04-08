@@ -11,7 +11,7 @@ import {
   RequiredPermission,
 } from '../decorators/check-permission.decorator';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
-import { SupabaseService } from '../../config/supabase.config';
+import { SupabaseService } from '@config/supabase.config';
 
 /**
  * PermissionsGuard — verifica que el usuario tenga el permiso
