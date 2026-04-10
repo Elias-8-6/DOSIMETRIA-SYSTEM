@@ -9,11 +9,12 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { JwtGuard } from '../common/guards/jwt.guard';
-import { PermissionsGuard } from '../common/guards/permissions.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { CheckPermission } from '../common/decorators/check-permission.decorator';
-import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import { JwtGuard } from '@common/guards/jwt.guard';
+import { PermissionsGuard } from '@common/guards/permissions.guard';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { CheckPermission } from '@common/decorators/check-permission.decorator';
+import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
+import {JwtRefreshGuard} from "@common/guards/jwt-refresh.guard";
 
 @Controller('auth')
 export class AuthController {
@@ -38,6 +39,21 @@ export class AuthController {
   @UseGuards(JwtGuard)
   getProfile(@CurrentUser() user: JwtPayload) {
     return this.authService.getProfile(user);
+  }
+
+
+  @Get('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtGuard)
+  logout(@CurrentUser() user: JwtPayload) {
+    return this.authService.logout(user.sub);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtRefreshGuard)
+  refresh(@CurrentUser() user: JwtPayload & { refreshToken: string }) {
+    return this.authService.refreshToken(user.sub, user.refreshToken);
   }
 
   /**

@@ -5,6 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import {JwtRefreshGuard} from "@common/guards/jwt-refresh.guard";
 
 /**
  * AuthModule — módulo de autenticación.
@@ -28,7 +30,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       }),
     }),
   ],
-  providers:   [AuthService, JwtStrategy],
+  providers:   [AuthService, JwtStrategy, JwtRefreshStrategy],
   controllers: [AuthController],
   exports:     [JwtModule, PassportModule],
 })

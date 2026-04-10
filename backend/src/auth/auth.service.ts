@@ -7,9 +7,11 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { SupabaseService } from '../config/supabase.config';
-import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import { SupabaseService } from '@config/supabase.config';
+import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
 import { LoginDto } from './dto/login.dto';
+import * as crypto from "crypto";
+import {ConfigService} from "@nestjs/config";
 
 @Injectable()
 export class AuthService {
@@ -18,6 +20,7 @@ export class AuthService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly jwt: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
   async login(dto: LoginDto) {
@@ -52,15 +55,11 @@ export class AuthService {
     }
 
     const token = this.generateToken(user);
+    const refreshToken = await this.generateRefreshToken(user.id, user.organization_id)
 
     return {
       access_token: token,
-      user: {
-        id:        user.id,
-        full_name: user.full_name,
-        email:     user.email,
-        roles:     userRoles.map((ur: any) => ur.roles),
-      },
+      refresh_token: refreshToken,
     };
   }
 
@@ -129,4 +128,133 @@ export class AuthService {
     };
     return this.jwt.sign(payload);
   }
+
+  private async generateRefreshToken(userId: string, organizationId: string): Promise<string> {
+    // Generar el token como JWT firmado con el refresh secret
+    const refreshToken = this.jwt.sign(
+        { sub: userId, organization_id: organizationId },           // payload mínimo — solo necesita el user_id
+        {
+          secret:    this.config.get('JWT_REFRESH_SECRET'),
+          expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+        },
+    );
+
+    // Hashear y guardar en DB igual que antes
+    const tokenHash = await bcrypt.hash(refreshToken, 10);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await this.supabase.getClient()
+        .from('refresh_tokens')
+        .insert({
+          user_id:    userId,
+          token_hash: tokenHash,
+          expires_at: expiresAt.toISOString(),
+          revoked:    false,
+        });
+
+    return refreshToken;
+  }
+
+  async refreshToken(userId: string, refreshToken:string) {
+    const {data: tokens} = await this.supabase.getClient()
+        .from('refresh_tokens')
+        .select('id, token_hash, expires_at, revoked')
+        .eq('user_id', userId)
+        .eq('revoked', false);
+
+    if(!tokens?.length) {
+      throw new UnauthorizedException('Sesión expirada - iniciá sesión nuevamente');
+    }
+
+    let matchingToken = null;
+    for (const token of tokens) {
+      const matches = await bcrypt.compare(refreshToken, token.token_hash);
+      if (matches) {
+        matchingToken = token;
+        break;
+      }
+    }
+
+    if (!matchingToken) {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(matchingToken.expires_at);
+    if (now > expiresAt) {
+      throw new UnauthorizedException('Refresh token expirado -- Inicia sesión Nuevamente');
+    }
+
+    await this.supabase.getClient()
+        .from('refresh_tokens')
+        .update({
+          revoked: true,
+          revoked_at: new Date().toISOString(),
+        })
+        .eq('id', matchingToken.id)
+
+    const { data: user } = await this.supabase.getClient()
+        .from('users')
+        .select('id, full_name, email, organization_id, status')
+        .eq('id', userId)
+        .single();
+
+    if (!user || user.status !== 'active') {
+      throw new UnauthorizedException('Usuario inactivo');
+    }
+
+    // 7 — Generar nuevo par de tokens
+    const newAccessToken  = this.generateToken(user);
+    const newRefreshToken = await this.generateRefreshToken(userId, user.organization_id);
+
+    // 8 — Retornar ambos tokens al cliente
+    return {
+      access_token:  newAccessToken,
+      refresh_token: newRefreshToken,
+    };
+  }
+
+
+  async logout(userId: string) {
+    // Revocar TODOS los refresh tokens activos del usuario
+    // Usamos "todos" en lugar de uno específico porque el usuario
+    // puede tener sesiones abiertas en múltiples dispositivos
+    // y el logout debería cerrarlas todas
+    await this.supabase.getClient()
+        .from('refresh_tokens')
+        .update({
+          revoked:    true,
+          revoked_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('revoked', false);
+
+    // El access_token sigue siendo válido hasta que expire (8h)
+    // Esto es una limitación conocida de los JWT stateless
+    // En producción se puede mitigar con tokens de vida corta (15min)
+    return { message: 'Sesión cerrada correctamente' };
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
