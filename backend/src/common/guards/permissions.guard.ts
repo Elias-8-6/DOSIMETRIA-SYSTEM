@@ -4,14 +4,14 @@ import {
   ExecutionContext,
   ForbiddenException,
   UnauthorizedException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import {
   CHECK_PERMISSION_KEY,
   RequiredPermission,
-} from '../decorators/check-permission.decorator';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
-import { SupabaseService } from '@config/supabase.config';
+} from "../decorators/check-permission.decorator";
+import { JwtPayload } from "../interfaces/jwt-payload.interface";
+import { SupabaseService } from "@config/supabase.config";
 
 /**
  * PermissionsGuard — verifica que el usuario tenga el permiso
@@ -54,7 +54,7 @@ export class PermissionsGuard implements CanActivate {
     const user: JwtPayload = request.user;
 
     if (!user?.sub) {
-      throw new UnauthorizedException('Usuario no autenticado');
+      throw new UnauthorizedException("Usuario no autenticado");
     }
 
     // Construir el código del permiso: 'modulo:accion'
@@ -63,22 +63,20 @@ export class PermissionsGuard implements CanActivate {
     // Consultar si el usuario tiene el permiso con granted = true
     const { data, error } = await this.supabase
       .getClient()
-      .from('user_permissions')
-      .select('granted, permissions!inner(code)')
-      .eq('user_id', user.sub)
-      .eq('granted', true)
-      .eq('permissions.code', permissionCode)
+      .from("user_permissions")
+      .select("granted, permissions!inner(code)")
+      .eq("user_id", user.sub)
+      .eq("granted", true)
+      .eq("permissions.code", permissionCode)
       .maybeSingle();
 
     if (error) {
       // Error de base de datos — no asumimos acceso, fallamos seguro
-      throw new ForbiddenException('Error al verificar permisos');
+      throw new ForbiddenException("Error al verificar permisos");
     }
 
     if (!data) {
-      throw new ForbiddenException(
-        `No tenés permiso para '${permissionCode}'`,
-      );
+      throw new ForbiddenException(`No tenés permiso para '${permissionCode}'`);
     }
 
     return true;

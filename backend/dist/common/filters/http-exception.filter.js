@@ -22,10 +22,10 @@ let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
             : common_1.HttpStatus.INTERNAL_SERVER_ERROR;
         const message = exception instanceof common_1.HttpException
             ? exception.getResponse()
-            : 'Error interno del servidor';
+            : "Error interno del servidor";
         const errorResponse = {
             statusCode: status,
-            message: typeof message === 'object' && 'message' in message
+            message: typeof message === "object" && "message" in message
                 ? message.message
                 : message,
             timestamp: new Date().toISOString(),

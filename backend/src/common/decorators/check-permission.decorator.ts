@@ -1,6 +1,6 @@
-import { SetMetadata } from '@nestjs/common';
+import { SetMetadata } from "@nestjs/common";
 
-export const CHECK_PERMISSION_KEY = 'check_permission';
+export const CHECK_PERMISSION_KEY = "check_permission";
 
 /**
  * Tipo que representa un permiso requerido.
@@ -9,7 +9,7 @@ export const CHECK_PERMISSION_KEY = 'check_permission';
  */
 export interface RequiredPermission {
   module: string;
-  action: 'create' | 'read' | 'update' | 'delete';
+  action: "create" | "read" | "update" | "delete";
 }
 
 /**
@@ -30,6 +30,6 @@ export interface RequiredPermission {
  */
 export const CheckPermission = (
   module: string,
-  action: 'create' | 'read' | 'update' | 'delete',
+  action: "create" | "read" | "update" | "delete",
 ) =>
   SetMetadata(CHECK_PERMISSION_KEY, { module, action } as RequiredPermission);
