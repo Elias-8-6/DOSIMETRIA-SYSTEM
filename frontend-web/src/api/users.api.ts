@@ -10,7 +10,13 @@ export interface User {
 }
 
 export interface UserDetail extends User {
-  permissions: { id: string; code: string; module: string; action: string; description: string }[];
+  permissions: {
+    id: string;
+    code: string;
+    module: string;
+    action: string;
+    description: string
+  }[];
 }
 
 export interface Permission {
