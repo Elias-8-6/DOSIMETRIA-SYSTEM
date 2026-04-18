@@ -1,5 +1,7 @@
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
+import type {FormEvent} from "react";
 import { useAuth } from '../../hooks/useAuth';
+import { isAxiosError } from 'axios';
 
 /**
  * LoginPage — página de inicio de sesión.
@@ -22,8 +24,11 @@ export function LoginPage() {
       await login({ email, password });
       // El router redirige automáticamente al dashboard
       // cuando isAuthenticated cambia a true
-    } catch (err: any) {
-      const message = err?.response?.data?.message ?? 'Error al iniciar sesión';
+    } catch (err: unknown) {
+      const message = isAxiosError(err)
+          ? err.response?.data?.message ?? 'Error al iniciar sesión'
+          : 'Error al iniciar sesión';
+
       setError(Array.isArray(message) ? message.join(', ') : message);
     } finally {
       setLoading(false);

@@ -1,26 +1,9 @@
-import { createContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { login as loginApi, logout as logoutApi, getProfile } from '../api/auth.api';
-import type { LoginCredentials, UserProfile } from '../api/auth.api';
-
-/**
- * Forma del contexto de autenticación.
- * Cualquier componente que use useAuth() tiene acceso a esto.
- */
-interface AuthContextType {
-  user: UserProfile | null; // datos del usuario autenticado
-  isLoading: boolean; // true mientras carga el perfil inicial
-  isAuthenticated: boolean; // true si hay sesión activa
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => Promise<void>;
-  hasPermission: (module: string, action: string) => boolean;
-}
-
-/**
- * Crear el contexto con valor inicial undefined.
- * El hook useAuth() verifica que se use dentro del provider.
- */
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import type { LoginCredentials } from '../api/auth.api';
+import { AuthContext } from './auth.context';
+import type { UserProfile} from "../api/auth.api";
 
 /**
  * AuthProvider — envuelve toda la app y provee el estado de autenticación.
