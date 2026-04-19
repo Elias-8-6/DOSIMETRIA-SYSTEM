@@ -25,9 +25,11 @@ let AuditLogInterceptor = class AuditLogInterceptor {
                 return;
             const { entity, entityId, action, oldValues, newValues } = response._audit;
             try {
-                await this.supabase.getClient().from('audit_logs').insert({
+                await this.supabase
+                    .getClient()
+                    .from("audit_logs")
+                    .insert({
                     user_id: user?.sub ?? null,
-                    active_role: user?.active_role ?? null,
                     entity_name: entity,
                     entity_id: entityId ?? null,
                     action,
@@ -36,7 +38,7 @@ let AuditLogInterceptor = class AuditLogInterceptor {
                 });
             }
             catch (err) {
-                console.error('[AuditLog] Error al registrar:', err);
+                console.error("[AuditLog] Error al registrar:", err);
             }
         }));
     }

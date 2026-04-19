@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength } from "class-validator";
 
 /**
  * DTO para login.
@@ -6,10 +6,10 @@ import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
  * NestJS verifica contra users.password_hash con bcrypt.
  */
 export class LoginDto {
-  @IsEmail({}, { message: 'El email no tiene un formato válido' })
+  @IsEmail({}, { message: "El email no tiene un formato válido" })
   email: string;
 
-  @IsNotEmpty({ message: 'La contraseña es requerida' })
-  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+  @IsNotEmpty({ message: "La contraseña es requerida" })
+  @MinLength(8, { message: "La contraseña debe tener al menos 8 caracteres" })
   password: string;
 }

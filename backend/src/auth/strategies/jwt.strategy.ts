@@ -1,8 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
-import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { PassportStrategy } from "@nestjs/passport";
+import { ExtractJwt, Strategy } from "passport-jwt";
+import { ConfigService } from "@nestjs/config";
+import { JwtPayload } from "@common/interfaces/jwt-payload.interface";
 
 /**
  * JwtStrategy — valida el token JWT en cada request protegido.
@@ -15,15 +15,15 @@ import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService) {
     super({
-      jwtFromRequest:   ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey:      config.getOrThrow<string>('JWT_SECRET'),
+      secretOrKey: config.getOrThrow<string>("JWT_SECRET"),
     });
   }
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
     if (!payload.sub || !payload.organization_id) {
-      throw new UnauthorizedException('Token inválido — payload incompleto');
+      throw new UnauthorizedException("Token inválido — payload incompleto");
     }
     return payload;
   }

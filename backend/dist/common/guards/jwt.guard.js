@@ -9,7 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.JwtGuard = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
-let JwtGuard = class JwtGuard extends (0, passport_1.AuthGuard)('jwt') {
+let JwtGuard = class JwtGuard extends (0, passport_1.AuthGuard)("jwt") {
 };
 exports.JwtGuard = JwtGuard;
 exports.JwtGuard = JwtGuard = __decorate([

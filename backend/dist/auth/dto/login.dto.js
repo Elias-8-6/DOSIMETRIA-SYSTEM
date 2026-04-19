@@ -15,12 +15,12 @@ class LoginDto {
 }
 exports.LoginDto = LoginDto;
 __decorate([
-    (0, class_validator_1.IsEmail)({}, { message: 'El email no tiene un formato válido' }),
+    (0, class_validator_1.IsEmail)({}, { message: "El email no tiene un formato válido" }),
     __metadata("design:type", String)
 ], LoginDto.prototype, "email", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)({ message: 'La contraseña es requerida' }),
-    (0, class_validator_1.MinLength)(8, { message: 'La contraseña debe tener al menos 8 caracteres' }),
+    (0, class_validator_1.IsNotEmpty)({ message: "La contraseña es requerida" }),
+    (0, class_validator_1.MinLength)(8, { message: "La contraseña debe tener al menos 8 caracteres" }),
     __metadata("design:type", String)
 ], LoginDto.prototype, "password", void 0);
 //# sourceMappingURL=login.dto.js.map
