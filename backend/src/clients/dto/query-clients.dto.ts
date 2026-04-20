@@ -1,17 +1,16 @@
-import { IsEnum, IsString, IsOptional} from 'class-validator';
-
+import { IsEnum, IsString, IsOptional } from 'class-validator';
 
 enum ClientStatusFilter {
-    ACTIVE = 'ACTIVE',
-    INACTIVE = 'INACTIVE',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
 }
 
 export class QueryClientsDto {
-    @IsOptional()
-    @IsString()
-    search?: string;
+  @IsOptional()
+  @IsString()
+  search?: string;
 
-    @IsOptional()
-    @IsEnum(ClientStatusFilter)
-    statusFilter?: ClientStatusFilter;
+  @IsOptional()
+  @IsEnum(ClientStatusFilter)
+  statusFilter?: ClientStatusFilter;
 }

@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
 import { AssignPermissionDto } from '../dto/assign-permission.dto';
 
@@ -38,9 +33,7 @@ export class AssignPermissionUseCase {
     // Un admin no puede asignarse permisos a sí mismo.
     // Previene escalada de privilegios.
     if (userId === grantedBy) {
-      throw new BadRequestException(
-        'No podés asignarte permisos a vos mismo',
-      );
+      throw new BadRequestException('No podés asignarte permisos a vos mismo');
     }
 
     // Verificar que el usuario destino existe en la organización
@@ -57,9 +50,7 @@ export class AssignPermissionUseCase {
     }
 
     if (targetUser.status !== 'active') {
-      throw new BadRequestException(
-        'No se pueden asignar permisos a un usuario inactivo',
-      );
+      throw new BadRequestException('No se pueden asignar permisos a un usuario inactivo');
     }
 
     // Verificar que el permiso existe en el catálogo
@@ -86,9 +77,9 @@ export class AssignPermissionUseCase {
     if (existingPermission?.granted === true) {
       // Ya tiene el permiso activo — no hacemos nada
       return {
-        message:    `El usuario ya tiene el permiso '${permission.code}' activo`,
+        message: `El usuario ya tiene el permiso '${permission.code}' activo`,
         permission: permission,
-        changed:    false,
+        changed: false,
       };
     }
 
@@ -98,18 +89,16 @@ export class AssignPermissionUseCase {
     //   b) Si existe con granted = false → UPDATE a granted = true
     // onConflict indica qué columnas forman la clave única para detectar
     // si el registro ya existe (coincide con el UNIQUE de la migración 010)
-    const { error: upsertError } = await client
-      .from('user_permissions')
-      .upsert(
-        {
-          user_id:       userId,
-          permission_id: dto.permission_id,
-          granted:       true,
-          granted_by:    grantedBy,
-          granted_at:    new Date().toISOString(),
-        },
-        { onConflict: 'user_id,permission_id' },
-      );
+    const { error: upsertError } = await client.from('user_permissions').upsert(
+      {
+        user_id: userId,
+        permission_id: dto.permission_id,
+        granted: true,
+        granted_by: grantedBy,
+        granted_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,permission_id' },
+    );
 
     if (upsertError) {
       this.logger.error('Error al asignar permiso:', upsertError);
@@ -119,25 +108,23 @@ export class AssignPermissionUseCase {
     // Registrar en audit_logs
     const action = existingPermission ? 'UPDATE' : 'CREATE';
 
-    await client
-      .from('audit_logs')
-      .insert({
-        user_id:     grantedBy,
-        entity_name: 'user_permissions',
-        entity_id:   userId,
-        action,
-        old_values:  existingPermission ? { granted: false } : null,
-        new_values: {
-          permission_code: permission.code,
-          granted:         true,
-          granted_by:      grantedBy,
-        },
-      });
+    await client.from('audit_logs').insert({
+      user_id: grantedBy,
+      entity_name: 'user_permissions',
+      entity_id: userId,
+      action,
+      old_values: existingPermission ? { granted: false } : null,
+      new_values: {
+        permission_code: permission.code,
+        granted: true,
+        granted_by: grantedBy,
+      },
+    });
 
     return {
-      message:    `Permiso '${permission.code}' asignado correctamente`,
+      message: `Permiso '${permission.code}' asignado correctamente`,
       permission: permission,
-      changed:    true,
+      changed: true,
     };
   }
 }

@@ -23,10 +23,10 @@ export interface JwtPayload {
  * La autorización viene de user_permissions en la DB.
  */
 export enum Role {
-  ADMIN_LAB = "admin_lab",
-  TECNICO_LAB = "tecnico_lab",
-  COORDINADOR_CLIENTE = "coordinador_cliente",
-  AUDITOR = "auditor",
+  ADMIN_LAB = 'admin_lab',
+  TECNICO_LAB = 'tecnico_lab',
+  COORDINADOR_CLIENTE = 'coordinador_cliente',
+  AUDITOR = 'auditor',
 }
 
 /**
@@ -34,26 +34,26 @@ export enum Role {
  * Deben coincidir con permissions.module en la DB (migración 010).
  */
 export enum PermissionModule {
-  USERS = "users",
-  CLIENTS = "clients",
-  WORKERS = "workers",
-  DOSIMETERS = "dosimeters",
-  ASSIGNMENTS = "assignments",
-  SERVICE_ORDERS = "service_orders",
-  RECEPTIONS = "receptions",
-  LAB_PROCESS = "lab_process",
-  READINGS = "readings",
-  REPORTS = "reports",
-  EQUIPMENT = "equipment",
-  AUDIT = "audit",
+  USERS = 'users',
+  CLIENTS = 'clients',
+  WORKERS = 'workers',
+  DOSIMETERS = 'dosimeters',
+  ASSIGNMENTS = 'assignments',
+  SERVICE_ORDERS = 'service_orders',
+  RECEPTIONS = 'receptions',
+  LAB_PROCESS = 'lab_process',
+  READINGS = 'readings',
+  REPORTS = 'reports',
+  EQUIPMENT = 'equipment',
+  AUDIT = 'audit',
 }
 
 /**
  * Acciones CRUD disponibles — usadas en @CheckPermission()
  */
 export enum PermissionAction {
-  CREATE = "create",
-  READ = "read",
-  UPDATE = "update",
-  DELETE = "delete",
+  CREATE = 'create',
+  READ = 'read',
+  UPDATE = 'update',
+  DELETE = 'delete',
 }

@@ -58,9 +58,7 @@ export class UpdateUserUseCase {
         .maybeSingle();
 
       if (emailTaken) {
-        throw new ConflictException(
-          `El email '${dto.email}' ya está en uso en esta organización`,
-        );
+        throw new ConflictException(`El email '${dto.email}' ya está en uso en esta organización`);
       }
     }
 
@@ -70,7 +68,7 @@ export class UpdateUserUseCase {
     const updateData: Record<string, any> = {};
 
     if (dto.full_name !== undefined) updateData.full_name = dto.full_name;
-    if (dto.email     !== undefined) updateData.email     = dto.email;
+    if (dto.email !== undefined) updateData.email = dto.email;
 
     // Si no llegó ningún campo válido, no tiene sentido hacer el UPDATE
     if (Object.keys(updateData).length === 0) {
@@ -93,19 +91,17 @@ export class UpdateUserUseCase {
     }
 
     //  Registrar en audit_logs
-    await client
-      .from('audit_logs')
-      .insert({
-        user_id:     requestingUserId,
-        entity_name: 'users',
-        entity_id:   userId,
-        action:      'UPDATE',
-        old_values: {
-          full_name: existingUser.full_name,
-          email:     existingUser.email,
-        },
-        new_values: updateData,
-      });
+    await client.from('audit_logs').insert({
+      user_id: requestingUserId,
+      entity_name: 'users',
+      entity_id: userId,
+      action: 'UPDATE',
+      old_values: {
+        full_name: existingUser.full_name,
+        email: existingUser.email,
+      },
+      new_values: updateData,
+    });
 
     return updatedUser;
   }

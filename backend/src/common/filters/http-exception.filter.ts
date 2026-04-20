@@ -5,8 +5,8 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-} from "@nestjs/common";
-import { Request, Response } from "express";
+} from '@nestjs/common';
+import { Request, Response } from 'express';
 
 /**
  * HttpExceptionFilter — maneja todas las excepciones HTTP.
@@ -31,19 +31,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : "Error interno del servidor";
+      exception instanceof HttpException ? exception.getResponse() : 'Error interno del servidor';
 
     const errorResponse = {
       statusCode: status,
       message:
-        typeof message === "object" && "message" in (message as object)
+        typeof message === 'object' && 'message' in (message as object)
           ? (message as any).message
           : message,
       timestamp: new Date().toISOString(),
