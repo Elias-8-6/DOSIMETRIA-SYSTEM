@@ -7,6 +7,8 @@ import { UsersModule } from './users/users.module';
 import { SupabaseModule } from '@config/supabase.module';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 
+import { ClientsModule } from '@clients/clients.module';
+
 /**
  * AppModule — módulo raíz de la aplicación.
  *
@@ -28,7 +30,7 @@ import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
     SupabaseModule, // @Global() — SupabaseService disponible en toda la app
     AuthModule,
     UsersModule,
-    // ClientsModule,
+    ClientsModule,
     // DosimetersModule,
     // ServiceOrdersModule,
     // ReceptionsModule,

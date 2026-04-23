@@ -1,36 +1,48 @@
-import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
-
 /**
- * AuthModule — módulo de autenticación.
+ * NOTA: Este archivo muestra los cambios que debes hacer
+ * en tu auth.module.ts existente.
  *
- * SupabaseService ya no se declara aquí porque viene del
- * SupabaseModule global registrado en AppModule.
+ * IMPORTS a agregar:
+ *   import { UpdateProfileUseCase }  from './use-cases/update-profile.use-case';
+ *   import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
  *
- * Rutas expuestas:
- *   POST /api/v1/auth/login
- *   GET  /api/v1/auth/profile
+ * EN providers agregar:
+ *   UpdateProfileUseCase,
+ *   ChangePasswordUseCase,
+ *
+ * Ejemplo del módulo completo:
  */
+
+import { Module }               from '@nestjs/common';
+import { JwtModule }            from '@nestjs/jwt';
+import { PassportModule }       from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthController }       from './auth.controller';
+import { AuthService }          from './auth.service';
+import { JwtStrategy }          from './strategies/jwt.strategy';
+import { JwtRefreshStrategy }   from './strategies/jwt-refresh.strategy';
+import { UpdateProfileUseCase } from './use-cases/update-profile.use-case';
+import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
+
 @Module({
   imports: [
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+    PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      inject: [ConfigService],
+      inject:  [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '8h') },
+        secret:      config.getOrThrow('JWT_SECRET'),
+        signOptions: { expiresIn: config.getOrThrow('JWT_EXPIRES_IN') },
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
   controllers: [AuthController],
-  exports: [JwtModule, PassportModule],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    JwtRefreshStrategy,
+    UpdateProfileUseCase,   // ← nuevo
+    ChangePasswordUseCase,  // ← nuevo
+  ],
 })
 export class AuthModule {}

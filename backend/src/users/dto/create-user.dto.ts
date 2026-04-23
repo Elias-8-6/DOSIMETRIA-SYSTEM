@@ -1,23 +1,49 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
-import { Role } from '@common/interfaces/jwt-payload.interface';
+import { IsDateString, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateUserDto {
-  @IsNotEmpty({ message: 'El nombre completo es un campo requerido' })
-  @IsString({ message: 'Debe ser un string' })
+  @IsString()
+  @IsNotEmpty({ message: 'El nombre completo es requerido' })
   full_name: string;
 
-  @IsNotEmpty({ message: 'El email completo es un campo requerido' })
-  @IsString({ message: 'Debe ser un string' })
-  @IsEmail({}, { message: 'Debe cumplir con el formato de correo' })
+  @IsEmail({}, { message: 'El email no es válido' })
+  @IsNotEmpty({ message: 'El email es requerido' })
   email: string;
 
-  @IsNotEmpty({ message: 'La password es un campo requerido' })
-  @IsString({ message: 'Debe ser un string' })
-  @MinLength(8, { message: 'El campo debe contener mínimo 8 caracteres' })
+  @IsString()
+  @IsNotEmpty({ message: 'La contraseña es requerida' })
   password: string;
 
-  @IsOptional({ message: 'El rol es un campo requerido' })
-  @IsString({ message: 'Debe ser un string' })
-  @IsEnum(Role)
-  role_code: string;
+  @IsString()
+  @IsNotEmpty({ message: 'El rol es requerido' })
+  role_code: string; // obligatorio — sin rol el usuario no puede hacer login
+
+  // Campos de perfil extendido (migración 012)
+  @IsString()
+  @IsOptional()
+  degree_title?: string;
+
+  @IsString()
+  @IsOptional()
+  university?: string;
+
+  @IsString()
+  @IsOptional()
+  location?: string;
+
+  // Campos nuevos (migración 013)
+  @IsString()
+  @IsOptional()
+  document_number?: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsDateString({}, { message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)' })
+  @IsOptional()
+  date_of_birth?: string;
+
+  @IsDateString({}, { message: 'La fecha de contratación debe ser una fecha válida (YYYY-MM-DD)' })
+  @IsOptional()
+  hire_date?: string;
 }

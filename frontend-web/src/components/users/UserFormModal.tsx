@@ -1,36 +1,56 @@
 import { useState, useEffect } from 'react';
-import type { FormEvent} from "react";
+import type { FormEvent } from 'react';
 import { createUser, updateUser } from '../../api/users.api';
 import type { User, CreateUserPayload, UpdateUserPayload } from '../../api/users.api';
 
 interface Props {
-  user?: User | null;      // null = modo crear, User = modo editar
+  user?: User | null;
   onClose: () => void;
-  onSuccess: () => void;   // solo notifica éxito — la lista se recarga en el padre
+  onSuccess: () => void;
 }
 
 /**
- * UserFormModal — modal reutilizable para crear y editar usuarios.
- * Si recibe `user`, opera en modo edición (sin campo password).
- * Si no recibe `user`, opera en modo creación.
+ * UserFormModal — crear y editar usuarios.
+ * El rol es SIEMPRE obligatorio (crear y editar).
+ * Incluye campos de perfil extendido (migraciones 012 y 013).
  */
 export function UserFormModal({ user, onClose, onSuccess }: Props) {
   const isEditing = !!user;
 
+  // Datos básicos
   const [fullName, setFullName] = useState(user?.full_name ?? '');
-  const [email,    setEmail]    = useState(user?.email ?? '');
+  const [email, setEmail] = useState(user?.email ?? '');
   const [password, setPassword] = useState('');
-  const [roleCode, setRoleCode] = useState('');
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
+  const [roleCode, setRoleCode] = useState(user?.roles?.[0]?.code ?? '');
 
-  // Si el usuario cambia (abren editar otro usuario), sincronizar los campos
+  // Perfil profesional (migración 012)
+  const [degreeTitle, setDegreeTitle] = useState(user?.degree_title ?? '');
+  const [university, setUniversity] = useState(user?.university ?? '');
+  const [location, setLocation] = useState(user?.location ?? '');
+
+  // Datos personales (migración 013)
+  const [documentNumber, setDocumentNumber] = useState(user?.document_number ?? '');
+  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [dateOfBirth, setDateOfBirth] = useState(user?.date_of_birth ?? '');
+  const [hireDate, setHireDate] = useState(user?.hire_date ?? '');
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   useEffect(() => {
     setFullName(user?.full_name ?? '');
     setEmail(user?.email ?? '');
+    setRoleCode(user?.roles?.[0]?.code ?? '');
+    setDegreeTitle(user?.degree_title ?? '');
+    setUniversity(user?.university ?? '');
+    setLocation(user?.location ?? '');
+    setDocumentNumber(user?.document_number ?? '');
+    setPhone(user?.phone ?? '');
+    setDateOfBirth(user?.date_of_birth ?? '');
+    setHireDate(user?.hire_date ?? '');
     setPassword('');
     setError('');
-  }, [user]);
+  }, [user?.id]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,23 +59,38 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
 
     try {
       if (isEditing && user) {
-        // Modo edición — solo envía campos que cambiaron
         const payload: UpdateUserPayload = {};
         if (fullName !== user.full_name) payload.full_name = fullName;
-        if (email    !== user.email)     payload.email     = email;
+        if (email !== user.email) payload.email = email;
+        if (roleCode !== user.roles?.[0]?.code) payload.role_code = roleCode;
+        if (degreeTitle !== (user.degree_title ?? '')) payload.degree_title = degreeTitle;
+        if (university !== (user.university ?? '')) payload.university = university;
+        if (location !== (user.location ?? '')) payload.location = location;
+        if (documentNumber !== (user.document_number ?? ''))
+          payload.document_number = documentNumber;
+        if (phone !== (user.phone ?? '')) payload.phone = phone;
+        if (dateOfBirth !== (user.date_of_birth ?? '')) payload.date_of_birth = dateOfBirth;
+        if (hireDate !== (user.hire_date ?? '')) payload.hire_date = hireDate;
+
         await updateUser(user.id, payload);
       } else {
-        // Modo creación — todos los campos requeridos
         const payload: CreateUserPayload = {
           full_name: fullName,
           email,
           password,
-          role_code: roleCode || undefined,
+          role_code: roleCode,
+          degree_title: degreeTitle || undefined,
+          university: university || undefined,
+          location: location || undefined,
+          document_number: documentNumber || undefined,
+          phone: phone || undefined,
+          date_of_birth: dateOfBirth || undefined,
+          hire_date: hireDate || undefined,
         };
         await createUser(payload);
       }
 
-      onSuccess(); // Notifica al padre para recargar la lista
+      onSuccess();
       onClose();
     } catch (err) {
       const apiError = err as { response?: { data?: { message?: string | string[] } } };
@@ -66,19 +101,22 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
     }
   };
 
+  const inputClass = `w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`;
+
+  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+
   return (
-    // Overlay oscuro — click fuera cierra el modal
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      {/* Contenedor — stopPropagation evita que el click dentro cierre el modal */}
       <div
-        className="bg-white rounded-xl shadow-lg w-full max-w-md"
+        className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
           <h2 className="text-base font-semibold text-gray-900">
             {isEditing ? 'Editar usuario' : 'Nuevo usuario'}
           </h2>
@@ -90,77 +128,155 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
           </button>
         </div>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+          {/* ── Sección: Datos básicos ────────────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre completo
-            </label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              placeholder="Juan Pérez"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              Datos básicos
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Nombre completo *</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  placeholder="Juan Pérez"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Email *</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="juan@laboratorio.com"
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Password solo en creación */}
+              {!isEditing && (
+                <div>
+                  <label className={labelClass}>Contraseña *</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="Mínimo 8 caracteres"
+                    className={inputClass}
+                  />
+                </div>
+              )}
+
+              {/* Rol — siempre requerido */}
+              <div>
+                <label className={labelClass}>Rol *</label>
+                <select
+                  value={roleCode}
+                  onChange={(e) => setRoleCode(e.target.value)}
+                  required
+                  className={`${inputClass} bg-white cursor-pointer`}
+                >
+                  <option value="">Seleccionar rol</option>
+                  <option value="admin_lab">Administrador del laboratorio</option>
+                  <option value="tecnico_lab">Técnico de laboratorio</option>
+                  <option value="coordinador_cliente">Coordinador de cliente</option>
+                  <option value="auditor">Auditor ISO</option>
+                </select>
+              </div>
+            </div>
           </div>
 
+          {/* ── Sección: Datos personales ─────────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="juan@laboratorio.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              Datos personales
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Cédula / DNI</label>
+                <input
+                  type="text"
+                  value={documentNumber}
+                  onChange={(e) => setDocumentNumber(e.target.value)}
+                  placeholder="8-123-456"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Teléfono</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+507 6000-0000"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Fecha de nacimiento</label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Fecha de contratación</label>
+                <input
+                  type="date"
+                  value={hireDate}
+                  onChange={(e) => setHireDate(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Password solo en creación */}
-          {!isEditing && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Mínimo 8 caracteres"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          {/* ── Sección: Perfil profesional ───────────────────────── */}
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              Perfil profesional
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Título universitario</label>
+                <input
+                  type="text"
+                  value={degreeTitle}
+                  onChange={(e) => setDegreeTitle(e.target.value)}
+                  placeholder="Lic. en Física"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Universidad</label>
+                <input
+                  type="text"
+                  value={university}
+                  onChange={(e) => setUniversity(e.target.value)}
+                  placeholder="Universidad de Panamá"
+                  className={inputClass}
+                />
+              </div>
+              <div className="col-span-2">
+                <label className={labelClass}>Ubicación</label>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Ciudad de Panamá"
+                  className={inputClass}
+                />
+              </div>
             </div>
-          )}
-
-          {/* Rol solo en creación */}
-          {!isEditing && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Rol <span className="text-gray-400 font-normal">(opcional)</span>
-              </label>
-              <select
-                value={roleCode}
-                onChange={(e) => setRoleCode(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
-              >
-                <option value="">Sin rol</option>
-                <option value="admin_lab">Administrador</option>
-                <option value="tecnico_lab">Técnico</option>
-                <option value="supervisor">Supervisor</option>
-                <option value="recepcionista">Recepcionista</option>
-              </select>
-            </div>
-          )}
+          </div>
 
           {/* Error */}
           {error && (
@@ -170,13 +286,12 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
           )}
 
           {/* Acciones */}
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900
-                         border border-gray-300 rounded-lg hover:border-gray-400
-                         transition-colors cursor-pointer"
+              className="px-4 py-2 text-sm text-gray-600 border border-gray-300
+                         rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
@@ -188,11 +303,14 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
                          transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               {loading
-                ? (isEditing ? 'Guardando...' : 'Creando...')
-                : (isEditing ? 'Guardar cambios' : 'Crear usuario')}
+                ? isEditing
+                  ? 'Guardando...'
+                  : 'Creando...'
+                : isEditing
+                  ? 'Guardar cambios'
+                  : 'Crear usuario'}
             </button>
           </div>
-
         </form>
       </div>
     </div>

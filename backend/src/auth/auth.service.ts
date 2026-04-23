@@ -12,6 +12,10 @@ import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
 
+import { UpdateProfileUseCase } from './use-cases/update-profile.use-case';
+import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -20,6 +24,8 @@ export class AuthService {
     private readonly supabase: SupabaseService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly updateProfileUC: UpdateProfileUseCase,
+    private readonly changePasswordUC: ChangePasswordUseCase,
   ) {}
 
   async login(dto: LoginDto) {
@@ -231,5 +237,13 @@ export class AuthService {
     // Esto es una limitación conocida de los JWT stateless
     // En producción se puede mitigar con tokens de vida corta (15min)
     return { message: 'Sesión cerrada correctamente' };
+  }
+
+  updateProfile(userId: string, dto: UpdateProfileDto) {
+    return this.updateProfileUC.execute(userId, dto);
+  }
+
+  changePassword(userId: string, dto: ChangePasswordDto) {
+    return this.changePasswordUC.execute(userId, dto);
   }
 }

@@ -1,230 +1,243 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  getUserById,
-  getPermissions,
   assignPermission,
+  getPermissions,
+  getUserById,
   revokePermission,
   updateUserStatus,
+  type Permission,
+  type UserDetail,
 } from '../../api/users.api';
-import type { UserDetail, Permission } from '../../api/users.api';
 import { useAuth } from '../../hooks/useAuth';
 
-/**
- * UserDetailPage — detalle de un usuario con gestión de permisos.
- */
+const roleLabelByCode: Record<string, string> = {
+  admin_lab: 'Administrador de laboratorio',
+  tecnico: 'Tecnico',
+  tecnico_lab: 'Tecnico de laboratorio',
+  dosimetrista: 'Dosimetrista',
+  coordinador: 'Coordinador',
+  coordinador_cliente: 'Coordinador de cliente',
+  auditor: 'Auditor',
+};
+
 export function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
 
   const [user, setUser] = useState<UserDetail | null>(null);
-  const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Cargar datos del usuario y catálogo de permisos
-  useEffect(() => {
-    if (!id) return;
+  const canManageUsers = hasPermission('users', 'update');
 
-    const fetchData = async () => {
-      try {
-        const [userData, permissionsData] = await Promise.all([getUserById(id), getPermissions()]);
-        setUser(userData);
-        setAllPermissions(permissionsData);
-      } catch {
-        setError('No se pudo cargar el usuario');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadData = useCallback(async () => {
+    if (!id) {
+      setError('Usuario no encontrado');
+      setLoading(false);
+      return;
+    }
 
-    fetchData();
+    setLoading(true);
+    setError('');
+
+    try {
+      const [userData, permissionData] = await Promise.all([
+        getUserById(id),
+        getPermissions(),
+      ]);
+      setUser(userData);
+      setPermissions(permissionData);
+    } catch {
+      setError('No se pudo cargar el detalle del usuario');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  // Verificar si el usuario tiene un permiso activo
-  const userHasPermission = (permissionId: string): boolean => {
-    return user?.permissions.some((p) => p.id === permissionId) ?? false;
-  };
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
-  // Asignar o revocar permiso
-  const handleTogglePermission = async (permission: Permission) => {
-    if (!id || !user) return;
-    setActionLoading(permission.id);
+  const hasAssignedPermission = (permissionId: string) =>
+    !!user?.permissions.some((permission) => permission.id === permissionId);
 
-    try {
-      if (userHasPermission(permission.id)) {
-        await revokePermission(id, permission.id);
-      } else {
-        await assignPermission(id, permission.id);
-      }
-      // Recargar el usuario para reflejar los cambios
-      const updated = await getUserById(id);
-      setUser(updated);
-    } catch {
-      setError('No se pudo actualizar el permiso');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  // Cambiar status del usuario
   const handleToggleStatus = async () => {
-    if (!id || !user) return;
-    const newStatus = user.status === 'active' ? 'inactive' : 'active';
-    setActionLoading('status');
+    if (!user || !canManageUsers) return;
+
+    setIsSaving(true);
+    setError('');
 
     try {
-      await updateUserStatus(id, newStatus);
-      setUser({ ...user, status: newStatus });
+      const nextStatus = user.status === 'active' ? 'inactive' : 'active';
+      await updateUserStatus(user.id, nextStatus);
+      setUser({ ...user, status: nextStatus });
     } catch {
-      setError('No se pudo cambiar el estado del usuario');
+      setError('No se pudo actualizar el estado del usuario');
     } finally {
-      setActionLoading(null);
+      setIsSaving(false);
     }
   };
 
-  // Agrupar permisos por módulo para mostrarlos organizados
-  const permissionsByModule = allPermissions.reduce(
-    (acc, permission) => {
-      if (!acc[permission.module]) acc[permission.module] = [];
-      acc[permission.module].push(permission);
-      return acc;
-    },
-    {} as Record<string, Permission[]>,
-  );
+  const handleTogglePermission = async (permission: Permission) => {
+    if (!user || !canManageUsers) return;
+
+    setIsSaving(true);
+    setError('');
+
+    try {
+      if (hasAssignedPermission(permission.id)) {
+        await revokePermission(user.id, permission.id);
+      } else {
+        await assignPermission(user.id, permission.id);
+      }
+
+      await loadData();
+    } catch {
+      setError('No se pudieron actualizar los permisos del usuario');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (loading) {
+    return <div className="p-6 text-sm text-gray-500">Cargando detalle del usuario...</div>;
+  }
+
+  if (error && !user) {
     return (
-      <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
-        Cargando...
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          onClick={() => navigate('/users')}
+          className="mt-4 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700"
+        >
+          Volver
+        </button>
       </div>
     );
   }
 
-  if (error || !user) {
-    return <div className="text-red-600 text-sm py-4">{error || 'Usuario no encontrado'}</div>;
+  if (!user) {
+    return <div className="p-6 text-sm text-gray-500">Usuario no encontrado.</div>;
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => navigate('/users')}
-          className="text-gray-400 hover:text-gray-600 text-sm cursor-pointer"
-        >
-          ← Volver
-        </button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{user.full_name}</h1>
-          <p className="text-gray-500 text-sm">{user.email}</p>
+          <Link to="/users" className="text-sm text-blue-600 hover:text-blue-800">
+            Volver a usuarios
+          </Link>
+          <h1 className="mt-2 text-2xl font-bold text-gray-900">{user.full_name}</h1>
+          <p className="text-sm text-gray-500">{user.email}</p>
         </div>
+
+        {canManageUsers && (
+          <button
+            onClick={handleToggleStatus}
+            disabled={isSaving}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            style={{ backgroundColor: user.status === 'active' ? '#dc2626' : '#16a34a' }}
+          >
+            {user.status === 'active' ? 'Desactivar usuario' : 'Activar usuario'}
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Datos del usuario */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="font-semibold text-gray-800 mb-4">Información</h2>
-          <div className="space-y-3 text-sm">
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">Resumen</h2>
+          <dl className="mt-4 space-y-3 text-sm">
             <div>
-              <span className="text-gray-500">Estado</span>
-              <div className="mt-1 flex items-center gap-3">
-                <span
-                  className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                    user.status === 'active'
-                      ? 'bg-green-50 text-green-700'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}
-                >
-                  {user.status === 'active' ? 'Activo' : 'Inactivo'}
-                </span>
-                {hasPermission('users', 'update') && (
-                  <button
-                    onClick={handleToggleStatus}
-                    disabled={actionLoading === 'status'}
-                    className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer disabled:opacity-50"
-                  >
-                    {actionLoading === 'status'
-                      ? 'Cambiando...'
-                      : user.status === 'active'
-                        ? 'Desactivar'
-                        : 'Activar'}
-                  </button>
-                )}
-              </div>
+              <dt className="text-gray-500">Estado</dt>
+              <dd className="font-medium text-gray-900">
+                {user.status === 'active' ? 'Activo' : 'Inactivo'}
+              </dd>
             </div>
             <div>
-              <span className="text-gray-500">Rol</span>
-              <p className="mt-1 text-gray-800">{user.roles[0]?.name ?? 'Sin rol asignado'}</p>
+              <dt className="text-gray-500">Rol</dt>
+              <dd className="font-medium text-gray-900">
+                {roleLabelByCode[user.roles[0]?.code ?? ''] ?? user.roles[0]?.name ?? 'Sin rol'}
+              </dd>
             </div>
             <div>
-              <span className="text-gray-500">Creado</span>
-              <p className="mt-1 text-gray-800">
-                {new Date(user.created_at).toLocaleDateString('es', {
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </p>
+              <dt className="text-gray-500">Creado</dt>
+              <dd className="font-medium text-gray-900">
+                {new Date(user.created_at).toLocaleDateString('es-PA')}
+              </dd>
             </div>
+          </dl>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">Perfil</h2>
+          <dl className="mt-4 space-y-3 text-sm">
+            <div>
+              <dt className="text-gray-500">Documento</dt>
+              <dd className="font-medium text-gray-900">{user.document_number ?? 'No definido'}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Telefono</dt>
+              <dd className="font-medium text-gray-900">{user.phone ?? 'No definido'}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Ubicacion</dt>
+              <dd className="font-medium text-gray-900">{user.location ?? 'No definida'}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Formacion</dt>
+              <dd className="font-medium text-gray-900">
+                {user.degree_title ? `${user.degree_title}${user.university ? ` - ${user.university}` : ''}` : 'No definida'}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">Permisos</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              {canManageUsers ? 'Activa o revoca permisos individuales.' : 'Vista solo lectura.'}
+            </p>
           </div>
         </div>
 
-        {/* Permisos */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="font-semibold text-gray-800 mb-4">
-            Permisos
-            <span className="ml-2 text-xs font-normal text-gray-400">
-              {user.permissions.length} activos
-            </span>
-          </h2>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {permissions.map((permission) => {
+            const assigned = hasAssignedPermission(permission.id);
 
-          {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
-
-          <div className="space-y-4">
-            {Object.entries(permissionsByModule).map(([module, permissions]) => (
-              <div key={module}>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                  {module}
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {permissions.map((permission) => {
-                    const active = userHasPermission(permission.id);
-                    const loading = actionLoading === permission.id;
-
-                    return (
-                      <button
-                        key={permission.id}
-                        onClick={() => handleTogglePermission(permission)}
-                        disabled={loading || !hasPermission('users', 'update')}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                                    border transition-colors text-left cursor-pointer
-                                    disabled:opacity-50 disabled:cursor-not-allowed ${
-                                      active
-                                        ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                                    }`}
-                      >
-                        {/* Indicador de estado */}
-                        <span
-                          className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            active ? 'bg-blue-500' : 'bg-gray-300'
-                          }`}
-                        />
-                        <span className="truncate">
-                          {loading ? 'Actualizando...' : permission.action}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
+            return (
+              <button
+                key={permission.id}
+                type="button"
+                disabled={!canManageUsers || isSaving}
+                onClick={() => handleTogglePermission(permission)}
+                className={`rounded-xl border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                  assigned
+                    ? 'border-blue-200 bg-blue-50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <p className="text-sm font-semibold text-gray-900">{permission.description}</p>
+                <p className="mt-1 text-xs uppercase tracking-wide text-gray-500">
+                  {permission.module} / {permission.action}
+                </p>
+                <p className="mt-3 text-xs font-medium text-gray-600">
+                  {assigned ? 'Asignado' : 'No asignado'}
+                </p>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

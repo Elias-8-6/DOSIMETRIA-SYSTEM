@@ -1,55 +1,65 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
-import { UpdateClientDto } from '@clients/dto/update-client.dto';
+import { UpdateClientDto } from '../dto/update-client.dto';
 
-Injectable();
+@Injectable()
 export class UpdateClientUseCase {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async execute(dto: UpdateClientDto, id: string) {
-    const { data: existing } = await this.supabase
-      .getClient()
+  async execute(
+    clientId: string,
+    dto: UpdateClientDto,
+    organizationId: string,
+    requestingUserId: string,
+  ) {
+    const supabase = this.supabase.getClient();
+
+    const { data: existing } = await supabase
       .from('clients')
-      .select('id')
-      .neq('id', id)
+      .select('id, name, status')
+      .eq('id', clientId)
+      .eq('organization_id', organizationId)
       .maybeSingle();
 
-    if (!existing) {
-      throw new ConflictException('No existe este cliente');
-    }
+    if (!existing) throw new NotFoundException('Cliente no encontrado');
 
-    if (dto.code) {
-      const { data: codeConflict } = await this.supabase
-        .getClient()
-        .from('clients')
-        .select('id')
-        .eq('code', dto.code)
-        .neq('id', id)
-        .maybeSingle();
-
-      if (codeConflict) {
-        throw new ConflictException('Ya existe este cliente');
-      }
-    }
-
-    const { data, error } = await this.supabase
-      .getClient()
+    const { data, error } = await supabase
       .from('clients')
       .update({
         ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.code !== undefined && { code: dto.code }),
-        ...(dto.contact_name !== undefined && {
-          contact_name: dto.contact_name,
+        ...(dto.contact_name !== undefined && { contact_name: dto.contact_name }),
+        ...(dto.contact_email !== undefined && { contact_email: dto.contact_email }),
+        ...(dto.phone !== undefined && { phone: dto.phone }),
+        ...(dto.address !== undefined && { address: dto.address }),
+        ...(dto.website !== undefined && { website: dto.website }),
+        ...(dto.client_type !== undefined && { client_type: dto.client_type }),
+        ...(dto.contract_start_date !== undefined && {
+          contract_start_date: dto.contract_start_date,
         }),
-        ...(dto.contact_email !== undefined && {
-          contact_email: dto.contact_email,
-        }),
+        ...(dto.contract_end_date !== undefined && { contract_end_date: dto.contract_end_date }),
       })
-      .eq('id', id)
-      .select('id, code, name, contact_name, contact_email, status, created_at')
+      .eq('id', clientId)
+      .select(
+        `
+        id, code, name, contact_name, contact_email,
+        phone, address, website, client_type,
+        contract_start_date, contract_end_date,
+        status, created_at
+      `,
+      )
       .single();
 
     if (error) throw new Error(error.message);
+
+    // Audit log
+    await supabase.from('audit_logs').insert({
+      user_id: requestingUserId,
+      entity_name: 'clients',
+      entity_id: clientId,
+      action: 'UPDATE',
+      old_values: { name: existing.name },
+      new_values: dto,
+    });
 
     return data;
   }

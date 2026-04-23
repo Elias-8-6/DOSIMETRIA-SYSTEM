@@ -1,108 +1,112 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
 import { UpdateUserDto } from '../dto/update-user.dto';
 
 @Injectable()
 export class UpdateUserUseCase {
-  private readonly logger = new Logger(UpdateUserUseCase.name);
-
   constructor(private readonly supabase: SupabaseService) {}
 
-  /**
-   * execute()
-   *
-   * Actualiza full_name y/o email de un usuario existente.
-   * Solo actualiza los campos que llegaron en el DTO.
-   *
-   * @param userId         ID del usuario a actualizar
-   * @param dto            Campos a actualizar (todos opcionales)
-   * @param organizationId Organización del admin — para aislamiento multi-tenant
-   * @param requestingUserId user_id del admin que hace el request — para audit_log
-   */
   async execute(
     userId: string,
     dto: UpdateUserDto,
     organizationId: string,
     requestingUserId: string,
   ) {
+    const id = userId;
     const client = this.supabase.getClient();
 
-    // 1. Verificar que el usuario existe en la organización
-    // Un admin no puede editar usuarios de otras organizaciones.
-    const { data: existingUser } = await client
+    // Verificar que el usuario existe en la misma organización
+    const { data: existing } = await client
       .from('users')
-      .select('id, full_name, email, status')
-      .eq('id', userId)
+      .select('id')
+      .eq('id', id)
       .eq('organization_id', organizationId)
       .maybeSingle();
 
-    if (!existingUser) {
-      throw new NotFoundException('Usuario no encontrado en esta organización');
-    }
+    if (!existing) throw new NotFoundException(`Usuario ${id} no encontrado`);
 
-    //Verificar que el nuevo email no esté tomado
-    // Solo si viene un email nuevo y es diferente al actual.
-    if (dto.email && dto.email !== existingUser.email) {
-      const { data: emailTaken } = await client
+    // Verificar unicidad de document_number si se está cambiando
+    if (dto.document_number) {
+      const { data: docConflict } = await client
         .from('users')
         .select('id')
-        .eq('email', dto.email)
-        .eq('organization_id', organizationId)
-        .neq('id', userId) // excluir al propio usuario
+        .eq('document_number', dto.document_number)
+        .neq('id', id)
         .maybeSingle();
 
-      if (emailTaken) {
-        throw new ConflictException(`El email '${dto.email}' ya está en uso en esta organización`);
+      if (docConflict) {
+        throw new ConflictException(
+          `El número de documento '${dto.document_number}' ya está registrado`,
+        );
       }
     }
 
-    //Construir solo los campos que llegaron en el DTO
-    // Si un campo es undefined no se incluye en el UPDATE.
-    // Esto permite actualizar solo full_name sin tocar el email y viceversa.
-    const updateData: Record<string, any> = {};
+    // Verificar unicidad de email si se está cambiando
+    if (dto.email) {
+      const { data: emailConflict } = await client
+        .from('users')
+        .select('id')
+        .eq('email', dto.email)
+        .neq('id', id)
+        .maybeSingle();
 
-    if (dto.full_name !== undefined) updateData.full_name = dto.full_name;
-    if (dto.email !== undefined) updateData.email = dto.email;
-
-    // Si no llegó ningún campo válido, no tiene sentido hacer el UPDATE
-    if (Object.keys(updateData).length === 0) {
-      throw new BadRequestException(
-        'No hay campos para actualizar — enviá al menos full_name o email',
-      );
+      if (emailConflict) {
+        throw new ConflictException(`El email '${dto.email}' ya está registrado`);
+      }
     }
 
-    //Actualizar el usuario
-    const { data: updatedUser, error } = await client
+    const { data, error } = await client
       .from('users')
-      .update(updateData)
-      .eq('id', userId)
-      .select('id, full_name, email, status, created_at')
-      .single();
+      .update({
+        ...(dto.full_name !== undefined && { full_name: dto.full_name }),
+        ...(dto.email !== undefined && { email: dto.email }),
+        ...(dto.degree_title !== undefined && { degree_title: dto.degree_title }),
+        ...(dto.university !== undefined && { university: dto.university }),
+        ...(dto.location !== undefined && { location: dto.location }),
+        ...(dto.document_number !== undefined && { document_number: dto.document_number }),
+        ...(dto.phone !== undefined && { phone: dto.phone }),
+        ...(dto.date_of_birth !== undefined && { date_of_birth: dto.date_of_birth }),
+        ...(dto.hire_date !== undefined && { hire_date: dto.hire_date }),
+      })
+      .eq('id', id)
+      .select(
+        `
+        id, full_name, email, status, created_at,
+        degree_title, university, location,
+        document_number, phone, date_of_birth, hire_date
+      `,
+      )
+      .maybeSingle();
 
-    if (error || !updatedUser) {
-      this.logger.error('Error al actualizar usuario:', error);
-      throw new Error('No se pudo actualizar el usuario');
+    if (error) throw new Error(error.message);
+
+    if (dto.role_code) {
+      const { data: role } = await client
+        .from('roles')
+        .select('id')
+        .eq('code', dto.role_code)
+        .maybeSingle();
+
+      if (!role) throw new NotFoundException(`El rol '${dto.role_code}' no existe`);
+
+      // Eliminar rol actual y asignar el nuevo
+      await client.from('user_roles').delete().eq('user_id', userId);
+
+      await client.from('user_roles').insert({
+        user_id: userId,
+        role_id: role.id,
+      });
     }
 
-    //  Registrar en audit_logs
+    // Audit log
     await client.from('audit_logs').insert({
       user_id: requestingUserId,
       entity_name: 'users',
       entity_id: userId,
       action: 'UPDATE',
-      old_values: {
-        full_name: existingUser.full_name,
-        email: existingUser.email,
-      },
-      new_values: updateData,
+      new_values: dto,
     });
 
-    return updatedUser;
+    return data;
   }
 }

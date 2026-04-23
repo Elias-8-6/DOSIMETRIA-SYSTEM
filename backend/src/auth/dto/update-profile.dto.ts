@@ -1,6 +1,6 @@
 import { IsDateString, IsEmail, IsOptional, IsString } from 'class-validator';
 
-export class UpdateUserDto {
+export class UpdateProfileDto {
   @IsString()
   @IsOptional()
   full_name?: string;
@@ -9,6 +9,7 @@ export class UpdateUserDto {
   @IsOptional()
   email?: string;
 
+  // Migración 012
   @IsString()
   @IsOptional()
   degree_title?: string;
@@ -21,6 +22,7 @@ export class UpdateUserDto {
   @IsOptional()
   location?: string;
 
+  // Migración 013
   @IsString()
   @IsOptional()
   document_number?: string;
@@ -29,15 +31,7 @@ export class UpdateUserDto {
   @IsOptional()
   phone?: string;
 
-  @IsDateString({}, { message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)' })
+  @IsDateString({}, { message: 'La fecha de nacimiento debe ser YYYY-MM-DD' })
   @IsOptional()
   date_of_birth?: string;
-
-  @IsDateString({}, { message: 'La fecha de contratación debe ser una fecha válida (YYYY-MM-DD)' })
-  @IsOptional()
-  hire_date?: string;
-
-  @IsString()
-  @IsOptional()
-  role_code?: string;
 }

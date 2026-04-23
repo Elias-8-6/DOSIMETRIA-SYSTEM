@@ -1,30 +1,44 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
-import { QueryClientsDto } from '@clients/dto/query-clients.dto';
 
 @Injectable()
-export class FindAllClientsUseCases {
+export class FindAllClientsUseCase {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async execute(query: QueryClientsDto) {
-    let q = this.supabase
+  async execute(organizationId: string, search?: string, status?: string, clientType?: string) {
+    let query = this.supabase
       .getClient()
       .from('clients')
-      .select('id, code, name, contact_name, contact_email, status, createdAt, updated_at')
+      .select(
+        `
+        id, code, name, contact_name, contact_email,
+        phone, address, website, client_type,
+        contract_start_date, contract_end_date,
+        status, created_at,
+        client_locations(id, name, status)
+      `,
+      )
+      .eq('organization_id', organizationId)
       .order('name', { ascending: true });
 
-    if (query.search) {
-      q = q.or('name.ilike.%${query.search}%,code.ilike.%${query.search}%');
+    if (status) {
+      query = query.eq('status', status);
     }
 
-    if (query.search) {
-      q = q.eq('status', query.search);
+    if (clientType) {
+      query = query.eq('client_type', clientType);
     }
 
-    const { data, error } = await q;
+    if (search) {
+      query = query.or(
+        `name.ilike.%${search}%,code.ilike.%${search}%,contact_name.ilike.%${search}%`,
+      );
+    }
 
-    if (error) throw new Error(error.message);
+    const { data, error } = await query;
 
-    return data;
+    if (error) throw new Error('No se pudo obtener el listado de clientes');
+
+    return data ?? [];
   }
 }

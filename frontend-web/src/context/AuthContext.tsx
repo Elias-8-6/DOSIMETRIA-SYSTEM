@@ -1,38 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { login as loginApi, logout as logoutApi, getProfile } from '../api/auth.api';
-import type { LoginCredentials } from '../api/auth.api';
+import type { LoginCredentials, UserProfile } from '../api/auth.api';
 import { AuthContext } from './auth.context';
-import type { UserProfile} from "../api/auth.api";
 
-/**
- * AuthProvider — envuelve toda la app y provee el estado de autenticación.
- * Se registra en main.tsx rodeando al router.
- */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user,      setUser]      = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  /**
-   * Al montar el provider, verificar si hay una sesión activa.
-   * Si hay un access_token en localStorage, cargar el perfil del usuario.
-   * Esto mantiene la sesión entre recargas de página.
-   */
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('access_token');
-
       if (!token) {
         setIsLoading(false);
         return;
       }
-
       try {
-        // Si hay token, cargar el perfil completo con permisos
         const profile = await getProfile();
         setUser(profile);
       } catch {
-        // El token expiró o es inválido — limpiar todo
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
@@ -40,35 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     };
-
     initAuth();
   }, []);
 
-  /**
-   * login()
-   * 1. Llama al backend con email y password
-   * 2. Guarda los tokens en localStorage
-   * 3. Carga el perfil completo con permisos
-   * 4. Actualiza el estado global
-   */
   const login = useCallback(async (credentials: LoginCredentials) => {
     const response = await loginApi(credentials);
-
-    // Guardar tokens en localStorage
-    localStorage.setItem('access_token', response.access_token);
+    localStorage.setItem('access_token',  response.access_token);
     localStorage.setItem('refresh_token', response.refresh_token);
-
-    // Cargar perfil completo con permisos para el contexto
     const profile = await getProfile();
     setUser(profile);
   }, []);
 
-  /**
-   * logout()
-   * 1. Llama al backend para revocar el refresh token
-   * 2. Limpia localStorage
-   * 3. Limpia el estado global
-   */
   const logout = useCallback(async () => {
     try {
       await logoutApi();
@@ -83,17 +51,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * hasPermission()
-   * Verifica si el usuario tiene un permiso específico.
-   * Los componentes lo usan para mostrar u ocultar elementos de la UI.
-   *
-   * Ejemplo:
-   *   hasPermission('users', 'create') → true/false
+   * refreshProfile — recarga el perfil completo desde el backend.
+   * Se llama después de actualizar datos en ProfileModal para que
+   * el Sidebar y cualquier otro componente reflejen los cambios.
    */
+  const refreshProfile = useCallback(async () => {
+    try {
+      const profile = await getProfile();
+      setUser(profile);
+    } catch {
+      // Si falla, mantener el perfil actual sin cambios
+    }
+  }, []);
+
   const hasPermission = useCallback(
     (module: string, action: string): boolean => {
       if (!user) return false;
-      return user.permissions.some((p) => p.module === module && p.action === action);
+      return user.permissions.some(
+        (p) => p.module === module && p.action === action,
+      );
     },
     [user],
   );
@@ -107,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         hasPermission,
+        refreshProfile,  // ← nuevo
       }}
     >
       {children}

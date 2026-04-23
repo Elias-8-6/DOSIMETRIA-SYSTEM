@@ -1,1 +1,1 @@
-select * from user_permissions;
+select * from users;

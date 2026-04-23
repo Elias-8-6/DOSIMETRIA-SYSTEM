@@ -1,49 +1,49 @@
-import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { JwtGuard } from '@common/guards/jwt.guard';
-import { PermissionsGuard } from '@common/guards/permissions.guard';
-import { CurrentUser } from '@common/decorators/current-user.decorator';
-import { CheckPermission } from '@common/decorators/check-permission.decorator';
-import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
-import { JwtRefreshGuard } from '@common/guards/jwt-refresh.guard';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { JwtGuard } from '../common/guards/jwt.guard';
+import { JwtRefreshGuard } from '../common/guards/jwt-refresh.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  /**
-   * POST /auth/login
-   * Endpoint público — no requiere token.
-   */
   @Post('login')
-  @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
 
-  /**
-   * GET /auth/profile
-   * Requiere JWT válido.
-   * Retorna perfil completo con roles y permisos activos.
-   */
-  @Get('profile')
   @UseGuards(JwtGuard)
+  @Get('profile')
   getProfile(@CurrentUser() user: JwtPayload) {
-    return this.authService.getProfile(user);
+    return this.authService.getProfile(user); // ← pasa el objeto completo
   }
 
-  @Post('logout')
-  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtRefreshGuard)
+  @Post('refresh')
+  refresh(@CurrentUser() user: JwtPayload & { refreshToken: string }) {
+    return this.authService.refreshToken(user.sub, user.refreshToken); // ← refreshToken
+  }
+
   @UseGuards(JwtGuard)
+  @Post('logout')
   logout(@CurrentUser() user: JwtPayload) {
     return this.authService.logout(user.sub);
   }
 
-  @Post('refresh')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtRefreshGuard)
-  refresh(@CurrentUser() user: JwtPayload & { refreshToken: string }) {
-    return this.authService.refreshToken(user.sub, user.refreshToken);
+  @UseGuards(JwtGuard)
+  @Patch('profile')
+  updateProfile(@CurrentUser() user: JwtPayload, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(user.sub, dto);
+  }
+
+  @UseGuards(JwtGuard)
+  @Patch('password')
+  changePassword(@CurrentUser() user: JwtPayload, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(user.sub, dto);
   }
 }

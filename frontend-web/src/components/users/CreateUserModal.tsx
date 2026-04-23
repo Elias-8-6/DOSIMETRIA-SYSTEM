@@ -41,6 +41,9 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
     } else if (form.password.length < 8) {
       newErrors.password = 'Mínimo 8 caracteres';
     }
+    if (!form.role_code) {
+      newErrors.role_code = 'El rol es requerido';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -54,8 +57,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
         full_name: form.full_name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
+        role_code: form.role_code,
       };
-      if (form.role_code) dto.role_code = form.role_code;
       await createUser(dto);
       setForm({ full_name: '', email: '', password: '', role_code: '' });
       onSuccess();
@@ -197,10 +200,10 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
             )}
           </div>
 
-          {/* Rol (opcional) */}
+          {/* Rol */}
           <div>
             <label className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
-              Rol inicial <span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>(opcional)</span>
+              Rol inicial <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <select
               value={form.role_code}
@@ -208,18 +211,22 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
               className="w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
               style={{
                 backgroundColor: 'var(--color-input-bg)',
-                border: '1.5px solid var(--color-border)',
+                border: errors.role_code ? '1.5px solid #ef4444' : '1.5px solid var(--color-border)',
                 color: form.role_code ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
               }}
             >
-              <option value="">Sin rol asignado</option>
+              <option value="">Seleccionar rol</option>
               {ROLES.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
-            <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Los permisos se asignan individualmente desde el detalle del usuario.
-            </p>
+            {errors.role_code ? (
+              <p className="mt-1 text-xs" style={{ color: '#ef4444' }}>{errors.role_code}</p>
+            ) : (
+              <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                Los permisos se asignan individualmente desde el detalle del usuario.
+              </p>
+            )}
           </div>
         </div>
 

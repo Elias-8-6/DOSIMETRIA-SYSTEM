@@ -1,14 +1,7 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
-
-enum ClientStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-}
+import { IsIn, IsNotEmpty } from 'class-validator';
 
 export class UpdateClientStatusDto {
-  @IsNotEmpty()
-  @IsEnum(ClientStatus, {
-    message: 'El estado del cliente solo puede ser activo o inactivo',
-  })
-  status: ClientStatus;
+  @IsIn(['active', 'inactive'], { message: 'El estado debe ser active o inactive' })
+  @IsNotEmpty({ message: 'El estado es requerido' })
+  status: 'active' | 'inactive';
 }

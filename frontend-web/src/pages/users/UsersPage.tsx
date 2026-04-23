@@ -12,13 +12,14 @@ export function UsersPage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
 
-  const [users,       setUsers]       = useState<User[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState('');
-  const [search,      setSearch]      = useState('');
-  const [status,      setStatus]      = useState('');
-  const [showModal,   setShowModal]   = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [modalKey, setModalKey] = useState(0);
 
   // fetchUsers extraído como función del componente para poder llamarla
   // tanto desde el useEffect como desde handleSuccess
@@ -46,17 +47,20 @@ export function UsersPage() {
 
   const handleOpenCreate = () => {
     setEditingUser(null);
+    setModalKey((k) => k + 1);
     setShowModal(true);
   };
 
   const handleOpenEdit = (user: User) => {
     setEditingUser(user);
+    setModalKey((k) => k + 1);
     setShowModal(true);
   };
 
   const handleClose = () => {
     setShowModal(false);
     setEditingUser(null);
+    setModalKey((k) => k + 1);
   };
 
   // Al guardar exitosamente, recarga la lista completa desde el backend.
@@ -67,14 +71,11 @@ export function UsersPage() {
 
   return (
     <div>
-
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            Gestión de usuarios del sistema
-          </p>
+          <p className="text-gray-500 mt-1 text-sm">Gestión de usuarios del sistema</p>
         </div>
         {hasPermission('users', 'create') && (
           <button
@@ -111,16 +112,11 @@ export function UsersPage() {
 
       {/* Tabla */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-
         {loading && (
-          <div className="px-6 py-12 text-center text-gray-400 text-sm">
-            Cargando usuarios...
-          </div>
+          <div className="px-6 py-12 text-center text-gray-400 text-sm">Cargando usuarios...</div>
         )}
 
-        {error && (
-          <div className="px-6 py-4 text-red-600 text-sm">{error}</div>
-        )}
+        {error && <div className="px-6 py-4 text-red-600 text-sm">{error}</div>}
 
         {!loading && !error && users.length === 0 && (
           <div className="px-6 py-12 text-center text-gray-400 text-sm">
@@ -141,23 +137,18 @@ export function UsersPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {users.map((user) => (
-                <tr
-                  key={user.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {user.full_name}
-                  </td>
+                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-gray-900">{user.full_name}</td>
                   <td className="px-6 py-4 text-gray-600">{user.email}</td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {user.roles[0]?.name ?? '—'}
-                  </td>
+                  <td className="px-6 py-4 text-gray-600">{user.roles[0]?.name ?? '—'}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                      user.status === 'active'
-                        ? 'bg-green-50 text-green-700'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}>
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                        user.status === 'active'
+                          ? 'bg-green-50 text-green-700'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
                       {user.status === 'active' ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
@@ -175,7 +166,7 @@ export function UsersPage() {
                         onClick={() => navigate(`/users/${user.id}`)}
                         className="text-blue-600 hover:text-blue-800 text-sm cursor-pointer"
                       >
-                        Ver detalle
+                        Permisos
                       </button>
                     </div>
                   </td>
@@ -189,6 +180,7 @@ export function UsersPage() {
       {/* Modal — se monta solo cuando showModal es true */}
       {showModal && (
         <UserFormModal
+          key={modalKey}
           user={editingUser}
           onClose={handleClose}
           onSuccess={handleSuccess}
