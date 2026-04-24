@@ -199,7 +199,7 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Cédula / DNI</label>
+                <label className={labelClass}>Cédula / DNI*</label>
                 <input
                   type="text"
                   value={documentNumber}
@@ -209,7 +209,7 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
                 />
               </div>
               <div>
-                <label className={labelClass}>Teléfono</label>
+                <label className={labelClass}>Teléfono*</label>
                 <input
                   type="text"
                   value={phone}

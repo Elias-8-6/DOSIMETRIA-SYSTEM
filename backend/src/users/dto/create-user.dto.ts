@@ -31,12 +31,12 @@ export class CreateUserDto {
   location?: string;
 
   // Campos nuevos (migración 013)
-  @IsString()
-  @IsOptional()
+  @IsString({ message: '**' })
+  @IsNotEmpty({ message: 'La Cédula/DNI es un campo requerido' })
   document_number?: string;
 
-  @IsString()
-  @IsOptional()
+  @IsString({ message: '**' })
+  @IsNotEmpty({ message: 'El telofono es un campo requerido' })
   phone?: string;
 
   @IsDateString({}, { message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)' })
