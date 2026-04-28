@@ -104,7 +104,7 @@ export function LocationFormModal({ clientId, location, onClose, onSuccess }: Pr
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none cursor-pointer"
+            className="text-gray-500 hover:text-gray-600 text-xl leading-none cursor-pointer"
           >
             ×
           </button>
@@ -112,7 +112,7 @@ export function LocationFormModal({ clientId, location, onClose, onSuccess }: Pr
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className={labelClass}>Nombre de la sede *</label>
+            <label className={labelClass}>Nombre del Departamento *</label>
             <input
               type="text"
               value={name}
@@ -146,7 +146,7 @@ export function LocationFormModal({ clientId, location, onClose, onSuccess }: Pr
               />
             </div>
             <div>
-              <label className={labelClass}>Responsable de dosimetría</label>
+              <label className={labelClass}>Nombre del contacto</label>
               <input
                 type="text"
                 value={contactName}

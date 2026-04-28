@@ -128,7 +128,7 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+        <form autoComplete="off" onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
           {/* ── Sección: Datos básicos ────────────────────────────── */}
           <div>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">

@@ -23,12 +23,10 @@ import { CheckPermission } from '@common/decorators/check-permission.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
 
-
 @Controller('clients')
 @UseGuards(JwtGuard, PermissionsGuard)
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
-
 
   @Get()
   @CheckPermission('clients', 'read')
@@ -38,9 +36,10 @@ export class ClientsController {
       query.search,
       query.status,
       query.client_type,
+      query.page ? parseInt(query.page) : 1,
+      query.limit ? parseInt(query.limit) : 10,
     );
   }
-
 
   @Get(':id')
   @CheckPermission('clients', 'read')
@@ -48,13 +47,11 @@ export class ClientsController {
     return this.clientsService.findOne(id, user.organization_id);
   }
 
-
   @Post()
   @CheckPermission('clients', 'create')
   create(@Body() dto: CreateClientDto, @CurrentUser() user: JwtPayload) {
     return this.clientsService.create(dto, user.organization_id, user.sub);
   }
-
 
   @Patch(':id')
   @CheckPermission('clients', 'update')
@@ -66,7 +63,6 @@ export class ClientsController {
     return this.clientsService.update(id, dto, user.organization_id, user.sub);
   }
 
-
   @Patch(':id/status')
   @HttpCode(HttpStatus.OK)
   @CheckPermission('clients', 'update')
@@ -77,7 +73,6 @@ export class ClientsController {
   ) {
     return this.clientsService.updateStatus(id, dto, user.organization_id, user.sub);
   }
-
 
   @Post(':id/locations')
   @CheckPermission('clients', 'update')
@@ -99,7 +94,6 @@ export class ClientsController {
   ) {
     return this.clientsService.updateLocation(id, locationId, dto, user.organization_id);
   }
-
 
   @Patch(':id/locations/:locationId/status')
   @HttpCode(HttpStatus.OK)

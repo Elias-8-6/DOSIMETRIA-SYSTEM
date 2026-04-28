@@ -25,7 +25,6 @@ export function Sidebar() {
   return (
     <>
       <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col">
-
         {/* Logo */}
         <div className="px-5 py-5 border-b border-gray-200">
           <h1 className="text-base font-bold text-gray-900">Dosimetría</h1>
@@ -57,21 +56,21 @@ export function Sidebar() {
             onClick={() => setShowProfile(true)}
             className="w-full text-left mb-3 group cursor-pointer"
           >
-            <p className="text-sm font-medium text-gray-800 truncate
-                          group-hover:text-blue-600 transition-colors">
+            <p
+              className="text-sm font-medium text-gray-800 truncate
+                          group-hover:text-blue-600 transition-colors"
+            >
               {user?.full_name}
             </p>
             <p className="text-xs text-gray-400 truncate">{user?.email}</p>
             {user?.roles[0] && (
-              <span className="inline-block mt-1 text-xs bg-blue-50 text-blue-600
-                               px-2 py-0.5 rounded-full">
+              <span
+                className="inline-block mt-1 text-xs bg-blue-50 text-blue-600
+                               px-2 py-0.5 rounded-full"
+              >
                 {user.roles[0].name}
               </span>
             )}
-            <p className="text-xs text-blue-500 mt-1 opacity-0 group-hover:opacity-100
-                          transition-opacity">
-              Editar perfil
-            </p>
           </button>
 
           <button
@@ -82,13 +81,10 @@ export function Sidebar() {
             Cerrar sesión
           </button>
         </div>
-
       </aside>
 
       {/* Modal de perfil — fuera del aside para evitar problemas de z-index */}
-      {showProfile && (
-        <ProfileModal onClose={() => setShowProfile(false)} />
-      )}
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
     </>
   );
 }

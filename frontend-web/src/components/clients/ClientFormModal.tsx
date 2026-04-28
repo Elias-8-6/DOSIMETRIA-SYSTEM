@@ -127,7 +127,7 @@ export function ClientFormModal({ client, onClose, onSuccess }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+        <form autoComplete="off" onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
           {/* Datos institucionales */}
           <div>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">

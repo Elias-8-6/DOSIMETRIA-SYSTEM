@@ -123,7 +123,7 @@ export function ClientDetailModal({ client, onClose, onUpdate, onEdit }: Props) 
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onEdit(localClient)}
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 border bg-gray-200 border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
               >
                 Editar
               </button>
@@ -132,8 +132,8 @@ export function ClientDetailModal({ client, onClose, onUpdate, onEdit }: Props) 
                 disabled={statusLoading}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed ${
                   localClient.status === 'active'
-                    ? 'text-red-600 border border-red-200 hover:bg-red-50'
-                    : 'text-green-600 border border-green-200 hover:bg-green-50'
+                    ? 'text-red-600 border bg-red-200 border-red-200 hover:bg-red-300'
+                    : 'text-green-900 border bg-green-200 border-green-500 hover:bg-green-300'
                 }`}
               >
                 {statusLoading ? '...' : localClient.status === 'active' ? 'Desactivar' : 'Activar'}
@@ -194,19 +194,19 @@ export function ClientDetailModal({ client, onClose, onUpdate, onEdit }: Props) 
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  Sedes ({localClient.client_locations.length})
+                  Departamentos ({localClient.client_locations.length})
                 </h3>
                 <button
                   onClick={() => setLocationModal({ open: true, location: null })}
                   className="text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer"
                 >
-                  + Agregar sede
+                  + Agregar departamento
                 </button>
               </div>
 
               {localClient.client_locations.length === 0 ? (
                 <p className="text-sm text-gray-400 py-4 text-center border border-dashed border-gray-200 rounded-lg">
-                  Sin sedes registradas
+                  Sin departamentos registradas
                 </p>
               ) : (
                 <div className="space-y-2">

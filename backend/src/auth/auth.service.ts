@@ -74,7 +74,9 @@ export class AuthService {
     // Query 1: datos base del usuario
     const { data: userData, error: userError } = await client
       .from('users')
-      .select('id, full_name, email, status, created_at, organization_id')
+      .select(
+        `id, full_name, email, status, created_at, organization_id, degree_title, university, location, document_number, phone, date_of_birth, hire_date`,
+      )
       .eq('id', user.sub)
       .single();
 
@@ -113,6 +115,14 @@ export class AuthService {
       organization: orgData?.name ?? null,
       roles,
       permissions,
+
+      degree_title: userData.degree_title ?? null,
+      university: userData.university ?? null,
+      location: userData.location ?? null,
+      document_number: userData.document_number ?? null,
+      phone: userData.phone ?? null,
+      date_of_birth: userData.date_of_birth ?? null,
+      hire_date: userData.hire_date ?? null,
     };
   }
 

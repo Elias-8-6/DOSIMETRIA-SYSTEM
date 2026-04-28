@@ -21,8 +21,22 @@ export class ClientsService {
     private readonly manageClientLocationsUseCase: ManageClientLocationsUseCase,
   ) {}
 
-  findAll(organizationId: string, search?: string, status?: string, clientType?: string) {
-    return this.findAllClientsUseCase.execute(organizationId, search, status, clientType);
+  findAll(
+    organizationId: string,
+    search?: string,
+    status?: string,
+    clientType?: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    return this.findAllClientsUseCase.execute(
+      organizationId,
+      search,
+      status,
+      clientType,
+      page,
+      limit,
+    );
   }
 
   findOne(clientId: string, organizationId: string) {

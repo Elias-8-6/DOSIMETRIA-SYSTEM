@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Client, ClientType } from '../../api/clients.api.ts';
-import { getClients, updateClientStatus } from '../../api/clients.api.ts';
+import { getClients } from '../../api/clients.api.ts';
 import { ClientFormModal } from '../../components/clients/ClientFormModal';
 import { ClientDetailModal } from '../../components/clients/ClientDetailModal';
 
@@ -30,6 +30,11 @@ export default function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
+  //paginación
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const PAGE_SIZE = 10; // clientes por página
+
   const [modalKey, setModalKey] = useState(0);
   const [formModal, setFormModal] = useState<{ open: boolean; client: Client | null }>({
     open: false,
@@ -47,19 +52,26 @@ export default function ClientsPage() {
         search: search || undefined,
         status: statusFilter || undefined,
         client_type: typeFilter || undefined,
+        page,
+        limit: PAGE_SIZE,
       });
-      setClients(data);
+      setClients(data.items);
+      setTotalPages(Math.ceil(data.total / PAGE_SIZE));
     } catch {
-      // silencioso — el usuario ve la tabla vacía
+      // silencioso
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, typeFilter]);
+  }, [search, statusFilter, typeFilter, page]);
 
   useEffect(() => {
     const timer = setTimeout(fetchClients, 300);
     return () => clearTimeout(timer);
   }, [fetchClients]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, typeFilter, setPage]);
 
   const handleFormSuccess = useCallback(() => {
     fetchClients();
@@ -78,16 +90,16 @@ export default function ClientsPage() {
     setFormModal({ open: true, client });
   };
 
-  const handleQuickStatus = async (client: Client, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newStatus = client.status === 'active' ? 'inactive' : 'active';
-    try {
-      await updateClientStatus(client.id, newStatus);
-      setClients((prev) => prev.map((c) => (c.id === client.id ? { ...c, status: newStatus } : c)));
-    } catch {
-      // silencioso
-    }
-  };
+  // const handleQuickStatus = async (client: Client, e: React.MouseEvent) => {
+  //   e.stopPropagation();
+  //   const newStatus = client.status === 'active' ? 'inactive' : 'active';
+  //   try {
+  //     await updateClientStatus(client.id, newStatus);
+  //     setClients((prev) => prev.map((c) => (c.id === client.id ? { ...c, status: newStatus } : c)));
+  //   } catch {
+  //     // silencioso
+  //   }
+  // };
 
   return (
     <div className="p-6">
@@ -201,29 +213,10 @@ export default function ClientsPage() {
                   <td className="px-4 py-3">
                     <div className="flex gap-3 justify-end">
                       <button
-                        onClick={() => {
-                          setModalKey((k) => k + 1);
-                          setFormModal({ open: true, client });
-                        }}
-                        className="text-gray-500 hover:text-gray-700 cursor-pointer"
-                      >
-                        Editar
-                      </button>
-                      <button
                         onClick={() => setDetailModal({ open: true, client })}
                         className="text-blue-600 hover:text-blue-700 cursor-pointer"
                       >
                         Ver detalle
-                      </button>
-                      <button
-                        onClick={(e) => handleQuickStatus(client, e)}
-                        className={`cursor-pointer ${
-                          client.status === 'active'
-                            ? 'text-red-500 hover:text-red-700'
-                            : 'text-green-600 hover:text-green-700'
-                        }`}
-                      >
-                        {client.status === 'active' ? 'Desactivar' : 'Activar'}
                       </button>
                     </div>
                   </td>
@@ -233,6 +226,33 @@ export default function ClientsPage() {
           </tbody>
         </table>
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+          <p className="text-sm text-gray-500">
+            Página {page} de {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg
+                   text-gray-600 hover:border-gray-400 disabled:opacity-40
+                   disabled:cursor-not-allowed cursor-pointer"
+            >
+              Anterior
+            </button>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg
+                   text-gray-600 hover:border-gray-400 disabled:opacity-40
+                   disabled:cursor-not-allowed cursor-pointer"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modales */}
       {formModal.open && (

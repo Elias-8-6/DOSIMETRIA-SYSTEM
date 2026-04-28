@@ -45,10 +45,7 @@ export function UserDetailPage() {
     setError('');
 
     try {
-      const [userData, permissionData] = await Promise.all([
-        getUserById(id),
-        getPermissions(),
-      ]);
+      const [userData, permissionData] = await Promise.all([getUserById(id), getPermissions()]);
       setUser(userData);
       setPermissions(permissionData);
     } catch {
@@ -148,7 +145,11 @@ export function UserDetailPage() {
         )}
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -193,7 +194,9 @@ export function UserDetailPage() {
             <div>
               <dt className="text-gray-500">Formacion</dt>
               <dd className="font-medium text-gray-900">
-                {user.degree_title ? `${user.degree_title}${user.university ? ` - ${user.university}` : ''}` : 'No definida'}
+                {user.degree_title
+                  ? `${user.degree_title}${user.university ? ` - ${user.university}` : ''}`
+                  : 'No definida'}
               </dd>
             </div>
           </dl>
@@ -203,39 +206,65 @@ export function UserDetailPage() {
       <section className="rounded-xl border border-gray-200 bg-white p-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">Permisos</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+              Permisos
+            </h2>
             <p className="mt-1 text-sm text-gray-500">
               {canManageUsers ? 'Activa o revoca permisos individuales.' : 'Vista solo lectura.'}
             </p>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {permissions.map((permission) => {
-            const assigned = hasAssignedPermission(permission.id);
-
-            return (
-              <button
-                key={permission.id}
-                type="button"
-                disabled={!canManageUsers || isSaving}
-                onClick={() => handleTogglePermission(permission)}
-                className={`rounded-xl border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+        <div className="mt-4 space-y-5">
+          {Object.entries(
+            permissions.reduce(
+              (acc, permission) => {
+                if (!acc[permission.module]) acc[permission.module] = [];
+                acc[permission.module].push(permission);
+                return acc;
+              },
+              {} as Record<string, Permission[]>,
+            ),
+          ).map(([module, modulePermissions]) => (
+            <div key={module}>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                {module}
+              </h3>
+              <div className="space-y-1">
+                {modulePermissions.map((permission) => {
+                  const assigned = hasAssignedPermission(permission.id);
+                  return (
+                    <label
+                      key={permission.id}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors
+                ${
                   assigned
                     ? 'border-blue-200 bg-blue-50'
                     : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <p className="text-sm font-semibold text-gray-900">{permission.description}</p>
-                <p className="mt-1 text-xs uppercase tracking-wide text-gray-500">
-                  {permission.module} / {permission.action}
-                </p>
-                <p className="mt-3 text-xs font-medium text-gray-600">
-                  {assigned ? 'Asignado' : 'No asignado'}
-                </p>
-              </button>
-            );
-          })}
+                }
+                ${!canManageUsers || isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
+              `}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={assigned}
+                        disabled={!canManageUsers || isSaving}
+                        onChange={() => handleTogglePermission(permission)}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600
+                           focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800">{permission.description}</p>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
+                          {permission.action}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>

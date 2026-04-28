@@ -70,8 +70,10 @@ export const getClients = async (params?: {
   search?: string;
   status?: string;
   client_type?: string;
-}): Promise<Client[]> => {
-  const { data } = await api.get<Client[]>('/clients', { params });
+  page?: number;
+  limit?: number;
+}): Promise<{ items: Client[]; total: number }> => {
+  const { data } = await api.get<{ items: Client[]; total: number }>('/clients', { params });
   return data;
 };
 
