@@ -1,29 +1,43 @@
-import {
-  IsNotEmpty,
-  IsString,
-  IsOptional,
-  IsEmail,
-  MinLength,
-  IsEnum,
-} from "class-validator";
-import { Role } from "@common/interfaces/jwt-payload.interface";
+import { IsDateString, IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class UpdateUserDto {
-  @IsOptional()
   @IsString()
-  full_name: string;
-
   @IsOptional()
-  @IsEmail()
-  email: string;
+  full_name?: string;
 
+  @IsEmail({}, { message: 'El email no es válido' })
   @IsOptional()
+  email?: string;
+
   @IsString()
-  @MinLength(8)
-  password: string;
-
   @IsOptional()
+  degree_title?: string;
+
   @IsString()
-  @IsEnum(Role)
-  role_code: string;
+  @IsOptional()
+  university?: string;
+
+  @IsString()
+  @IsOptional()
+  location?: string;
+
+  @IsString()
+  @IsOptional()
+  document_number?: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsDateString({}, { message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)' })
+  @IsOptional()
+  date_of_birth?: string;
+
+  @IsDateString({}, { message: 'La fecha de contratación debe ser una fecha válida (YYYY-MM-DD)' })
+  @IsOptional()
+  hire_date?: string;
+
+  @IsString()
+  @IsOptional()
+  role_code?: string;
 }

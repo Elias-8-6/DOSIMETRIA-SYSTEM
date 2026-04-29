@@ -5,12 +5,8 @@ import { PrivateLayout } from '../components/layout/PrivateLayout';
 import { UsersPage } from '../pages/users/UsersPage';
 import { UserDetailPage } from '../pages/users/UserDetailPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
+import ClientsPage from '../pages/clients/ClientPage';
 
-/**
- * PrivateRoute — protege rutas que requieren autenticación.
- * Si el usuario no está autenticado, redirige al login.
- * Si está autenticado, renderiza el componente hijo.
- */
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -64,6 +60,7 @@ export function AppRouter() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:id" element={<UserDetailPage />} />
+        <Route path="clients" element={<ClientsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

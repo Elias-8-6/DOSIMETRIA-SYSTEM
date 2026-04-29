@@ -1,12 +1,7 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from "@nestjs/common";
-import { Observable, tap } from "rxjs";
-import { SupabaseService } from "@config/supabase.config";
-import { JwtPayload } from "@common/interfaces/jwt-payload.interface";
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { Observable, tap } from 'rxjs';
+import { SupabaseService } from '@config/supabase.config';
+import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
 
 /**
  * AuditLogInterceptor
@@ -46,13 +41,12 @@ export class AuditLogInterceptor implements NestInterceptor {
         // Solo registrar si el use-case adjuntó datos de auditoría
         if (!response?._audit) return;
 
-        const { entity, entityId, action, oldValues, newValues } =
-          response._audit;
+        const { entity, entityId, action, oldValues, newValues } = response._audit;
 
         try {
           await this.supabase
             .getClient()
-            .from("audit_logs")
+            .from('audit_logs')
             .insert({
               user_id: user?.sub ?? null,
               entity_name: entity,
@@ -64,7 +58,7 @@ export class AuditLogInterceptor implements NestInterceptor {
         } catch (err) {
           // El audit log nunca debe romper el flujo principal
           // En producción, enviar a un sistema de logging externo
-          console.error("[AuditLog] Error al registrar:", err);
+          console.error('[AuditLog] Error al registrar:', err);
         }
       }),
     );

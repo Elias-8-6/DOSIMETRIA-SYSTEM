@@ -25,15 +25,14 @@ import { RevokePermissionUseCase } from './use-cases/revoke-permission.use-case'
 export class UsersService {
   constructor(
     private readonly supabase: SupabaseService,
-    private readonly findAllUsersUseCase:      FindAllUsersUseCase,
-    private readonly findOneUserUseCase:        FindOneUserUseCase,
-    private readonly createUserUseCase:         CreateUserUseCase,
-    private readonly updateUserUseCase:         UpdateUserUseCase,
-    private readonly deactivateUserUseCase:     DeactivateUserUseCase,
-    private readonly assignPermissionUseCase:   AssignPermissionUseCase,
-    private readonly revokePermissionUseCase:   RevokePermissionUseCase,
+    private readonly findAllUsersUseCase: FindAllUsersUseCase,
+    private readonly findOneUserUseCase: FindOneUserUseCase,
+    private readonly createUserUseCase: CreateUserUseCase,
+    private readonly updateUserUseCase: UpdateUserUseCase,
+    private readonly deactivateUserUseCase: DeactivateUserUseCase,
+    private readonly assignPermissionUseCase: AssignPermissionUseCase,
+    private readonly revokePermissionUseCase: RevokePermissionUseCase,
   ) {}
-
 
   // Consultas
   findAll(organizationId: string, search?: string, status?: string) {
@@ -51,7 +50,8 @@ export class UsersService {
    * No necesita use-case propio — es una consulta directa al catálogo.
    */
   async findAllPermissions() {
-    const { data, error } = await this.supabase.getClient()
+    const { data, error } = await this.supabase
+      .getClient()
       .from('permissions')
       .select('id, code, module, action, description')
       .order('module', { ascending: true })
@@ -66,26 +66,12 @@ export class UsersService {
 
   // ── Mutaciones ───────────────────────────────────────────────────────
 
-  create(
-    dto: CreateUserDto,
-    organizationId: string,
-    grantedBy: string,
-  ) {
+  create(dto: CreateUserDto, organizationId: string, grantedBy: string) {
     return this.createUserUseCase.execute(dto, organizationId, grantedBy);
   }
 
-  update(
-    userId: string,
-    dto: UpdateUserDto,
-    organizationId: string,
-    requestingUserId: string,
-  ) {
-    return this.updateUserUseCase.execute(
-      userId,
-      dto,
-      organizationId,
-      requestingUserId,
-    );
+  update(userId: string, dto: UpdateUserDto, organizationId: string, requestingUserId: string) {
+    return this.updateUserUseCase.execute(userId, dto, organizationId, requestingUserId);
   }
 
   updateStatus(
@@ -94,12 +80,7 @@ export class UsersService {
     organizationId: string,
     requestingUserId: string,
   ) {
-    return this.deactivateUserUseCase.execute(
-      userId,
-      dto,
-      organizationId,
-      requestingUserId,
-    );
+    return this.deactivateUserUseCase.execute(userId, dto, organizationId, requestingUserId);
   }
 
   assignPermission(
@@ -108,12 +89,7 @@ export class UsersService {
     organizationId: string,
     grantedBy: string,
   ) {
-    return this.assignPermissionUseCase.execute(
-      userId,
-      dto,
-      organizationId,
-      grantedBy,
-    );
+    return this.assignPermissionUseCase.execute(userId, dto, organizationId, grantedBy);
   }
 
   revokePermission(
@@ -122,11 +98,6 @@ export class UsersService {
     organizationId: string,
     revokedBy: string,
   ) {
-    return this.revokePermissionUseCase.execute(
-      userId,
-      permissionId,
-      organizationId,
-      revokedBy,
-    );
+    return this.revokePermissionUseCase.execute(userId, permissionId, organizationId, revokedBy);
   }
 }

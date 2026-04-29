@@ -14,26 +14,21 @@ export class FindAllUsersUseCase {
    *
    * @param organizationId Organización del admin — viene del JWT
    */
-  async execute(
-      organizationId: string,
-      search?: string,
-      status?: string
-  ) {
+  async execute(organizationId: string, search?: string, status?: string) {
     const client = this.supabase.getClient();
 
-
     let query = client
-        .from('users')
-        .select(`id, full_name, email, status, created_at,
-             user_roles( roles(code, name) )`)
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
+      .from('users')
+      .select(
+        `id, full_name, email, status, created_at,
+             user_roles( roles(code, name) )`,
+      )
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: false });
 
     // Filtro de búsqueda por nombre o email
     if (search) {
-      query = query.or(
-          `full_name.ilike.%${search}%,email.ilike.%${search}%`
-      );
+      query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
     }
 
     // Filtro por status
@@ -48,12 +43,12 @@ export class FindAllUsersUseCase {
 
     // Transformar la estructura anidada de roles a un array plano
     return (users ?? []).map((user) => ({
-      id:         user.id,
-      full_name:  user.full_name,
-      email:      user.email,
-      status:     user.status,
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      status: user.status,
       created_at: user.created_at,
-      roles:      (user.user_roles as any[]).map((ur) => ur.roles),
+      roles: (user.user_roles as any[]).map((ur) => ur.roles),
     }));
   }
 }

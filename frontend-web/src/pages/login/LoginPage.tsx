@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type {FormEvent} from "react";
+import type { FormEvent } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { isAxiosError } from 'axios';
 
@@ -26,8 +26,8 @@ export function LoginPage() {
       // cuando isAuthenticated cambia a true
     } catch (err: unknown) {
       const message = isAxiosError(err)
-          ? err.response?.data?.message ?? 'Error al iniciar sesión'
-          : 'Error al iniciar sesión';
+        ? (err.response?.data?.message ?? 'Error al iniciar sesión')
+        : 'Error al iniciar sesión';
 
       setError(Array.isArray(message) ? message.join(', ') : message);
     } finally {
@@ -48,7 +48,7 @@ export function LoginPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-6">Iniciar sesión</h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form autoComplete="off" onSubmit={handleSubmit} className="space-y-4">
             {/* Campo email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">

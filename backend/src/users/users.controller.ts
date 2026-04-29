@@ -22,7 +22,7 @@ import { PermissionsGuard } from '@common/guards/permissions.guard';
 import { CheckPermission } from '@common/decorators/check-permission.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
-import {QueryUsersDto} from "./dto/query-users.dto";
+import { QueryUsersDto } from './dto/query-users.dto';
 
 /**
  * UsersController
@@ -60,10 +60,7 @@ export class UsersController {
    */
   @Get('users')
   @CheckPermission('users', 'read')
-  findAll(
-      @CurrentUser() user: JwtPayload,
-      @Query() query: QueryUsersDto,
-  ) {
+  findAll(@CurrentUser() user: JwtPayload, @Query() query: QueryUsersDto) {
     return this.usersService.findAll(user.organization_id, query.search, query.status);
   }
 
@@ -75,10 +72,7 @@ export class UsersController {
    */
   @Get('users/:id')
   @CheckPermission('users', 'read')
-  findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.usersService.findOne(id, user.organization_id);
   }
 
@@ -89,10 +83,7 @@ export class UsersController {
    */
   @Post('users')
   @CheckPermission('users', 'create')
-  create(
-    @Body() dto: CreateUserDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  create(@Body() dto: CreateUserDto, @CurrentUser() user: JwtPayload) {
     return this.usersService.create(dto, user.organization_id, user.sub);
   }
 
@@ -102,11 +93,7 @@ export class UsersController {
    */
   @Patch('users/:id')
   @CheckPermission('users', 'update')
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateUserDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() user: JwtPayload) {
     return this.usersService.update(id, dto, user.organization_id, user.sub);
   }
 
@@ -123,12 +110,7 @@ export class UsersController {
     @Body() dto: UpdateUserStatusDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.usersService.updateStatus(
-      id,
-      dto,
-      user.organization_id,
-      user.sub,
-    );
+    return this.usersService.updateStatus(id, dto, user.organization_id, user.sub);
   }
 
   //Permisos de usuario
@@ -144,12 +126,7 @@ export class UsersController {
     @Body() dto: AssignPermissionDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.usersService.assignPermission(
-      id,
-      dto,
-      user.organization_id,
-      user.sub,
-    );
+    return this.usersService.assignPermission(id, dto, user.organization_id, user.sub);
   }
 
   /**
@@ -166,11 +143,6 @@ export class UsersController {
     @Param('permissionId', ParseUUIDPipe) permissionId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.usersService.revokePermission(
-      id,
-      permissionId,
-      user.organization_id,
-      user.sub,
-    );
+    return this.usersService.revokePermission(id, permissionId, user.organization_id, user.sub);
   }
 }

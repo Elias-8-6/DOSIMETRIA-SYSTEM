@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
 
 @Injectable()
@@ -24,12 +19,7 @@ export class RevokePermissionUseCase {
    * @param organizationId Organización del admin
    * @param revokedBy      user_id del admin que revoca — para audit_log
    */
-  async execute(
-    userId: string,
-    permissionId: string,
-    organizationId: string,
-    revokedBy: string,
-  ) {
+  async execute(userId: string, permissionId: string, organizationId: string, revokedBy: string) {
     const client = this.supabase.getClient();
 
     // Verificar que el usuario existe en la organización
@@ -52,9 +42,7 @@ export class RevokePermissionUseCase {
       .maybeSingle();
 
     if (!permission) {
-      throw new NotFoundException(
-        `El permiso con id '${permissionId}' no existe en el catálogo`,
-      );
+      throw new NotFoundException(`El permiso con id '${permissionId}' no existe en el catálogo`);
     }
 
     //Verificar que el usuario tiene ese permiso asignado
@@ -66,9 +54,7 @@ export class RevokePermissionUseCase {
       .maybeSingle();
 
     if (!userPermission) {
-      throw new NotFoundException(
-        `El usuario no tiene el permiso '${permission.code}' asignado`,
-      );
+      throw new NotFoundException(`El usuario no tiene el permiso '${permission.code}' asignado`);
     }
 
     //Verificar que el permiso no esté ya revocado
@@ -86,8 +72,8 @@ export class RevokePermissionUseCase {
     const { error } = await client
       .from('user_permissions')
       .update({
-        granted:    false,
-        granted_by: revokedBy,  // quién lo revocó
+        granted: false,
+        granted_by: revokedBy, // quién lo revocó
         granted_at: new Date().toISOString(), // cuándo fue revocado
       })
       .eq('user_id', userId)
@@ -99,23 +85,21 @@ export class RevokePermissionUseCase {
     }
 
     //Registrar en audit_logs
-    await client
-      .from('audit_logs')
-      .insert({
-        user_id:     revokedBy,
-        entity_name: 'user_permissions',
-        entity_id:   userId,
-        action:      'REVOKE_PERMISSION',
-        old_values: {
-          permission_code: permission.code,
-          granted:         true,
-        },
-        new_values: {
-          permission_code: permission.code,
-          granted:         false,
-          revoked_by:      revokedBy,
-        },
-      });
+    await client.from('audit_logs').insert({
+      user_id: revokedBy,
+      entity_name: 'user_permissions',
+      entity_id: userId,
+      action: 'REVOKE_PERMISSION',
+      old_values: {
+        permission_code: permission.code,
+        granted: true,
+      },
+      new_values: {
+        permission_code: permission.code,
+        granted: false,
+        revoked_by: revokedBy,
+      },
+    });
 
     return {
       message: `Permiso '${permission.code}' revocado correctamente`,

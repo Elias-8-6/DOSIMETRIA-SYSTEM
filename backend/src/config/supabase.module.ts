@@ -1,5 +1,5 @@
-import { Global, Module } from "@nestjs/common";
-import { SupabaseService } from "./supabase.config";
+import { Global, Module } from '@nestjs/common';
+import { SupabaseService } from './supabase.config';
 
 /**
  * SupabaseModule — módulo global.

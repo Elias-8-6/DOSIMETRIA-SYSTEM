@@ -15,10 +15,7 @@ export class FindOneUserUseCase {
    * @param userId         ID del usuario a buscar
    * @param organizationId Organización del admin — para aislamiento multi-tenant
    */
-  async execute(
-      userId: string,
-      organizationId: string
-  ) {
+  async execute(userId: string, organizationId: string) {
     const client = this.supabase.getClient();
 
     // Query 1: datos base del usuario
@@ -50,11 +47,11 @@ export class FindOneUserUseCase {
     const permissions = (permissionsData ?? []).map((up: any) => up.permissions);
 
     return {
-      id:          user.id,
-      full_name:   user.full_name,
-      email:       user.email,
-      status:      user.status,
-      created_at:  user.created_at,
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      status: user.status,
+      created_at: user.created_at,
       roles,
       permissions,
     };
