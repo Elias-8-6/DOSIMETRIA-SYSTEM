@@ -4,6 +4,7 @@ import { LoginPage } from '../pages/login/LoginPage';
 import { PrivateLayout } from '../components/layout/PrivateLayout';
 import { UsersPage } from '../pages/users/UsersPage';
 import { UserDetailPage } from '../pages/users/UserDetailPage';
+import WorkersPage from '../pages/workers/WorkersPage.tsx';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import ClientsPage from '../pages/clients/ClientPage';
 
@@ -61,6 +62,7 @@ export function AppRouter() {
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:id" element={<UserDetailPage />} />
         <Route path="clients" element={<ClientsPage />} />
+        <Route path="workers" element={<WorkersPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

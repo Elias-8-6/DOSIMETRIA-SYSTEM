@@ -8,6 +8,7 @@ import { SupabaseModule } from '@config/supabase.module';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 
 import { ClientsModule } from '@clients/clients.module';
+import { WorkersModule } from './workers/workers.module';
 
 /**
  * AppModule — módulo raíz de la aplicación.
@@ -31,6 +32,7 @@ import { ClientsModule } from '@clients/clients.module';
     AuthModule,
     UsersModule,
     ClientsModule,
+    WorkersModule,
     // DosimetersModule,
     // ServiceOrdersModule,
     // ReceptionsModule,
