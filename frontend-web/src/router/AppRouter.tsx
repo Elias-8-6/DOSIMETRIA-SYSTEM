@@ -4,9 +4,10 @@ import { LoginPage } from '../pages/login/LoginPage';
 import { PrivateLayout } from '../components/layout/PrivateLayout';
 import { UsersPage } from '../pages/users/UsersPage';
 import { UserDetailPage } from '../pages/users/UserDetailPage';
-import WorkersPage from '../pages/workers/WorkersPage.tsx';
+import WorkersPage from '../pages/workers/WorkersPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import ClientsPage from '../pages/clients/ClientPage';
+import ClientDetailPage from '../pages/clients/ClientDetailPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -62,6 +63,7 @@ export function AppRouter() {
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:id" element={<UserDetailPage />} />
         <Route path="clients" element={<ClientsPage />} />
+        <Route path="clients/:id" element={<ClientDetailPage />} />
         <Route path="workers" element={<WorkersPage />} />
       </Route>
 

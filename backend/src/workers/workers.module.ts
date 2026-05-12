@@ -12,7 +12,7 @@ import { UpdateWorkerStatusUseCase } from './use-case/update-worker-status.use-c
   providers: [
     WorkersService,
     FindAllWorkersUseCase,
-    //FindOneWorkerUseCase,
+    FindOneWorkerUseCase,
     CreateWorkerUseCase,
     UpdateWorkerUseCase,
     UpdateWorkerStatusUseCase,

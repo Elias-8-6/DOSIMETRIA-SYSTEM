@@ -6,13 +6,14 @@ import type {
   CreateWorkerPayload,
   UpdateWorkerPayload,
 } from '../../api/workers.api';
-import { createWorker, updateWorker } from '../../api/workers.api.ts';
-import { getClients } from '../../api/clients.api';
+import { createWorker, updateWorker } from '../../api/workers.api';
+import { getClients, getClient } from '../../api/clients.api';
 import type { Client, ClientLocation } from '../../api/clients.api';
 
 interface Props {
   worker?: Worker | null;
-  clientId?: string; // si viene pre-fijado (desde detalle de cliente)
+  clientId?: string;
+  clientLocationId?: string; // sede pre-fijada (desde detalle de cliente)
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -23,7 +24,7 @@ const GENDERS: { value: WorkerGender; label: string }[] = [
   { value: 'otro', label: 'Otro' },
 ];
 
-export function WorkerFormModal({ worker, clientId, onClose, onSuccess }: Props) {
+export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, onSuccess }: Props) {
   const isEditing = !!worker;
 
   // Identificación
@@ -41,7 +42,9 @@ export function WorkerFormModal({ worker, clientId, onClose, onSuccess }: Props)
   const [occupation, setOccupation] = useState(worker?.occupation ?? '');
   const [startDate, setStartDate] = useState(worker?.start_date ?? '');
   const [selectedClientId, setSelectedClientId] = useState(clientId ?? worker?.clients?.id ?? '');
-  const [selectedLocationId, setSelectedLocationId] = useState(worker?.client_locations?.id ?? '');
+  const [selectedLocationId, setSelectedLocationId] = useState(
+    clientLocationId ?? worker?.client_locations?.id ?? '',
+  );
 
   // Datos para los selects
   const [clients, setClients] = useState<Client[]>([]);
@@ -58,23 +61,29 @@ export function WorkerFormModal({ worker, clientId, onClose, onSuccess }: Props)
       .catch(() => {});
   }, [clientId]);
 
-  // Cargar sedes cuando cambia el cliente seleccionado
+  // Cuando viene clientId fijo, cargar sus sedes directamente
   useEffect(() => {
+    if (!clientId) return;
+    getClient(clientId)
+      .then((c) => setLocations(c.client_locations))
+      .catch(() => {});
+  }, [clientId]);
+
+  // Cargar sedes cuando cambia el cliente seleccionado (sin clientId fijo)
+  useEffect(() => {
+    if (clientId) return; // ya se cargaron arriba
     if (!selectedClientId) {
       setLocations([]);
       setSelectedLocationId('');
       return;
     }
-    // Buscar las sedes del cliente seleccionado desde los clientes ya cargados
     const found = clients.find((c) => c.id === selectedClientId);
-    if (found) {
-      setLocations(found.client_locations);
-    }
-  }, [selectedClientId, clients]);
+    if (found) setLocations(found.client_locations);
+  }, [selectedClientId, clients, clientId]);
 
   const handleClientChange = (id: string) => {
     setSelectedClientId(id);
-    setSelectedLocationId(''); // resetear sede al cambiar cliente
+    setSelectedLocationId('');
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -135,7 +144,7 @@ export function WorkerFormModal({ worker, clientId, onClose, onSuccess }: Props)
     focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent`;
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
   const sectionHead = (label: string, color: string) => (
-    <div className={`flex items-center gap-2 mb-3`}>
+    <div className="flex items-center gap-2 mb-3">
       <div className={`w-1 h-4 rounded-full ${color}`} />
       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</h3>
     </div>
@@ -300,9 +309,9 @@ export function WorkerFormModal({ worker, clientId, onClose, onSuccess }: Props)
                 </div>
               )}
 
-              {/* Sede */}
-              {(selectedClientId || clientId) && (
-                <div className={!isEditing && !clientId ? 'col-span-2' : 'col-span-2'}>
+              {/* Sede — se oculta si viene clientLocationId fijo */}
+              {!clientLocationId && (selectedClientId || clientId) && (
+                <div className="col-span-2">
                   <label className={labelClass}>Sede</label>
                   <select
                     value={selectedLocationId}

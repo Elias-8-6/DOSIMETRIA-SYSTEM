@@ -3,7 +3,7 @@ import { CreateWorkerDto } from './dto/create-worker.dto';
 import { UpdateWorkerDto } from './dto/update-worker.dto';
 import { UpdateWorkerStatusDto } from './dto/update-worker-status.dto';
 import { FindAllWorkersUseCase } from './use-case/find-all-workers.use-case';
-import { FindOneClientUseCase } from '@clients/use-cases/find-one-client.use-case';
+import { FindOneWorkerUseCase } from './use-case/find-one-worker.use-case';
 import { CreateWorkerUseCase } from './use-case/create-worker.use-case';
 import { UpdateWorkerUseCase } from './use-case/update-worker.use-case';
 import { UpdateWorkerStatusUseCase } from './use-case/update-worker-status.use-case';
@@ -12,7 +12,7 @@ import { UpdateWorkerStatusUseCase } from './use-case/update-worker-status.use-c
 export class WorkersService {
   constructor(
     private readonly findAllWorkersUseCase: FindAllWorkersUseCase,
-    //private readonly findOneClientUseCase: FindOneClientUseCase,
+    private readonly findOneWorkerUseCase: FindOneWorkerUseCase,
     private readonly createWorkerUseCase: CreateWorkerUseCase,
     private readonly updateWorkerUseCase: UpdateWorkerUseCase,
     private readonly updateWorkerStatusUseCase: UpdateWorkerStatusUseCase,
@@ -39,8 +39,7 @@ export class WorkersService {
   }
 
   findOne(workerId: string, organizationId: string) {
-    return true;
-    //return this.findOneClientUseCase.execute(workerId, organizationId);
+    return this.findOneWorkerUseCase.execute(workerId, organizationId);
   }
 
   create(dto: CreateWorkerDto, organizationId: string, requestingUserId: string) {

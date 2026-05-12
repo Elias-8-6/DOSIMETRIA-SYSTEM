@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Client, ClientType } from '../../api/clients.api.ts';
-import { getClients } from '../../api/clients.api.ts';
+import { useNavigate } from 'react-router-dom';
+import type { Client, ClientType } from '../../api/clients.api';
+import { getClients } from '../../api/clients.api';
 import { ClientFormModal } from '../../components/clients/ClientFormModal';
-import { ClientDetailModal } from '../../components/clients/ClientDetailModal';
 
 const CLIENT_TYPE_LABELS: Record<ClientType, string> = {
   hospital: 'Hospital',
@@ -23,24 +23,21 @@ const CLIENT_TYPE_FILTERS: { value: string; label: string }[] = [
   { value: 'otro', label: 'Otro' },
 ];
 
+const PAGE_SIZE = 10;
+
 export default function ClientsPage() {
+  const navigate = useNavigate();
+
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-
-  //paginación
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const PAGE_SIZE = 10; // clientes por página
-
   const [modalKey, setModalKey] = useState(0);
+
   const [formModal, setFormModal] = useState<{ open: boolean; client: Client | null }>({
-    open: false,
-    client: null,
-  });
-  const [detailModal, setDetailModal] = useState<{ open: boolean; client: Client | null }>({
     open: false,
     client: null,
   });
@@ -76,30 +73,6 @@ export default function ClientsPage() {
   const handleFormSuccess = useCallback(() => {
     fetchClients();
   }, [fetchClients]);
-
-  const handleDetailUpdate = (updated: Client) => {
-    setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-    if (detailModal.client?.id === updated.id) {
-      setDetailModal((prev) => ({ ...prev, client: updated }));
-    }
-  };
-
-  const handleEditFromDetail = (client: Client) => {
-    setDetailModal({ open: false, client: null });
-    setModalKey((k) => k + 1);
-    setFormModal({ open: true, client });
-  };
-
-  // const handleQuickStatus = async (client: Client, e: React.MouseEvent) => {
-  //   e.stopPropagation();
-  //   const newStatus = client.status === 'active' ? 'inactive' : 'active';
-  //   try {
-  //     await updateClientStatus(client.id, newStatus);
-  //     setClients((prev) => prev.map((c) => (c.id === client.id ? { ...c, status: newStatus } : c)));
-  //   } catch {
-  //     // silencioso
-  //   }
-  // };
 
   return (
     <div className="p-6">
@@ -213,7 +186,7 @@ export default function ClientsPage() {
                   <td className="px-4 py-3">
                     <div className="flex gap-3 justify-end">
                       <button
-                        onClick={() => setDetailModal({ open: true, client })}
+                        onClick={() => navigate(`/clients/${client.id}`)}
                         className="text-blue-600 hover:text-blue-700 cursor-pointer"
                       >
                         Ver detalle
@@ -225,51 +198,42 @@ export default function ClientsPage() {
             )}
           </tbody>
         </table>
-      </div>
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-          <p className="text-sm text-gray-500">
-            Página {page} de {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPage((p) => p - 1)}
-              disabled={page === 1}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg
-                   text-gray-600 hover:border-gray-400 disabled:opacity-40
-                   disabled:cursor-not-allowed cursor-pointer"
-            >
-              Anterior
-            </button>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg
-                   text-gray-600 hover:border-gray-400 disabled:opacity-40
-                   disabled:cursor-not-allowed cursor-pointer"
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Modales */}
+        {/* Paginación */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+            <p className="text-sm text-gray-500">
+              Página {page} de {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 1}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600
+                           hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Anterior
+              </button>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page === totalPages}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600
+                           hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modal crear cliente */}
       {formModal.open && (
         <ClientFormModal
           key={modalKey}
           client={formModal.client}
           onClose={() => setFormModal({ open: false, client: null })}
           onSuccess={handleFormSuccess}
-        />
-      )}
-
-      {detailModal.open && detailModal.client && (
-        <ClientDetailModal
-          client={detailModal.client}
-          onClose={() => setDetailModal({ open: false, client: null })}
-          onUpdate={handleDetailUpdate}
-          onEdit={handleEditFromDetail}
         />
       )}
     </div>

@@ -6,12 +6,14 @@ import { WorkerFormModal } from '../../components/workers/ WorkerFormModal.tsx';
 import { WorkerDetailModal } from '../../components/workers/WorkerDetailModal';
 
 interface Props {
-  clientId?: string; // si viene, filtra por cliente y oculta ese filtro
+  clientId?: string;
+  clientLocationId?: string; // filtro por departamento cuando viene embebido
+  embedded?: boolean; // true = sin header ni padding exterior
 }
 
 const PAGE_SIZE = 10;
 
-export default function WorkersPage({ clientId }: Props) {
+export default function WorkersPage({ clientId, clientLocationId, embedded }: Props) {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -36,6 +38,7 @@ export default function WorkersPage({ clientId }: Props) {
         search: search || undefined,
         status: statusFilter || undefined,
         client_id: clientId || undefined,
+        client_location_id: clientLocationId || undefined,
         page,
         limit: PAGE_SIZE,
       });
@@ -46,7 +49,7 @@ export default function WorkersPage({ clientId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, clientId, page]);
+  }, [search, statusFilter, clientId, clientLocationId, page]);
 
   useEffect(() => {
     const timer = setTimeout(fetchWorkers, 300);
@@ -55,7 +58,7 @@ export default function WorkersPage({ clientId }: Props) {
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, clientId, setPage]);
+  }, [search, statusFilter, clientId, clientLocationId, setPage]);
 
   const handleFormSuccess = useCallback(() => {
     fetchWorkers();
@@ -81,33 +84,38 @@ export default function WorkersPage({ clientId }: Props) {
     setFormModal({ open: true, worker });
   };
 
-  return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trabajadores</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Gestión de trabajadores dosimetrados</p>
-        </div>
-        <button
-          onClick={() => {
-            setModalKey((k) => k + 1);
-            setFormModal({ open: true, worker: null });
-          }}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
-        >
-          Nuevo trabajador
-        </button>
-      </div>
+  // Cuando es embebido (dentro de ClientDetailPage) el layout es compacto
+  const colSpan = clientId ? 6 : 7;
 
-      {/* Filtros */}
-      <div className="flex gap-3 mb-4 flex-wrap">
+  return (
+    <div className={embedded ? '' : 'p-6'}>
+      {/* Header — se oculta cuando es embebido */}
+      {!embedded && (
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Trabajadores</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Gestión de trabajadores dosimetrados</p>
+          </div>
+          <button
+            onClick={() => {
+              setModalKey((k) => k + 1);
+              setFormModal({ open: true, worker: null });
+            }}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
+          >
+            Nuevo trabajador
+          </button>
+        </div>
+      )}
+
+      {/* Filtros — más compactos cuando es embebido */}
+      <div className={`flex gap-3 flex-wrap ${embedded ? 'mb-3' : 'mb-4'}`}>
         <input
           type="text"
           placeholder="Buscar por nombre, documento o código..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 min-w-[220px] px-3 py-2 border border-gray-300 rounded-lg text-sm
+          className="flex-1 min-w-[180px] px-3 py-2 border border-gray-300 rounded-lg text-sm
             focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
         />
         <select
@@ -131,7 +139,9 @@ export default function WorkersPage({ clientId }: Props) {
               {!clientId && (
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Institución</th>
               )}
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Sede</th>
+              {!clientLocationId && (
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Sede</th>
+              )}
               <th className="text-left px-4 py-3 font-medium text-gray-600">Ocupación</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Estado</th>
               <th className="px-4 py-3" />
@@ -140,13 +150,13 @@ export default function WorkersPage({ clientId }: Props) {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={clientId ? 6 : 7} className="text-center py-12 text-gray-400">
+                <td colSpan={colSpan} className="text-center py-8 text-gray-400">
                   Cargando...
                 </td>
               </tr>
             ) : workers.length === 0 ? (
               <tr>
-                <td colSpan={clientId ? 6 : 7} className="text-center py-12 text-gray-400">
+                <td colSpan={colSpan} className="text-center py-8 text-gray-400">
                   No se encontraron trabajadores
                 </td>
               </tr>
@@ -161,9 +171,11 @@ export default function WorkersPage({ clientId }: Props) {
                   {!clientId && (
                     <td className="px-4 py-3 text-gray-600">{worker.clients?.name ?? '—'}</td>
                   )}
-                  <td className="px-4 py-3 text-gray-600">
-                    {worker.client_locations?.name ?? '—'}
-                  </td>
+                  {!clientLocationId && (
+                    <td className="px-4 py-3 text-gray-600">
+                      {worker.client_locations?.name ?? '—'}
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-gray-600">{worker.occupation ?? '—'}</td>
                   <td className="px-4 py-3">
                     <span
