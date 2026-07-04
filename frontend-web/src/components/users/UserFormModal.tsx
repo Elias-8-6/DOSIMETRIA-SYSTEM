@@ -74,6 +74,16 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
 
         await updateUser(user.id, payload);
       } else {
+        const strongPassword =
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
+        if (!strongPassword.test(password)) {
+          setError(
+            'La contraseña debe tener al menos 12 caracteres, incluyendo mayúscula, minúscula, número y símbolo',
+          );
+          setLoading(false);
+          return;
+        }
+
         const payload: CreateUserPayload = {
           full_name: fullName,
           email,

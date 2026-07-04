@@ -1,4 +1,5 @@
-import { IsDateString, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsStrongAppPassword } from '@common/utils/password.util';
 
 export class CreateUserDto {
   @IsString()
@@ -9,15 +10,13 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'El email es requerido' })
   email: string;
 
-  @IsString()
-  @IsNotEmpty({ message: 'La contraseña es requerida' })
+  @IsStrongAppPassword()
   password: string;
 
   @IsString()
   @IsNotEmpty({ message: 'El rol es requerido' })
-  role_code: string; // obligatorio — sin rol el usuario no puede hacer login
+  role_code: string;
 
-  // Campos de perfil extendido (migración 012)
   @IsString()
   @IsOptional()
   degree_title?: string;
@@ -30,13 +29,12 @@ export class CreateUserDto {
   @IsOptional()
   location?: string;
 
-  // Campos nuevos (migración 013)
-  @IsString({ message: '**' })
+  @IsString()
   @IsNotEmpty({ message: 'La Cédula/DNI es un campo requerido' })
   document_number?: string;
 
-  @IsString({ message: '**' })
-  @IsNotEmpty({ message: 'El telofono es un campo requerido' })
+  @IsString()
+  @IsNotEmpty({ message: 'El teléfono es un campo requerido' })
   phone?: string;
 
   @IsDateString({}, { message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)' })

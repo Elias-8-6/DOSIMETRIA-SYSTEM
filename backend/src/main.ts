@@ -1,26 +1,37 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const config = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
-  // Prefijo global para todas las rutas
+  app.use(helmet());
+  app.use(cookieParser());
+
   app.setGlobalPrefix('api/v1');
 
-  // CORS — en producción restringir a los dominios del frontend
+  const corsOrigins = (config.get<string>('CORS_ORIGINS') ?? 'http://localhost:5173')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production' ? ['https://tu-dominio-react.com'] : '*',
+    origin: corsOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-  const port = process.env.PORT ?? 3000;
+  const port = config.get<number>('PORT') ?? 3000;
   await app.listen(port);
 
-  logger.log(`🚀 Backend corriendo en: http://localhost:${port}/api/v1`);
-  logger.log(`🌍 Entorno: ${process.env.NODE_ENV ?? 'development'}`);
+  logger.log(`Backend corriendo en: http://localhost:${port}/api/v1`);
+  logger.log(`Entorno: ${config.get('NODE_ENV') ?? 'development'}`);
+  logger.log(`CORS origins: ${corsOrigins.join(', ')}`);
 }
 
 bootstrap();

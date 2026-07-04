@@ -95,8 +95,12 @@ export function ProfileModal({ onClose }: Props) {
       setPasswordError('La nueva contraseña y la confirmación no coinciden');
       return;
     }
-    if (newPassword.length < 8) {
-      setPasswordError('La nueva contraseña debe tener al menos 8 caracteres');
+    const strongPassword =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
+    if (!strongPassword.test(newPassword)) {
+      setPasswordError(
+        'La contraseña debe tener al menos 12 caracteres, incluyendo mayúscula, minúscula, número y símbolo',
+      );
       return;
     }
 

@@ -36,10 +36,13 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = 'Correo inválido';
     }
+    const strongPassword =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
     if (!form.password) {
       newErrors.password = 'La contraseña es requerida';
-    } else if (form.password.length < 8) {
-      newErrors.password = 'Mínimo 8 caracteres';
+    } else if (!strongPassword.test(form.password)) {
+      newErrors.password =
+        'Mínimo 12 caracteres, con mayúscula, minúscula, número y símbolo';
     }
     if (!form.role_code) {
       newErrors.role_code = 'El rol es requerido';

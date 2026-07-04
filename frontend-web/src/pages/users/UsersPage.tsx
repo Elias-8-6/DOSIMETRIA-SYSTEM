@@ -13,6 +13,8 @@ export function UsersPage() {
   const { hasPermission } = useAuth();
 
   const [users, setUsers] = useState<User[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -20,9 +22,8 @@ export function UsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [modalKey, setModalKey] = useState(0);
+  const limit = 10;
 
-  // fetchUsers extraído como función del componente para poder llamarla
-  // tanto desde el useEffect como desde handleSuccess
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -30,20 +31,28 @@ export function UsersPage() {
       const data = await getUsers({
         search: search || undefined,
         status: status || undefined,
+        page,
+        limit,
       });
-      setUsers(data);
+      setUsers(data.items);
+      setTotal(data.total);
     } catch {
       setError('No se pudo cargar el listado de usuarios');
     } finally {
       setLoading(false);
     }
+  }, [search, status, page]);
+
+  useEffect(() => {
+    setPage(1);
   }, [search, status]);
 
-  // Debounce — espera 400ms después de que el usuario deja de escribir
   useEffect(() => {
     const timeout = setTimeout(fetchUsers, 400);
     return () => clearTimeout(timeout);
   }, [fetchUsers]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const handleOpenCreate = () => {
     setEditingUser(null);
@@ -177,7 +186,35 @@ export function UsersPage() {
         )}
       </div>
 
-      {/* Modal — se monta solo cuando showModal es true */}
+      {!loading && !error && total > 0 && (
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+          <span>
+            {total} usuario{total === 1 ? '' : 's'}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="px-3 py-1 border rounded-lg disabled:opacity-40 cursor-pointer"
+            >
+              Anterior
+            </button>
+            <span className="px-2 py-1">
+              {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="px-3 py-1 border rounded-lg disabled:opacity-40 cursor-pointer"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <UserFormModal
           key={modalKey}

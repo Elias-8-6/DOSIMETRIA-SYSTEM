@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
+import { sanitizeSearchTerm } from '@common/utils/search.util';
+import { normalizePagination } from '@common/utils/pagination.util';
 
 @Injectable()
 export class FindAllWorkersUseCase {
@@ -14,14 +16,15 @@ export class FindAllWorkersUseCase {
     page: number = 1,
     limit: number = 10,
   ) {
+    const { from, to } = normalizePagination(page, limit);
+    const safeSearch = sanitizeSearchTerm(search);
+
     let query = this.supabase
       .getClient()
       .from('workers')
       .select(
         `
-      id, employee_code, full_name, document_number,
-      date_of_birth, gender, phone, email,
-      occupation, start_date, status,
+      id, employee_code, full_name, document_number, status,
       clients!inner(id, name, code, organization_id),
       client_locations(id, name)
       `,
@@ -33,14 +36,13 @@ export class FindAllWorkersUseCase {
     if (status) query = query.eq('status', status);
     if (clientId) query = query.eq('client_id', clientId);
     if (clientLocationId) query = query.eq('client_location_id', clientLocationId);
-    if (search) {
+    if (safeSearch) {
       query = query.or(
-        `full_name.ilike.%${search}%,document_number.ilike.%${search}%,employee_code.ilike.%${search}%`,
+        `full_name.ilike.%${safeSearch}%,document_number.ilike.%${safeSearch}%,employee_code.ilike.%${safeSearch}%`,
       );
     }
 
-    const from = (page - 1) * limit;
-    query = query.range(from, from + limit - 1);
+    query = query.range(from, to);
 
     const { data, error, count } = await query;
     if (error) throw new Error('No se pudo obtener el listado de trabajadores');

@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
+import { AuditService } from '@common/services/audit.service';
 import { UpdateClientStatusDto } from '../dto/update-client-status.dto';
 
 @Injectable()
 export class UpdateClientStatusUseCase {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly audit: AuditService,
+  ) {}
 
   async execute(
     clientId: string,
@@ -32,14 +36,13 @@ export class UpdateClientStatusUseCase {
 
     if (error) throw new Error(error.message);
 
-    // Audit log
-    await supabase.from('audit_logs').insert({
-      user_id: requestingUserId,
-      entity_name: 'clients',
-      entity_id: clientId,
+    await this.audit.log({
+      userId: requestingUserId,
+      entityName: 'clients',
+      entityId: clientId,
       action: 'STATUS_CHANGE',
-      old_values: { status: existing.status },
-      new_values: { status: dto.status },
+      oldValues: { status: existing.status },
+      newValues: { status: dto.status },
     });
 
     return data;

@@ -58,16 +58,18 @@ CROSS JOIN (VALUES
 WHERE pd.code = 'PROC_LECTURA';
 
 -- ------------------------------------------------------------
--- Usuario administrador inicial
--- IMPORTANTE: cambiar password_hash antes de usar en producción
--- Hash bcrypt de 'admin123' — generado por NestJS al inicializar
+-- Usuario administrador inicial (SOLO DESARROLLO)
+-- NUNCA aplicar este seed en producción.
+-- Password de desarrollo: Admin123!@#$ (política fuerte).
+-- Hash bcrypt generado para esa contraseña.
+-- Tras el primer login en un entorno compartido, cambiarla.
 -- ------------------------------------------------------------
 INSERT INTO users (id, organization_id, full_name, email, password_hash, status) VALUES
   ('00000000-0000-0000-0000-000000000100',
    '00000000-0000-0000-0000-000000000001',
    'Administrador del Sistema',
    'admin@laboratorio.com',
-   '$2b$10$zceixwHghqTIIu5MFdpyq.K9gT/t8oXEi.4ZAp0m0CehdBXmedUQ.',
+   '$2b$10$RskUD4Aa6nd8jljqvuFvT.LtgsRm6xMqnBYlm/IlqhOXooSxgTiVm',
    'active');
 
 -- Asignar rol admin_lab al usuario inicial

@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
+import { AuditService } from '@common/services/audit.service';
 import { CreateWorkerDto } from '../dto/create-worker.dto';
 
 @Injectable()
 export class CreateWorkerUseCase {
-  private readonly logger = new Logger(CreateWorkerDto.name);
-  constructor(private supabase: SupabaseService) {}
+  private readonly logger = new Logger(CreateWorkerUseCase.name);
+  constructor(
+    private supabase: SupabaseService,
+    private readonly audit: AuditService,
+  ) {}
 
   async execute(dto: CreateWorkerDto, organizationId: string, requestingUserId: string) {
     const client = this.supabase.getClient();
@@ -62,14 +66,12 @@ export class CreateWorkerUseCase {
       throw new Error('No se pudo crear el trabajador');
     }
 
-    // Audit log
-    await client.from('audit_logs').insert({
-      user_id: requestingUserId,
-      entity_name: 'workers',
-      entity_id: newWorker.id,
+    await this.audit.log({
+      userId: requestingUserId,
+      entityName: 'workers',
+      entityId: newWorker.id,
       action: 'CREATE',
-      old_values: null,
-      new_values: {
+      newValues: {
         full_name: newWorker.full_name,
         document_number: newWorker.document_number,
         status: newWorker.status,

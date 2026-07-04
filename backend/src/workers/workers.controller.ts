@@ -50,8 +50,6 @@ export class WorkersController {
   @Post()
   @CheckPermission('workers', 'create')
   create(@Body() dto: CreateWorkerDto, @CurrentUser() user: JwtPayload) {
-
-    console.log(dto);
     return this.workersService.create(dto, user.organization_id, user.sub);
   }
 
