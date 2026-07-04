@@ -4,18 +4,18 @@ import { IsStrongAppPassword } from '@common/utils/password.util';
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty({ message: 'El nombre completo es requerido' })
-  full_name: string;
+  full_name!: string;
 
   @IsEmail({}, { message: 'El email no es válido' })
   @IsNotEmpty({ message: 'El email es requerido' })
-  email: string;
+  email!: string;
 
   @IsStrongAppPassword()
-  password: string;
+  password!: string;
 
   @IsString()
   @IsNotEmpty({ message: 'El rol es requerido' })
-  role_code: string;
+  role_code!: string;
 
   @IsString()
   @IsOptional()

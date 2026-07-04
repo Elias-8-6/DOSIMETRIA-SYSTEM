@@ -76,34 +76,42 @@ export class AuthService {
     const { data: userData, error: userError } = await client
       .from('users')
       .select(
-        `
-        id, full_name, email, status, created_at, organization_id,
-        degree_title, university, location, document_number, phone,
-        date_of_birth, hire_date,
-        organizations(name),
-        user_roles(roles(code, name)),
-        user_permissions(granted, permissions(code, module, action, description))
-      `,
+        `id, full_name, email, status, created_at, organization_id,
+         degree_title, university, location, document_number, phone,
+         date_of_birth, hire_date`,
       )
       .eq('id', user.sub)
-      .single();
+      .maybeSingle();
 
-    if (userError || !userData) {
+    if (userError) {
+      this.logger.error(`getProfile query error for ${user.sub}: ${userError.message}`);
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    const org = userData.organizations as unknown as { name: string } | null;
-    const roles = ((userData.user_roles as any[]) ?? []).map((ur) => ur.roles);
-    const permissions = ((userData.user_permissions as any[]) ?? [])
-      .filter((up) => up.granted)
-      .map((up) => up.permissions);
+    if (!userData) {
+      this.logger.warn(`getProfile: no row for user ${user.sub}`);
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const [orgResult, rolesResult, permissionsResult] = await Promise.all([
+      client.from('organizations').select('name').eq('id', userData.organization_id).single(),
+      client.from('user_roles').select('roles(code, name)').eq('user_id', user.sub),
+      client
+        .from('user_permissions')
+        .select('granted, permissions(code, module, action, description)')
+        .eq('user_id', user.sub)
+        .eq('granted', true),
+    ]);
+
+    const roles = (rolesResult.data ?? []).map((ur: any) => ur.roles);
+    const permissions = (permissionsResult.data ?? []).map((up: any) => up.permissions);
 
     return {
       id: userData.id,
       full_name: userData.full_name,
       email: userData.email,
       status: userData.status,
-      organization: org?.name ?? null,
+      organization: orgResult.data?.name ?? null,
       roles,
       permissions,
       degree_title: userData.degree_title ?? null,

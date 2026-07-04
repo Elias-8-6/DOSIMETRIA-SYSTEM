@@ -3,19 +3,19 @@ import { IsOptional, IsString, IsIn, IsUUID, IsNumber, IsNumberString } from 'cl
 export class QueryWorkersDto {
   @IsOptional()
   @IsString()
-  search: string;
+  search?: string;
 
   @IsOptional()
   @IsIn(['active', 'inactive'])
-  status: string;
+  status?: string;
 
   @IsOptional()
   @IsUUID()
-  client_id: string;
+  client_id?: string;
 
   @IsOptional()
   @IsUUID()
-  client_location_id: string;
+  client_location_id?: string;
 
   @IsOptional()
   @IsNumberString()

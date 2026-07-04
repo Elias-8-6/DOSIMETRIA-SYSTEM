@@ -3,7 +3,7 @@ import { IsDateString, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString } from 'c
 export class CreateClientDto {
   @IsString()
   @IsNotEmpty({ message: 'El nombre del cliente es requerido' })
-  name: string;
+  name!: string;
 
   @IsString()
   @IsOptional()

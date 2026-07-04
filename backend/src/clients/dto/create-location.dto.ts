@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
 export class CreateLocationDto {
   @IsNotEmpty({ message: 'El nombre es un campo obligatorio' })
   @IsString()
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsString()

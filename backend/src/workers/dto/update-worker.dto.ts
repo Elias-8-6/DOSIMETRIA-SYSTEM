@@ -3,45 +3,45 @@ import { IsDateString, IsEmail, IsNumber, IsOptional, IsString, IsUUID } from 'c
 export class UpdateWorkerDto {
   @IsOptional()
   @IsString({ message: 'El nombre debe ser palabras' })
-  full_name: string;
+  full_name?: string;
 
   @IsOptional()
   @IsUUID()
-  client_id: string;
+  client_id?: string;
 
   @IsOptional()
   @IsEmail({}, { message: 'El correo no cumple con el formato requerido' })
-  email: string;
+  email?: string;
 
   @IsOptional()
   @IsUUID()
-  client_location_id: string;
+  client_location_id?: string;
 
   @IsOptional()
   @IsString()
-  document_number: string;
+  document_number?: string;
 
   @IsOptional()
   @IsString()
-  phone: string;
+  phone?: string;
 
   @IsOptional()
   @IsDateString()
-  start_date: string;
+  start_date?: string;
 
   @IsOptional()
   @IsNumber()
-  employee_code: string;
+  employee_code?: string;
 
   @IsOptional()
   @IsDateString()
-  date_of_birth: string;
+  date_of_birth?: string;
 
   @IsOptional()
   @IsString()
-  gender: string;
+  gender?: string;
 
   @IsOptional()
   @IsString()
-  occupation: string;
+  occupation?: string;
 }
