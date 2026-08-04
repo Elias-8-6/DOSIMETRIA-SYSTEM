@@ -9,6 +9,7 @@ import { SupabaseService } from '../../config/supabase.config';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { AuditService } from '@common/services/audit.service';
 import { RequestMeta } from '@common/interfaces/request-meta.interface';
+import { BCRYPT_COST_FACTOR } from '@common/utils/password.util';
 
 @Injectable()
 export class ChangePasswordUseCase {
@@ -50,7 +51,7 @@ export class ChangePasswordUseCase {
     }
 
     // Hashear la nueva contraseña
-    const newHash = await bcrypt.hash(dto.new_password, 10);
+    const newHash = await bcrypt.hash(dto.new_password, BCRYPT_COST_FACTOR);
 
     const { error } = await this.supabase
       .getClient()

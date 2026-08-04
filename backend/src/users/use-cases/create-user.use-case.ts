@@ -2,6 +2,7 @@ import { ConflictException, Injectable, Logger, NotFoundException } from '@nestj
 import * as bcrypt from 'bcryptjs';
 import { SupabaseService } from '@config/supabase.config';
 import { AuditService } from '@common/services/audit.service';
+import { BCRYPT_COST_FACTOR } from '@common/utils/password.util';
 import { CreateUserDto } from '../dto/create-user.dto';
 
 @Injectable()
@@ -57,7 +58,7 @@ export class CreateUserUseCase {
     }
 
     // Hashear la contraseña
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_COST_FACTOR);
 
     // Crear el usuario con todos los campos
     const { data: newUser, error: createError } = await client
