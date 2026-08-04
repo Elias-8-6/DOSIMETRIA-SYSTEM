@@ -3,12 +3,18 @@ import type { FormEvent } from 'react';
 import { updateProfile, changePassword } from '../../api/profile.api';
 import type { UpdateProfilePayload, ChangePasswordPayload } from '../../api/profile.api';
 import { useAuth } from '../../hooks/useAuth';
+import { Modal } from '../ui/Modal';
+import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
 
 interface Props {
   onClose: () => void;
 }
 
 type Tab = 'profile' | 'password';
+
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
+const PASSWORD_HELPER = 'Mínimo 12 caracteres, con mayúscula, minúscula, número y símbolo';
 
 export function ProfileModal({ onClose }: Props) {
   const { user, refreshProfile } = useAuth();
@@ -95,9 +101,7 @@ export function ProfileModal({ onClose }: Props) {
       setPasswordError('La nueva contraseña y la confirmación no coinciden');
       return;
     }
-    const strongPassword =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
-    if (!strongPassword.test(newPassword)) {
+    if (!PASSWORD_REGEX.test(newPassword)) {
       setPasswordError(
         'La contraseña debe tener al menos 12 caracteres, incluyendo mayúscula, minúscula, número y símbolo',
       );
@@ -125,9 +129,6 @@ export function ProfileModal({ onClose }: Props) {
     }
   };
 
-  const inputClass = `w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`;
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
   const tabClass = (tab: Tab) =>
     `px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
       activeTab === tab
@@ -136,248 +137,188 @@ export function ProfileModal({ onClose }: Props) {
     }`;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <h2 className="text-base font-semibold text-gray-900">Mi perfil</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none cursor-pointer"
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 px-6">
-          <button className={tabClass('profile')} onClick={() => setActiveTab('profile')}>
-            Mis datos
-          </button>
-          <button className={tabClass('password')} onClick={() => setActiveTab('password')}>
-            Cambiar contraseña
-          </button>
-        </div>
-
-        {/* ── Tab: Mis datos ─────────────────────────────────────── */}
-        {activeTab === 'profile' && (
-          <form onSubmit={handleProfileSubmit} className="px-6 py-5 space-y-6">
-            {/* Datos básicos */}
-            <div>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                Datos básicos
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Nombre completo</label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Datos personales */}
-            <div>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                Datos personales
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Cédula / DNI</label>
-                  <input
-                    type="text"
-                    value={documentNumber}
-                    onChange={(e) => setDocumentNumber(e.target.value)}
-                    placeholder="8-123-456"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Teléfono</label>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+507 6000-0000"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Fecha de nacimiento</label>
-                  <input
-                    type="date"
-                    value={dateOfBirth}
-                    onChange={(e) => setDateOfBirth(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Perfil profesional */}
-            <div>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                Perfil profesional
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Título universitario</label>
-                  <input
-                    type="text"
-                    value={degreeTitle}
-                    onChange={(e) => setDegreeTitle(e.target.value)}
-                    placeholder="Lic. en Física"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Universidad</label>
-                  <input
-                    type="text"
-                    value={university}
-                    onChange={(e) => setUniversity(e.target.value)}
-                    placeholder="Universidad de Panamá"
-                    className={inputClass}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className={labelClass}>Ubicación</label>
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Ciudad de Panamá"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {profileError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                <p className="text-red-600 text-sm">{profileError}</p>
-              </div>
-            )}
-            {profileSuccess && (
-              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-                <p className="text-green-600 text-sm">{profileSuccess}</p>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={profileLoading}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
-              >
-                {profileLoading ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* ── Tab: Cambiar contraseña ────────────────────────────── */}
-        {activeTab === 'password' && (
-          <form onSubmit={handlePasswordSubmit} className="px-6 py-5 space-y-4">
-            <div>
-              <label className={labelClass}>Contraseña actual</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Nueva contraseña</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                placeholder="Mínimo 8 caracteres"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Confirmar nueva contraseña</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                placeholder="Repite la nueva contraseña"
-                className={`${inputClass} ${confirmPassword && newPassword !== confirmPassword ? 'border-red-300 bg-red-50' : ''}`}
-              />
-              {confirmPassword && (
-                <p
-                  className={`text-xs mt-1 ${newPassword === confirmPassword ? 'text-green-600' : 'text-red-500'}`}
-                >
-                  {newPassword === confirmPassword
-                    ? '✓ Las contraseñas coinciden'
-                    : '✗ Las contraseñas no coinciden'}
-                </p>
-              )}
-            </div>
-
-            {passwordError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                <p className="text-red-600 text-sm">{passwordError}</p>
-              </div>
-            )}
-            {passwordSuccess && (
-              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-                <p className="text-green-600 text-sm">{passwordSuccess}</p>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={passwordLoading || (!!confirmPassword && newPassword !== confirmPassword)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
-              >
-                {passwordLoading ? 'Cambiando...' : 'Cambiar contraseña'}
-              </button>
-            </div>
-          </form>
-        )}
+    <Modal title="Mi perfil" onClose={onClose}>
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 px-6">
+        <button type="button" className={tabClass('profile')} onClick={() => setActiveTab('profile')}>
+          Mis datos
+        </button>
+        <button
+          type="button"
+          className={tabClass('password')}
+          onClick={() => setActiveTab('password')}
+        >
+          Cambiar contraseña
+        </button>
       </div>
-    </div>
+
+      {/* ── Tab: Mis datos ─────────────────────────────────────── */}
+      {activeTab === 'profile' && (
+        <form onSubmit={handleProfileSubmit} className="px-6 py-5 space-y-6">
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              Datos básicos
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Nombre completo"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+              <Input
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              Datos personales
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Cédula / DNI"
+                type="text"
+                value={documentNumber}
+                onChange={(e) => setDocumentNumber(e.target.value)}
+                placeholder="8-123-456"
+              />
+              <Input
+                label="Teléfono"
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+507 6000-0000"
+              />
+              <Input
+                label="Fecha de nacimiento"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              Perfil profesional
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Título universitario"
+                type="text"
+                value={degreeTitle}
+                onChange={(e) => setDegreeTitle(e.target.value)}
+                placeholder="Lic. en Física"
+              />
+              <Input
+                label="Universidad"
+                type="text"
+                value={university}
+                onChange={(e) => setUniversity(e.target.value)}
+                placeholder="Universidad de Panamá"
+              />
+              <div className="col-span-2">
+                <Input
+                  label="Ubicación"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Ciudad de Panamá"
+                />
+              </div>
+            </div>
+          </div>
+
+          {profileError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              <p className="text-red-600 text-sm">{profileError}</p>
+            </div>
+          )}
+          {profileSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+              <p className="text-green-600 text-sm">{profileSuccess}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <Button variant="secondary" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={profileLoading}>
+              {profileLoading ? 'Guardando...' : 'Guardar cambios'}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {/* ── Tab: Cambiar contraseña ────────────────────────────── */}
+      {activeTab === 'password' && (
+        <form onSubmit={handlePasswordSubmit} className="px-6 py-5 space-y-4">
+          <Input
+            label="Contraseña actual"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+            placeholder="••••••••"
+          />
+          <Input
+            label="Nueva contraseña"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            placeholder="••••••••••••"
+            helperText={PASSWORD_HELPER}
+          />
+          <Input
+            label="Confirmar nueva contraseña"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            placeholder="Repite la nueva contraseña"
+            error={
+              confirmPassword && newPassword !== confirmPassword
+                ? 'Las contraseñas no coinciden'
+                : undefined
+            }
+            helperText={
+              confirmPassword && newPassword === confirmPassword
+                ? 'Las contraseñas coinciden'
+                : undefined
+            }
+          />
+
+          {passwordError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              <p className="text-red-600 text-sm">{passwordError}</p>
+            </div>
+          )}
+          {passwordSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+              <p className="text-green-600 text-sm">{passwordSuccess}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <Button variant="secondary" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={passwordLoading || (!!confirmPassword && newPassword !== confirmPassword)}
+            >
+              {passwordLoading ? 'Cambiando...' : 'Cambiar contraseña'}
+            </Button>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }

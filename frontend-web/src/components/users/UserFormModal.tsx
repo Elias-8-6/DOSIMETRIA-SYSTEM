@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { createUser, updateUser } from '../../api/users.api';
 import type { User, CreateUserPayload, UpdateUserPayload } from '../../api/users.api';
+import { Modal } from '../ui/Modal';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Button } from '../ui/Button';
 
 interface Props {
   user?: User | null;
@@ -9,9 +13,13 @@ interface Props {
   onSuccess: () => void;
 }
 
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
+const PASSWORD_HELPER = 'Mínimo 12 caracteres, con mayúscula, minúscula, número y símbolo';
+
 /**
  * UserFormModal — crear y editar usuarios.
  * El rol es SIEMPRE obligatorio (crear y editar).
+ * Cédula/DNI y Teléfono son obligatorios al crear (el backend los exige).
  * Incluye campos de perfil extendido (migraciones 012 y 013).
  */
 export function UserFormModal({ user, onClose, onSuccess }: Props) {
@@ -50,6 +58,9 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
     setHireDate(user?.hire_date ?? '');
     setPassword('');
     setError('');
+    // Solo re-sincronizar cuando cambia a OTRO usuario, no en cada
+    // re-render con la misma referencia de user desde el padre.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -74,9 +85,7 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
 
         await updateUser(user.id, payload);
       } else {
-        const strongPassword =
-          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
-        if (!strongPassword.test(password)) {
+        if (!PASSWORD_REGEX.test(password)) {
           setError(
             'La contraseña debe tener al menos 12 caracteres, incluyendo mayúscula, minúscula, número y símbolo',
           );
@@ -111,218 +120,153 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
     }
   };
 
-  const inputClass = `w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`;
-
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
-
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <h2 className="text-base font-semibold text-gray-900">
-            {isEditing ? 'Editar usuario' : 'Nuevo usuario'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none cursor-pointer"
-          >
-            ×
-          </button>
+    <Modal title={isEditing ? 'Editar usuario' : 'Nuevo usuario'} onClose={onClose}>
+      <form autoComplete="off" onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+        {/* ── Sección: Datos básicos ────────────────────────────── */}
+        <div>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            Datos básicos
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Nombre completo"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              placeholder="Juan Pérez"
+            />
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="juan@laboratorio.com"
+            />
+
+            {/* Password solo en creación */}
+            {!isEditing && (
+              <Input
+                label="Contraseña"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••••••"
+                helperText={PASSWORD_HELPER}
+              />
+            )}
+
+            {/* Rol — siempre requerido */}
+            <Select
+              label="Rol"
+              value={roleCode}
+              onChange={(e) => setRoleCode(e.target.value)}
+              required
+            >
+              <option value="">Seleccionar rol</option>
+              <option value="admin_lab">Administrador del laboratorio</option>
+              <option value="tecnico_lab">Técnico de laboratorio</option>
+              <option value="coordinador_cliente">Coordinador de cliente</option>
+              <option value="auditor">Auditor ISO</option>
+            </Select>
+          </div>
         </div>
 
-        <form autoComplete="off" onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
-          {/* ── Sección: Datos básicos ────────────────────────────── */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Datos básicos
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Nombre completo *</label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  placeholder="Juan Pérez"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Email *</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="juan@laboratorio.com"
-                  className={inputClass}
-                />
-              </div>
+        {/* ── Sección: Datos personales ─────────────────────────── */}
+        <div>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            Datos personales
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Cédula / DNI"
+              type="text"
+              value={documentNumber}
+              onChange={(e) => setDocumentNumber(e.target.value)}
+              required={!isEditing}
+              placeholder="8-123-456"
+            />
+            <Input
+              label="Teléfono"
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required={!isEditing}
+              placeholder="+507 6000-0000"
+            />
+            <Input
+              label="Fecha de nacimiento"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+            />
+            <Input
+              label="Fecha de contratación"
+              type="date"
+              value={hireDate}
+              onChange={(e) => setHireDate(e.target.value)}
+            />
+          </div>
+        </div>
 
-              {/* Password solo en creación */}
-              {!isEditing && (
-                <div>
-                  <label className={labelClass}>Contraseña *</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    placeholder="Mínimo 8 caracteres"
-                    className={inputClass}
-                  />
-                </div>
-              )}
-
-              {/* Rol — siempre requerido */}
-              <div>
-                <label className={labelClass}>Rol *</label>
-                <select
-                  value={roleCode}
-                  onChange={(e) => setRoleCode(e.target.value)}
-                  required
-                  className={`${inputClass} bg-white cursor-pointer`}
-                >
-                  <option value="">Seleccionar rol</option>
-                  <option value="admin_lab">Administrador del laboratorio</option>
-                  <option value="tecnico_lab">Técnico de laboratorio</option>
-                  <option value="coordinador_cliente">Coordinador de cliente</option>
-                  <option value="auditor">Auditor ISO</option>
-                </select>
-              </div>
+        {/* ── Sección: Perfil profesional ───────────────────────── */}
+        <div>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            Perfil profesional
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Título universitario"
+              type="text"
+              value={degreeTitle}
+              onChange={(e) => setDegreeTitle(e.target.value)}
+              placeholder="Lic. en Física"
+            />
+            <Input
+              label="Universidad"
+              type="text"
+              value={university}
+              onChange={(e) => setUniversity(e.target.value)}
+              placeholder="Universidad de Panamá"
+            />
+            <div className="col-span-2">
+              <Input
+                label="Ubicación"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Ciudad de Panamá"
+              />
             </div>
           </div>
+        </div>
 
-          {/* ── Sección: Datos personales ─────────────────────────── */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Datos personales
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Cédula / DNI*</label>
-                <input
-                  type="text"
-                  value={documentNumber}
-                  onChange={(e) => setDocumentNumber(e.target.value)}
-                  placeholder="8-123-456"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Teléfono*</label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+507 6000-0000"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Fecha de nacimiento</label>
-                <input
-                  type="date"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Fecha de contratación</label>
-                <input
-                  type="date"
-                  value={hireDate}
-                  onChange={(e) => setHireDate(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-            </div>
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
+        )}
 
-          {/* ── Sección: Perfil profesional ───────────────────────── */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Perfil profesional
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Título universitario</label>
-                <input
-                  type="text"
-                  value={degreeTitle}
-                  onChange={(e) => setDegreeTitle(e.target.value)}
-                  placeholder="Lic. en Física"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Universidad</label>
-                <input
-                  type="text"
-                  value={university}
-                  onChange={(e) => setUniversity(e.target.value)}
-                  placeholder="Universidad de Panamá"
-                  className={inputClass}
-                />
-              </div>
-              <div className="col-span-2">
-                <label className={labelClass}>Ubicación</label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Ciudad de Panamá"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
-
-          {/* Acciones */}
-          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300
-                         rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600
-                         hover:bg-blue-700 disabled:bg-blue-400 rounded-lg
-                         transition-colors cursor-pointer disabled:cursor-not-allowed"
-            >
-              {loading
-                ? isEditing
-                  ? 'Guardando...'
-                  : 'Creando...'
-                : isEditing
-                  ? 'Guardar cambios'
-                  : 'Crear usuario'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {/* Acciones */}
+        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+          <Button variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading
+              ? isEditing
+                ? 'Guardando...'
+                : 'Creando...'
+              : isEditing
+                ? 'Guardar cambios'
+                : 'Crear usuario'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

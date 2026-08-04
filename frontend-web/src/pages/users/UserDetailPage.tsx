@@ -11,6 +11,7 @@ import {
 } from '../../api/users.api';
 import { useAuth } from '../../hooks/useAuth';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 
 const roleLabelByCode: Record<string, string> = {
   admin_lab: 'Administrador de laboratorio',
@@ -179,8 +180,8 @@ export function UserDetailPage() {
           <dl className="mt-4 space-y-3 text-sm">
             <div>
               <dt className="text-gray-500">Estado</dt>
-              <dd className="font-medium text-gray-900">
-                {user.status === 'active' ? 'Activo' : 'Inactivo'}
+              <dd className="mt-0.5">
+                <StatusBadge active={user.status === 'active'} />
               </dd>
             </div>
             <div>

@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { getUsers } from '../../api/users.api';
 import type { User } from '../../api/users.api';
 import { useAuth } from '../../hooks/useAuth';
+import { useDebounce } from '../../hooks/useDebounce';
 import { UserFormModal } from '../../components/users/UserFormModal';
+import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
+import { Pagination } from '../../components/ui/Pagination';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Button } from '../../components/ui/Button';
 
 /**
  * UsersPage — listado de usuarios con búsqueda y filtros.
@@ -24,12 +29,14 @@ export function UsersPage() {
   const [modalKey, setModalKey] = useState(0);
   const limit = 10;
 
+  const debouncedSearch = useDebounce(search, 400);
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       const data = await getUsers({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         status: status || undefined,
         page,
         limit,
@@ -41,15 +48,14 @@ export function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, status, page]);
+  }, [debouncedSearch, status, page]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, status]);
+  }, [debouncedSearch, status]);
 
   useEffect(() => {
-    const timeout = setTimeout(fetchUsers, 400);
-    return () => clearTimeout(timeout);
+    fetchUsers();
   }, [fetchUsers]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -87,13 +93,7 @@ export function UsersPage() {
           <p className="text-gray-500 mt-1 text-sm">Gestión de usuarios del sistema</p>
         </div>
         {hasPermission('users', 'create') && (
-          <button
-            onClick={handleOpenCreate}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm
-                       font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
-          >
-            Nuevo usuario
-          </button>
+          <Button onClick={handleOpenCreate}>Nuevo usuario</Button>
         )}
       </div>
 
@@ -120,48 +120,36 @@ export function UsersPage() {
       </div>
 
       {/* Tabla */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {loading && (
-          <div className="px-6 py-12 text-center text-gray-400 text-sm">Cargando usuarios...</div>
-        )}
-
-        {error && <div className="px-6 py-4 text-red-600 text-sm">{error}</div>}
-
-        {!loading && !error && users.length === 0 && (
-          <div className="px-6 py-12 text-center text-gray-400 text-sm">
-            No se encontraron usuarios
-          </div>
-        )}
-
-        {!loading && !error && users.length > 0 && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Nombre</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Email</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Rol</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Estado</th>
-                <th className="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {users.map((user) => (
+      <DataTable>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className={TH_CLASS}>Nombre</th>
+              <th className={TH_CLASS}>Email</th>
+              <th className={TH_CLASS}>Rol</th>
+              <th className={TH_CLASS}>Estado</th>
+              <th className="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {loading ? (
+              <TableStatusRow colSpan={5}>Cargando usuarios...</TableStatusRow>
+            ) : error ? (
+              <TableStatusRow colSpan={5}>
+                <span className="text-red-600">{error}</span>
+              </TableStatusRow>
+            ) : users.length === 0 ? (
+              <TableStatusRow colSpan={5}>No se encontraron usuarios</TableStatusRow>
+            ) : (
+              users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900">{user.full_name}</td>
-                  <td className="px-6 py-4 text-gray-600">{user.email}</td>
-                  <td className="px-6 py-4 text-gray-600">{user.roles[0]?.name ?? '—'}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        user.status === 'active'
-                          ? 'bg-green-50 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      {user.status === 'active' ? 'Activo' : 'Inactivo'}
-                    </span>
+                  <td className={`${TD_CLASS} font-medium text-gray-900`}>{user.full_name}</td>
+                  <td className={`${TD_CLASS} text-gray-600`}>{user.email}</td>
+                  <td className={`${TD_CLASS} text-gray-600`}>{user.roles[0]?.name ?? '—'}</td>
+                  <td className={TD_CLASS}>
+                    <StatusBadge active={user.status === 'active'} />
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className={`${TD_CLASS} text-right`}>
                     <div className="flex items-center justify-end gap-3">
                       {hasPermission('users', 'update') && (
                         <button
@@ -180,40 +168,20 @@ export function UsersPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              ))
+            )}
+          </tbody>
+        </table>
 
-      {!loading && !error && total > 0 && (
-        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-          <span>
-            {total} usuario{total === 1 ? '' : 's'}
-          </span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-3 py-1 border rounded-lg disabled:opacity-40 cursor-pointer"
-            >
-              Anterior
-            </button>
-            <span className="px-2 py-1">
-              {page} / {totalPages}
+        {!loading && !error && total > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 text-sm text-gray-600">
+            <span>
+              {total} usuario{total === 1 ? '' : 's'}
             </span>
-            <button
-              type="button"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="px-3 py-1 border rounded-lg disabled:opacity-40 cursor-pointer"
-            >
-              Siguiente
-            </button>
           </div>
-        </div>
-      )}
+        )}
+        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      </DataTable>
 
       {showModal && (
         <UserFormModal
