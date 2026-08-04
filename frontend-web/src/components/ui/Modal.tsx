@@ -19,11 +19,17 @@ const FOCUSABLE_SELECTOR =
 export function Modal({ title, onClose, children, maxWidth = 'max-w-2xl' }: ModalProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const node = dialogRef.current;
-    node?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)?.focus();
+    // Prioriza el primer campo del contenido (el formulario) sobre el
+    // botón "×" del header, que es estructuralmente el primero en el DOM.
+    const firstContentFocusable = contentRef.current?.querySelector<HTMLElement>(
+      FOCUSABLE_SELECTOR,
+    );
+    (firstContentFocusable ?? node?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR))?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -79,7 +85,7 @@ export function Modal({ title, onClose, children, maxWidth = 'max-w-2xl' }: Moda
             ×
           </button>
         </div>
-        {children}
+        <div ref={contentRef}>{children}</div>
       </div>
     </div>
   );
