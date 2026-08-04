@@ -8,6 +8,7 @@ import { WorkerFormModal } from '../../components/workers/WorkerFormModal';
 import WorkersPage from '../workers/WorkersPage';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { formatDate } from '../../utils/date';
 
 const CLIENT_TYPE_LABELS: Record<string, string> = {
   hospital: 'Hospital',
@@ -243,8 +244,8 @@ export default function ClientDetailPage() {
                 Contrato
               </h2>
               <div className="grid grid-cols-2 gap-y-3 gap-x-6">
-                {field('Inicio', client.contract_start_date)}
-                {field('Vencimiento', client.contract_end_date)}
+                {field('Inicio', formatDate(client.contract_start_date))}
+                {field('Vencimiento', formatDate(client.contract_end_date))}
               </div>
             </div>
           )}

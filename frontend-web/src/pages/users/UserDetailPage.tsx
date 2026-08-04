@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { formatDate } from '../../utils/date';
 
 const roleLabelByCode: Record<string, string> = {
   admin_lab: 'Administrador de laboratorio',
@@ -193,7 +194,7 @@ export function UserDetailPage() {
             <div>
               <dt className="text-gray-500">Creado</dt>
               <dd className="font-medium text-gray-900">
-                {new Date(user.created_at).toLocaleDateString('es-PA')}
+                {formatDate(user.created_at)}
               </dd>
             </div>
           </dl>
