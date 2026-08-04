@@ -4,6 +4,7 @@ import { getUsers } from '../../api/users.api';
 import type { User } from '../../api/users.api';
 import { useAuth } from '../../hooks/useAuth';
 import { useDebounce } from '../../hooks/useDebounce';
+import { useToast } from '../../hooks/useToast';
 import { UserFormModal } from '../../components/users/UserFormModal';
 import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
@@ -16,6 +17,7 @@ import { Button } from '../../components/ui/Button';
 export function UsersPage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const { showToast } = useToast();
 
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
@@ -81,8 +83,9 @@ export function UsersPage() {
   // Al guardar exitosamente, recarga la lista completa desde el backend.
   // Esto garantiza que los datos (incluyendo roles[]) estén siempre frescos.
   const handleSuccess = useCallback(() => {
+    showToast(editingUser ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
     fetchUsers();
-  }, [fetchUsers]);
+  }, [fetchUsers, showToast, editingUser]);
 
   return (
     <div>

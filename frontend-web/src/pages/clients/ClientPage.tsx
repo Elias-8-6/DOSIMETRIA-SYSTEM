@@ -4,6 +4,7 @@ import type { Client, ClientType } from '../../api/clients.api';
 import { getClients } from '../../api/clients.api';
 import { ClientFormModal } from '../../components/clients/ClientFormModal';
 import { useDebounce } from '../../hooks/useDebounce';
+import { useToast } from '../../hooks/useToast';
 import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -32,6 +33,7 @@ const PAGE_SIZE = 10;
 
 export default function ClientsPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,8 +81,11 @@ export default function ClientsPage() {
   }, [debouncedSearch, statusFilter, typeFilter]);
 
   const handleFormSuccess = useCallback(() => {
+    showToast(
+      formModal.client ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente',
+    );
     fetchClients();
-  }, [fetchClients]);
+  }, [fetchClients, showToast, formModal.client]);
 
   return (
     <div className="p-6">

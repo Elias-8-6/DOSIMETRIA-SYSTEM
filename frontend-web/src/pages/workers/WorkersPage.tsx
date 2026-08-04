@@ -5,6 +5,7 @@ import type { WorkerDetail } from '../../api/workers.api';
 import { WorkerFormModal } from '../../components/workers/WorkerFormModal';
 import { WorkerDetailModal } from '../../components/workers/WorkerDetailModal';
 import { useDebounce } from '../../hooks/useDebounce';
+import { useToast } from '../../hooks/useToast';
 import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -19,6 +20,7 @@ interface Props {
 const PAGE_SIZE = 10;
 
 export default function WorkersPage({ clientId, clientLocationId, embedded }: Props) {
+  const { showToast } = useToast();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,8 +72,11 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
   }, [debouncedSearch, statusFilter, clientId, clientLocationId]);
 
   const handleFormSuccess = useCallback(() => {
+    showToast(
+      formModal.worker ? 'Trabajador actualizado correctamente' : 'Trabajador creado correctamente',
+    );
     fetchWorkers();
-  }, [fetchWorkers]);
+  }, [fetchWorkers, showToast, formModal.worker]);
 
   const handleOpenDetail = async (worker: Worker) => {
     setDetailError('');
