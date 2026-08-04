@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import type { Client, ClientType } from '../../api/clients.api';
 import { getClients } from '../../api/clients.api';
 import { ClientFormModal } from '../../components/clients/ClientFormModal';
+import { useDebounce } from '../../hooks/useDebounce';
+import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
+import { Pagination } from '../../components/ui/Pagination';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Button } from '../../components/ui/Button';
 
 const CLIENT_TYPE_LABELS: Record<ClientType, string> = {
   hospital: 'Hospital',
@@ -30,6 +35,7 @@ export default function ClientsPage() {
 
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -42,11 +48,14 @@ export default function ClientsPage() {
     client: null,
   });
 
+  const debouncedSearch = useDebounce(search, 300);
+
   const fetchClients = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
       const data = await getClients({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         status: statusFilter || undefined,
         client_type: typeFilter || undefined,
         page,
@@ -55,20 +64,19 @@ export default function ClientsPage() {
       setClients(data.items);
       setTotalPages(Math.ceil(data.total / PAGE_SIZE));
     } catch {
-      // silencioso
+      setError('No se pudo cargar el listado de clientes');
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, typeFilter, page]);
+  }, [debouncedSearch, statusFilter, typeFilter, page]);
 
   useEffect(() => {
-    const timer = setTimeout(fetchClients, 300);
-    return () => clearTimeout(timer);
+    fetchClients();
   }, [fetchClients]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, typeFilter, setPage]);
+  }, [debouncedSearch, statusFilter, typeFilter]);
 
   const handleFormSuccess = useCallback(() => {
     fetchClients();
@@ -82,15 +90,14 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de instituciones cliente</p>
         </div>
-        <button
+        <Button
           onClick={() => {
             setModalKey((k) => k + 1);
             setFormModal({ open: true, client: null });
           }}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
         >
           Nuevo cliente
-        </button>
+        </Button>
       </div>
 
       {/* Filtros */}
@@ -126,44 +133,40 @@ export default function ClientsPage() {
       </div>
 
       {/* Tabla */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <DataTable>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Nombre</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Código</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Tipo</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Contacto</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Sedes</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Estado</th>
+              <th className={TH_CLASS}>Nombre</th>
+              <th className={TH_CLASS}>Código</th>
+              <th className={TH_CLASS}>Tipo</th>
+              <th className={TH_CLASS}>Contacto</th>
+              <th className={TH_CLASS}>Sedes</th>
+              <th className={TH_CLASS}>Estado</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={7} className="text-center py-12 text-gray-400">
-                  Cargando...
-                </td>
-              </tr>
+              <TableStatusRow colSpan={7}>Cargando...</TableStatusRow>
+            ) : error ? (
+              <TableStatusRow colSpan={7}>
+                <span className="text-red-600">{error}</span>
+              </TableStatusRow>
             ) : clients.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-12 text-gray-400">
-                  No se encontraron clientes
-                </td>
-              </tr>
+              <TableStatusRow colSpan={7}>No se encontraron clientes</TableStatusRow>
             ) : (
               clients.map((client) => (
                 <tr
                   key={client.id}
                   className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900">{client.name}</td>
-                  <td className="px-4 py-3 text-gray-500">{client.code ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className={`${TD_CLASS} font-medium text-gray-900`}>{client.name}</td>
+                  <td className={`${TD_CLASS} text-gray-500`}>{client.code ?? '—'}</td>
+                  <td className={`${TD_CLASS} text-gray-600`}>
                     {client.client_type ? CLIENT_TYPE_LABELS[client.client_type] : '—'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={TD_CLASS}>
                     <div>
                       <p className="text-gray-800">{client.contact_name ?? '—'}</p>
                       {client.contact_email && (
@@ -171,19 +174,11 @@ export default function ClientsPage() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{client.client_locations.length}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        client.status === 'active'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      {client.status === 'active' ? 'Activo' : 'Inactivo'}
-                    </span>
+                  <td className={`${TD_CLASS} text-gray-600`}>{client.client_locations.length}</td>
+                  <td className={TD_CLASS}>
+                    <StatusBadge active={client.status === 'active'} />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={TD_CLASS}>
                     <div className="flex gap-3 justify-end">
                       <button
                         onClick={() => navigate(`/clients/${client.id}`)}
@@ -199,33 +194,8 @@ export default function ClientsPage() {
           </tbody>
         </table>
 
-        {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-            <p className="text-sm text-gray-500">
-              Página {page} de {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => p - 1)}
-                disabled={page === 1}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600
-                           hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Anterior
-              </button>
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600
-                           hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      </DataTable>
 
       {/* Modal crear cliente */}
       {formModal.open && (

@@ -7,6 +7,7 @@ import { LocationFormModal } from '../../components/clients/LocationFormModal';
 import { WorkerFormModal } from '../../components/workers/ WorkerFormModal.tsx';
 import WorkersPage from '../workers/WorkersPage';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 
 const CLIENT_TYPE_LABELS: Record<string, string> = {
   hospital: 'Hospital',
@@ -165,15 +166,7 @@ export default function ClientDetailPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
             {client.code && <span className="text-sm text-gray-400">{client.code}</span>}
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                client.status === 'active'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-100 text-gray-500'
-              }`}
-            >
-              {client.status === 'active' ? 'Activo' : 'Inactivo'}
-            </span>
+            <StatusBadge active={client.status === 'active'} />
           </div>
         </div>
         <div className="flex items-center gap-2 mt-1">
@@ -301,15 +294,7 @@ export default function ClientDetailPage() {
                           Riesgo {loc.risk_level}
                         </span>
                       )}
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          loc.status === 'active'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {loc.status === 'active' ? 'Activo' : 'Inactivo'}
-                      </span>
+                      <StatusBadge active={loc.status === 'active'} />
                       {loc.radiation_type && (
                         <span className="text-xs text-gray-400">
                           {RADIATION_LABELS[loc.radiation_type]}
