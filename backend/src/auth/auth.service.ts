@@ -20,6 +20,12 @@ import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
+// Hash bcrypt fijo sin contraseña real asociada. Se compara contra él
+// cuando el email no existe, para que el tiempo de respuesta sea el
+// mismo que el de una contraseña incorrecta y no se pueda enumerar
+// usuarios válidos midiendo la latencia del login.
+const DUMMY_PASSWORD_HASH = '$2b$10$p/bL01HB8FdZWMC/LLZAjeyb5jMsMsfyHOQSNagKdc4Vdld0kw7Jq';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -43,6 +49,9 @@ export class AuthService {
       .single();
 
     if (error || !user) {
+      // Ejecutar un compare igual de costoso que el del camino "usuario
+      // existe" para no filtrar por timing si el email está registrado.
+      await bcrypt.compare(dto.password, DUMMY_PASSWORD_HASH);
       await this.audit.log({
         userId: null,
         entityName: 'users',
