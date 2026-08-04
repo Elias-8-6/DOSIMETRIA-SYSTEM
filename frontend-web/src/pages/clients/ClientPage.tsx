@@ -174,7 +174,7 @@ export default function ClientsPage() {
                       )}
                     </div>
                   </td>
-                  <td className={`${TD_CLASS} text-gray-600`}>{client.client_locations.length}</td>
+                  <td className={`${TD_CLASS} text-gray-600`}>{client.locations_count ?? 0}</td>
                   <td className={TD_CLASS}>
                     <StatusBadge active={client.status === 'active'} />
                   </td>

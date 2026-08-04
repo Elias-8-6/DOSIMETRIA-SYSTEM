@@ -55,8 +55,15 @@ export class FindAllClientsUseCase {
       return {
         ...rest,
         locations_count: locationsCount,
-        // Compatibilidad con UI que usa .length
-        client_locations: Array.from({ length: locationsCount }),
+        // El listado no trae las sedes completas (solo el conteo, para no
+        // pagar el JOIN completo). client_locations va vacío a propósito —
+        // quien necesite las sedes reales de un cliente debe pedir el
+        // detalle (GET /clients/:id). Antes se rellenaba con
+        // Array.from({length: N}) para que .length siguiera funcionando,
+        // pero eso producía elementos undefined/null que rompían a
+        // cualquier consumidor que iterara el array esperando objetos
+        // reales (ej. el selector de sede en "Nuevo trabajador").
+        client_locations: [],
       };
     });
 
