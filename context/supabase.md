@@ -267,3 +267,32 @@ Obtener keys con `supabase status` después de `supabase start`.
 - Usar `supabase migration new` para cambios de schema
 - Snippets en `supabase/snippets/` son queries de referencia, no migraciones
 - PostgreSQL 17 — verificar compatibilidad al cambiar versión remota
+
+## Estrategia de Backup / Disaster Recovery (PENDIENTE)
+
+El sistema debe conservar historiales de dosimetría ocupacional durante
+70+ años (retención regulatoria de protección radiológica). Ninguna de
+las garantías de schema (RLS, triggers de inmutabilidad, particionado)
+sustituye un backup real — protegen contra escritura indebida, no
+contra pérdida del disco/instancia completa. Hoy no existe ninguna
+estrategia de backup configurada, ni siquiera a nivel de intención
+documentada fuera de esta nota. Antes de operar con datos reales:
+
+- **Si el proyecto corre en Supabase hospedado (no local)**: habilitar
+  Point-in-Time Recovery (PITR) desde el dashboard del proyecto
+  (Settings → Database → Backups). PITR permite restaurar a cualquier
+  punto en el tiempo dentro de la ventana de retención contratada, no
+  solo al último backup diario.
+- **Si el proyecto se autohospeda (self-hosted Postgres)**: configurar
+  WAL archiving continuo (`archive_mode = on` + `archive_command`) hacia
+  almacenamiento externo (ej. S3), más snapshots periódicos de la base
+  completa. `docker-compose.prod.yml` está vacío hoy — no define
+  volúmenes persistentes ni backup del volumen de datos de Postgres.
+- **Retención del backup en sí**: para cumplir el mismo horizonte de 70
+  años, la política de retención del backup/PITR debe ser explícita
+  (no asumir que el default del proveedor alcanza) y revisarse
+  periódicamente junto con el proveedor de hosting.
+- Este documento no marca esta tarea como resuelta — es una acción de
+  configuración de infraestructura que debe ejecutarse fuera del
+  repositorio (dashboard/CLI de Supabase o configuración del servidor),
+  no algo que un cambio de código complete por sí solo.
