@@ -4,7 +4,7 @@ import type { Client, ClientLocation, ClientStatus } from '../../api/clients.api
 import { getClient, updateClientStatus, updateClientLocationStatus } from '../../api/clients.api';
 import { ClientFormModal } from '../../components/clients/ClientFormModal';
 import { LocationFormModal } from '../../components/clients/LocationFormModal';
-import { WorkerFormModal } from '../../components/workers/ WorkerFormModal.tsx';
+import { WorkerFormModal } from '../../components/workers/WorkerFormModal';
 import WorkersPage from '../workers/WorkersPage';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { StatusBadge } from '../../components/ui/StatusBadge';

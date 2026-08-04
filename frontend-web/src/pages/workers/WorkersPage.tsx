@@ -2,8 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Worker } from '../../api/workers.api';
 import { getWorkers, getWorker } from '../../api/workers.api';
 import type { WorkerDetail } from '../../api/workers.api';
-import { WorkerFormModal } from '../../components/workers/ WorkerFormModal.tsx';
+import { WorkerFormModal } from '../../components/workers/WorkerFormModal';
 import { WorkerDetailModal } from '../../components/workers/WorkerDetailModal';
+import { useDebounce } from '../../hooks/useDebounce';
+import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
+import { Pagination } from '../../components/ui/Pagination';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Button } from '../../components/ui/Button';
 
 interface Props {
   clientId?: string;
@@ -16,6 +21,7 @@ const PAGE_SIZE = 10;
 export default function WorkersPage({ clientId, clientLocationId, embedded }: Props) {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -30,12 +36,16 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
     open: false,
     worker: null,
   });
+  const [detailError, setDetailError] = useState('');
+
+  const debouncedSearch = useDebounce(search, 300);
 
   const fetchWorkers = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
       const data = await getWorkers({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         status: statusFilter || undefined,
         client_id: clientId || undefined,
         client_location_id: clientLocationId || undefined,
@@ -45,31 +55,31 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
       setWorkers(data.items);
       setTotalPages(Math.ceil(data.total / PAGE_SIZE));
     } catch {
-      // silencioso
+      setError('No se pudo cargar el listado de trabajadores');
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, clientId, clientLocationId, page]);
+  }, [debouncedSearch, statusFilter, clientId, clientLocationId, page]);
 
   useEffect(() => {
-    const timer = setTimeout(fetchWorkers, 300);
-    return () => clearTimeout(timer);
+    fetchWorkers();
   }, [fetchWorkers]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, clientId, clientLocationId, setPage]);
+  }, [debouncedSearch, statusFilter, clientId, clientLocationId]);
 
   const handleFormSuccess = useCallback(() => {
     fetchWorkers();
   }, [fetchWorkers]);
 
   const handleOpenDetail = async (worker: Worker) => {
+    setDetailError('');
     try {
       const detail = await getWorker(worker.id);
       setDetailModal({ open: true, worker: detail });
     } catch {
-      // silencioso
+      setDetailError('No se pudo cargar el detalle del trabajador');
     }
   };
 
@@ -96,15 +106,15 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
             <h1 className="text-2xl font-bold text-gray-900">Trabajadores</h1>
             <p className="text-sm text-gray-500 mt-0.5">Gestión de trabajadores dosimetrados</p>
           </div>
-          <button
+          <Button
+            accent="emerald"
             onClick={() => {
               setModalKey((k) => k + 1);
               setFormModal({ open: true, worker: null });
             }}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
           >
             Nuevo trabajador
-          </button>
+          </Button>
         </div>
       )}
 
@@ -129,66 +139,56 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
         </select>
       </div>
 
+      {detailError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+          <p className="text-red-600 text-sm">{detailError}</p>
+        </div>
+      )}
+
       {/* Tabla */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <DataTable>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Nombre</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Documento</th>
-              {!clientId && (
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Institución</th>
-              )}
-              {!clientLocationId && (
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Sede</th>
-              )}
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Ocupación</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Estado</th>
+              <th className={TH_CLASS}>Nombre</th>
+              <th className={TH_CLASS}>Documento</th>
+              {!clientId && <th className={TH_CLASS}>Institución</th>}
+              {!clientLocationId && <th className={TH_CLASS}>Sede</th>}
+              <th className={TH_CLASS}>Ocupación</th>
+              <th className={TH_CLASS}>Estado</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={colSpan} className="text-center py-8 text-gray-400">
-                  Cargando...
-                </td>
-              </tr>
+              <TableStatusRow colSpan={colSpan}>Cargando...</TableStatusRow>
+            ) : error ? (
+              <TableStatusRow colSpan={colSpan}>
+                <span className="text-red-600">{error}</span>
+              </TableStatusRow>
             ) : workers.length === 0 ? (
-              <tr>
-                <td colSpan={colSpan} className="text-center py-8 text-gray-400">
-                  No se encontraron trabajadores
-                </td>
-              </tr>
+              <TableStatusRow colSpan={colSpan}>No se encontraron trabajadores</TableStatusRow>
             ) : (
               workers.map((worker) => (
                 <tr
                   key={worker.id}
                   className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900">{worker.full_name}</td>
-                  <td className="px-4 py-3 text-gray-500">{worker.document_number ?? '—'}</td>
+                  <td className={`${TD_CLASS} font-medium text-gray-900`}>{worker.full_name}</td>
+                  <td className={`${TD_CLASS} text-gray-500`}>{worker.document_number ?? '—'}</td>
                   {!clientId && (
-                    <td className="px-4 py-3 text-gray-600">{worker.clients?.name ?? '—'}</td>
+                    <td className={`${TD_CLASS} text-gray-600`}>{worker.clients?.name ?? '—'}</td>
                   )}
                   {!clientLocationId && (
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className={`${TD_CLASS} text-gray-600`}>
                       {worker.client_locations?.name ?? '—'}
                     </td>
                   )}
-                  <td className="px-4 py-3 text-gray-600">{worker.occupation ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        worker.status === 'active'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      {worker.status === 'active' ? 'Activo' : 'Inactivo'}
-                    </span>
+                  <td className={`${TD_CLASS} text-gray-600`}>{worker.occupation ?? '—'}</td>
+                  <td className={TD_CLASS}>
+                    <StatusBadge active={worker.status === 'active'} />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={TD_CLASS}>
                     <div className="flex gap-3 justify-end">
                       <button
                         onClick={() => handleOpenDetail(worker)}
@@ -204,33 +204,8 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
           </tbody>
         </table>
 
-        {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-            <p className="text-sm text-gray-500">
-              Página {page} de {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => p - 1)}
-                disabled={page === 1}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600
-                           hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Anterior
-              </button>
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600
-                           hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      </DataTable>
 
       {/* Modales */}
       {formModal.open && (

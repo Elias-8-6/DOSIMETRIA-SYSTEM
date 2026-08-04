@@ -2,6 +2,10 @@ import { useState } from 'react';
 import type { WorkerDetail, WorkerStatus } from '../../api/workers.api';
 import { updateWorkerStatus } from '../../api/workers.api';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
+import { StatusBadge } from '../ui/StatusBadge';
+import { formatDate } from '../../utils/date';
 
 interface Props {
   worker: WorkerDetail;
@@ -48,61 +52,39 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
   );
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+    <>
+      <Modal
+        title={
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
             <div>
-              <h2 className="text-base font-semibold text-gray-900">{localWorker.full_name}</h2>
+              <span className="font-semibold text-gray-900">{localWorker.full_name}</span>
               {localWorker.clients && (
-                <p className="text-xs text-gray-400 mt-0.5">{localWorker.clients.name}</p>
+                <p className="text-xs font-normal text-gray-400 mt-0.5">
+                  {localWorker.clients.name}
+                </p>
               )}
             </div>
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                localWorker.status === 'active'
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-gray-100 text-gray-500'
-              }`}
-            >
-              {localWorker.status === 'active' ? 'Activo' : 'Inactivo'}
-            </span>
+            <StatusBadge active={localWorker.status === 'active'} />
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onEdit(localWorker)}
-              className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
-            >
+        }
+        onClose={onClose}
+        headerActions={
+          <>
+            <Button variant="secondary" accent="emerald" onClick={() => onEdit(localWorker)}>
               Editar
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={localWorker.status === 'active' ? 'danger' : 'primary'}
+              accent="emerald"
               onClick={() => setConfirmingStatus(true)}
               disabled={statusLoading}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer disabled:cursor-not-allowed ${
-                localWorker.status === 'active'
-                  ? 'text-red-600 border-red-200 hover:bg-red-50'
-                  : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'
-              }`}
             >
               {statusLoading ? '...' : localWorker.status === 'active' ? 'Desactivar' : 'Activar'}
-            </button>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-xl leading-none cursor-pointer ml-1"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-
+            </Button>
+          </>
+        }
+      >
         <div className="px-6 py-5 space-y-6">
           {/* Identificación */}
           <div>
@@ -122,7 +104,7 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
               {sectionHead('Datos personales')}
               <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                 {field('Sexo', localWorker.gender ? GENDER_LABELS[localWorker.gender] : null)}
-                {field('Fecha nacimiento', localWorker.date_of_birth)}
+                {field('Fecha nacimiento', formatDate(localWorker.date_of_birth))}
                 {field('Teléfono', localWorker.phone)}
                 {field('Email', localWorker.email)}
               </div>
@@ -136,7 +118,7 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
               {field('Institución', localWorker.clients?.name)}
               {field('Sede', localWorker.client_locations?.name)}
               {field('Ocupación', localWorker.occupation)}
-              {field('Inicio en dosimetría', localWorker.start_date)}
+              {field('Inicio en dosimetría', formatDate(localWorker.start_date))}
             </div>
           </div>
 
@@ -169,24 +151,22 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
                             ({assignment.dosimeters.internal_code})
                           </span>
                         )}
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            assignment.status === 'activo'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-gray-100 text-gray-500'
-                          }`}
-                        >
-                          {assignment.status === 'activo' ? 'En campo' : 'Devuelto'}
-                        </span>
+                        <StatusBadge
+                          active={assignment.status === 'activo'}
+                          activeLabel="En campo"
+                          inactiveLabel="Devuelto"
+                        />
                       </div>
                       <div className="flex gap-4 mt-1 flex-wrap">
                         <p className="text-xs text-gray-400">
                           {assignment.dosimeters.dosimeter_types.name}
                         </p>
-                        <p className="text-xs text-gray-400">Asignado: {assignment.assigned_at}</p>
+                        <p className="text-xs text-gray-400">
+                          Asignado: {formatDate(assignment.assigned_at)}
+                        </p>
                         {assignment.returned_at && (
                           <p className="text-xs text-gray-400">
-                            Devuelto: {assignment.returned_at}
+                            Devuelto: {formatDate(assignment.returned_at)}
                           </p>
                         )}
                       </div>
@@ -197,7 +177,7 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
             )}
           </div>
         </div>
-      </div>
+      </Modal>
 
       {confirmingStatus && (
         <ConfirmDialog
@@ -214,6 +194,6 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
           onCancel={() => setConfirmingStatus(false)}
         />
       )}
-    </div>
+    </>
   );
 }

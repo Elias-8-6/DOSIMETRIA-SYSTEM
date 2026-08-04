@@ -9,6 +9,10 @@ import type {
 import { createWorker, updateWorker } from '../../api/workers.api';
 import { getClients, getClient } from '../../api/clients.api';
 import type { Client, ClientLocation } from '../../api/clients.api';
+import { Modal } from '../ui/Modal';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Button } from '../ui/Button';
 
 interface Props {
   worker?: Worker | null;
@@ -23,6 +27,13 @@ const GENDERS: { value: WorkerGender; label: string }[] = [
   { value: 'femenino', label: 'Femenino' },
   { value: 'otro', label: 'Otro' },
 ];
+
+const sectionHead = (label: string, color: string) => (
+  <div className="flex items-center gap-2 mb-3">
+    <div className={`w-1 h-4 rounded-full ${color}`} />
+    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</h3>
+  </div>
+);
 
 export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, onSuccess }: Props) {
   const isEditing = !!worker;
@@ -69,7 +80,9 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
       .catch(() => {});
   }, [clientId]);
 
-  // Cargar sedes cuando cambia el cliente seleccionado (sin clientId fijo)
+  // Cargar sedes cuando cambia el cliente seleccionado (sin clientId fijo).
+  // getClients() (listado) no trae objetos de sede reales, solo el conteo
+  // — hay que pedir el detalle del cliente para obtener las sedes.
   useEffect(() => {
     if (clientId) return; // ya se cargaron arriba
     if (!selectedClientId) {
@@ -77,9 +90,10 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
       setSelectedLocationId('');
       return;
     }
-    const found = clients.find((c) => c.id === selectedClientId);
-    if (found) setLocations(found.client_locations);
-  }, [selectedClientId, clients, clientId]);
+    getClient(selectedClientId)
+      .then((c) => setLocations(c.client_locations))
+      .catch(() => setLocations([]));
+  }, [selectedClientId, clientId]);
 
   const handleClientChange = (id: string) => {
     setSelectedClientId(id);
@@ -140,220 +154,168 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
     }
   };
 
-  const inputClass = `w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-    focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent`;
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
-  const sectionHead = (label: string, color: string) => (
-    <div className="flex items-center gap-2 mb-3">
-      <div className={`w-1 h-4 rounded-full ${color}`} />
-      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</h3>
-    </div>
-  );
-
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <h2 className="text-base font-semibold text-gray-900">
-              {isEditing ? 'Editar trabajador' : 'Nuevo trabajador'}
-            </h2>
+    <Modal title={isEditing ? 'Editar trabajador' : 'Nuevo trabajador'} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+        {/* Identificación */}
+        <div>
+          {sectionHead('Identificación', 'bg-emerald-500')}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <Input
+                label="Nombre completo"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                placeholder="Juan Pérez"
+                accent="emerald"
+              />
+            </div>
+            <Input
+              label="Cédula / Documento"
+              type="text"
+              value={documentNumber}
+              onChange={(e) => setDocumentNumber(e.target.value)}
+              required={!isEditing}
+              placeholder="8-123-456"
+              accent="emerald"
+            />
+            <Input
+              label="Código de empleado"
+              type="text"
+              value={employeeCode}
+              onChange={(e) => setEmployeeCode(e.target.value)}
+              placeholder="EMP-001"
+              accent="emerald"
+            />
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none cursor-pointer"
-          >
-            ×
-          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
-          {/* Identificación */}
-          <div>
-            {sectionHead('Identificación', 'bg-emerald-500')}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label className={labelClass}>Nombre completo *</label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  placeholder="Juan Pérez"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Cédula / Documento</label>
-                <input
-                  type="text"
-                  value={documentNumber}
-                  onChange={(e) => setDocumentNumber(e.target.value)}
-                  placeholder="8-123-456"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Código de empleado</label>
-                <input
-                  type="text"
-                  value={employeeCode}
-                  onChange={(e) => setEmployeeCode(e.target.value)}
-                  placeholder="EMP-001"
-                  className={inputClass}
-                />
-              </div>
-            </div>
+        {/* Datos personales */}
+        <div>
+          {sectionHead('Datos personales', 'bg-blue-400')}
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Sexo"
+              value={gender}
+              onChange={(e) => setGender(e.target.value as WorkerGender | '')}
+              accent="emerald"
+            >
+              <option value="">Seleccionar</option>
+              {GENDERS.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
+            </Select>
+            <Input
+              label="Fecha de nacimiento"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              accent="emerald"
+            />
+            <Input
+              label="Teléfono"
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required={!isEditing}
+              placeholder="+507 6000-0000"
+              accent="emerald"
+            />
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required={!isEditing}
+              placeholder="trabajador@institucion.com"
+              accent="emerald"
+            />
           </div>
+        </div>
 
-          {/* Datos personales */}
-          <div>
-            {sectionHead('Datos personales', 'bg-blue-400')}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Sexo</label>
-                <select
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value as WorkerGender | '')}
-                  className={inputClass}
+        {/* Datos laborales */}
+        <div>
+          {sectionHead('Datos laborales', 'bg-violet-400')}
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Ocupación"
+              type="text"
+              value={occupation}
+              onChange={(e) => setOccupation(e.target.value)}
+              placeholder="Radiólogo"
+              accent="emerald"
+            />
+            <Input
+              label="Fecha de inicio en dosimetría"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required={!isEditing}
+              accent="emerald"
+            />
+
+            {/* Cliente — solo al crear y si no viene fijo */}
+            {!isEditing && !clientId && (
+              <div className="col-span-2">
+                <Select
+                  label="Institución"
+                  value={selectedClientId}
+                  onChange={(e) => handleClientChange(e.target.value)}
+                  required
+                  accent="emerald"
                 >
-                  <option value="">Seleccionar</option>
-                  {GENDERS.map((g) => (
-                    <option key={g.value} value={g.value}>
-                      {g.label}
+                  <option value="">Seleccionar institución</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <div>
-                <label className={labelClass}>Fecha de nacimiento</label>
-                <input
-                  type="date"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  className={inputClass}
-                />
+            )}
+
+            {/* Sede — se oculta si viene clientLocationId fijo. El backend
+                la exige al crear (CreateWorkerDto.client_location_id). */}
+            {!clientLocationId && (selectedClientId || clientId) && (
+              <div className="col-span-2">
+                <Select
+                  label="Sede"
+                  value={selectedLocationId}
+                  onChange={(e) => setSelectedLocationId(e.target.value)}
+                  required={!isEditing}
+                  accent="emerald"
+                >
+                  <option value="">{isEditing ? 'Sin sede asignada' : 'Seleccionar sede'}</option>
+                  {locations.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </Select>
               </div>
-              <div>
-                <label className={labelClass}>Teléfono</label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+507 6000-0000"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="trabajador@institucion.com"
-                  className={inputClass}
-                />
-              </div>
-            </div>
+            )}
           </div>
+        </div>
 
-          {/* Datos laborales */}
-          <div>
-            {sectionHead('Datos laborales', 'bg-violet-400')}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Ocupación</label>
-                <input
-                  type="text"
-                  value={occupation}
-                  onChange={(e) => setOccupation(e.target.value)}
-                  placeholder="Radiólogo"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Fecha de inicio en dosimetría</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-
-              {/* Cliente — solo al crear y si no viene fijo */}
-              {!isEditing && !clientId && (
-                <div className="col-span-2">
-                  <label className={labelClass}>Institución *</label>
-                  <select
-                    value={selectedClientId}
-                    onChange={(e) => handleClientChange(e.target.value)}
-                    required
-                    className={inputClass}
-                  >
-                    <option value="">Seleccionar institución</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Sede — se oculta si viene clientLocationId fijo */}
-              {!clientLocationId && (selectedClientId || clientId) && (
-                <div className="col-span-2">
-                  <label className={labelClass}>Sede</label>
-                  <select
-                    value={selectedLocationId}
-                    onChange={(e) => setSelectedLocationId(e.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="">Sin sede asignada</option>
-                    {locations.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
+        )}
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
-            >
-              {loading ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear trabajador'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+          <Button variant="secondary" accent="emerald" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" accent="emerald" disabled={loading}>
+            {loading ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear trabajador'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

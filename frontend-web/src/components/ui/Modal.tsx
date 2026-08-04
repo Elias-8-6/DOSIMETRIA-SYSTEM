@@ -2,10 +2,12 @@ import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 
 interface ModalProps {
-  title: string;
+  title: ReactNode;
   onClose: () => void;
   children: ReactNode;
   maxWidth?: string;
+  /** Acciones extra en el header (ej. Editar / Desactivar), antes del botón de cerrar. */
+  headerActions?: ReactNode;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -16,7 +18,13 @@ const FOCUSABLE_SELECTOR =
  * campo, trap de Tab dentro del diálogo, Escape para cerrar, y restaura
  * el foco al elemento que abrió el modal cuando se cierra.
  */
-export function Modal({ title, onClose, children, maxWidth = 'max-w-2xl' }: ModalProps) {
+export function Modal({
+  title,
+  onClose,
+  children,
+  maxWidth = 'max-w-2xl',
+  headerActions,
+}: ModalProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -76,14 +84,17 @@ export function Modal({ title, onClose, children, maxWidth = 'max-w-2xl' }: Moda
           <h2 id={titleId} className="text-base font-semibold text-gray-900">
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none cursor-pointer"
-          >
-            ×
-          </button>
+          <div className="flex items-center gap-2">
+            {headerActions}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar"
+              className="text-gray-400 hover:text-gray-600 text-xl leading-none cursor-pointer ml-1"
+            >
+              ×
+            </button>
+          </div>
         </div>
         <div ref={contentRef}>{children}</div>
       </div>
