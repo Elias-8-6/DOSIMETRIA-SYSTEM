@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { WorkerDetail, WorkerStatus } from '../../api/workers.api';
 import { updateWorkerStatus } from '../../api/workers.api';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface Props {
   worker: WorkerDetail;
@@ -18,6 +19,7 @@ const GENDER_LABELS: Record<string, string> = {
 export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) {
   const [localWorker, setLocalWorker] = useState<WorkerDetail>(worker);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [confirmingStatus, setConfirmingStatus] = useState(false);
 
   const handleToggleStatus = async () => {
     setStatusLoading(true);
@@ -29,6 +31,7 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
       onUpdate(updated);
     } finally {
       setStatusLoading(false);
+      setConfirmingStatus(false);
     }
   };
 
@@ -81,7 +84,7 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
               Editar
             </button>
             <button
-              onClick={handleToggleStatus}
+              onClick={() => setConfirmingStatus(true)}
               disabled={statusLoading}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer disabled:cursor-not-allowed ${
                 localWorker.status === 'active'
@@ -195,6 +198,22 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
           </div>
         </div>
       </div>
+
+      {confirmingStatus && (
+        <ConfirmDialog
+          title={localWorker.status === 'active' ? 'Desactivar trabajador' : 'Activar trabajador'}
+          message={
+            localWorker.status === 'active'
+              ? `¿Seguro que querés desactivar a ${localWorker.full_name}? Su historial de dosimetría se conserva, pero no podrá recibir nuevas asignaciones mientras esté inactivo.`
+              : `¿Reactivar a ${localWorker.full_name}?`
+          }
+          confirmLabel={localWorker.status === 'active' ? 'Desactivar' : 'Activar'}
+          danger={localWorker.status === 'active'}
+          loading={statusLoading}
+          onConfirm={handleToggleStatus}
+          onCancel={() => setConfirmingStatus(false)}
+        />
+      )}
     </div>
   );
 }

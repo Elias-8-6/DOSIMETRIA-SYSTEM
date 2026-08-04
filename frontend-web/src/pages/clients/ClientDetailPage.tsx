@@ -6,6 +6,7 @@ import { ClientFormModal } from '../../components/clients/ClientFormModal';
 import { LocationFormModal } from '../../components/clients/LocationFormModal';
 import { WorkerFormModal } from '../../components/workers/ WorkerFormModal.tsx';
 import WorkersPage from '../workers/WorkersPage';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 const CLIENT_TYPE_LABELS: Record<string, string> = {
   hospital: 'Hospital',
@@ -40,6 +41,8 @@ export default function ClientDetailPage() {
   const [error, setError] = useState('');
   const [statusLoading, setStatusLoading] = useState(false);
   const [locStatusLoading, setLocStatusLoading] = useState<string | null>(null);
+  const [confirmingClientStatus, setConfirmingClientStatus] = useState(false);
+  const [confirmingLocation, setConfirmingLocation] = useState<ClientLocation | null>(null);
 
   // Departamentos expandidos
   const [expandedLocs, setExpandedLocs] = useState<Record<string, boolean>>({});
@@ -84,6 +87,7 @@ export default function ClientDetailPage() {
       setClient({ ...client, status: newStatus });
     } finally {
       setStatusLoading(false);
+      setConfirmingClientStatus(false);
     }
   };
 
@@ -99,6 +103,7 @@ export default function ClientDetailPage() {
       setClient({ ...client, client_locations: updatedLocations });
     } finally {
       setLocStatusLoading(null);
+      setConfirmingLocation(null);
     }
   };
 
@@ -182,7 +187,7 @@ export default function ClientDetailPage() {
             Editar
           </button>
           <button
-            onClick={handleToggleStatus}
+            onClick={() => setConfirmingClientStatus(true)}
             disabled={statusLoading}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer disabled:cursor-not-allowed ${
               client.status === 'active'
@@ -194,6 +199,22 @@ export default function ClientDetailPage() {
           </button>
         </div>
       </div>
+
+      {confirmingClientStatus && (
+        <ConfirmDialog
+          title={client.status === 'active' ? 'Desactivar cliente' : 'Activar cliente'}
+          message={
+            client.status === 'active'
+              ? `¿Seguro que querés desactivar a ${client.name}? Sus departamentos y trabajadores seguirán existiendo, pero el cliente quedará marcado como inactivo.`
+              : `¿Reactivar a ${client.name}?`
+          }
+          confirmLabel={client.status === 'active' ? 'Desactivar' : 'Activar'}
+          danger={client.status === 'active'}
+          loading={statusLoading}
+          onConfirm={handleToggleStatus}
+          onCancel={() => setConfirmingClientStatus(false)}
+        />
+      )}
 
       {/* Info del cliente */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -307,7 +328,7 @@ export default function ClientDetailPage() {
                       Editar
                     </button>
                     <button
-                      onClick={() => handleToggleLocationStatus(loc)}
+                      onClick={() => setConfirmingLocation(loc)}
                       disabled={locStatusLoading === loc.id}
                       className={`text-xs cursor-pointer disabled:cursor-not-allowed ${
                         loc.status === 'active'
@@ -367,6 +388,23 @@ export default function ClientDetailPage() {
           location={locationModal.location}
           onClose={() => setLocationModal({ open: false, location: null })}
           onSuccess={handleLocationSuccess}
+        />
+      )}
+
+      {/* Confirmación de estado de sede */}
+      {confirmingLocation && (
+        <ConfirmDialog
+          title={confirmingLocation.status === 'active' ? 'Desactivar sede' : 'Activar sede'}
+          message={
+            confirmingLocation.status === 'active'
+              ? `¿Seguro que querés desactivar "${confirmingLocation.name}"? Sus trabajadores seguirán existiendo, pero la sede quedará marcada como inactiva.`
+              : `¿Reactivar "${confirmingLocation.name}"?`
+          }
+          confirmLabel={confirmingLocation.status === 'active' ? 'Desactivar' : 'Activar'}
+          danger={confirmingLocation.status === 'active'}
+          loading={locStatusLoading === confirmingLocation.id}
+          onConfirm={() => handleToggleLocationStatus(confirmingLocation)}
+          onCancel={() => setConfirmingLocation(null)}
         />
       )}
 

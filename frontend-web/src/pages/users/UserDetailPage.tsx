@@ -10,6 +10,7 @@ import {
   type UserDetail,
 } from '../../api/users.api';
 import { useAuth } from '../../hooks/useAuth';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 const roleLabelByCode: Record<string, string> = {
   admin_lab: 'Administrador de laboratorio',
@@ -31,6 +32,7 @@ export function UserDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [confirmingStatusChange, setConfirmingStatusChange] = useState(false);
 
   const canManageUsers = hasPermission('users', 'update');
 
@@ -76,6 +78,7 @@ export function UserDetailPage() {
       setError('No se pudo actualizar el estado del usuario');
     } finally {
       setIsSaving(false);
+      setConfirmingStatusChange(false);
     }
   };
 
@@ -135,15 +138,34 @@ export function UserDetailPage() {
 
         {canManageUsers && (
           <button
-            onClick={handleToggleStatus}
+            onClick={() => setConfirmingStatusChange(true)}
             disabled={isSaving}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            style={{ backgroundColor: user.status === 'active' ? '#dc2626' : '#16a34a' }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+              user.status === 'active'
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-green-600 hover:bg-green-700'
+            }`}
           >
             {user.status === 'active' ? 'Desactivar usuario' : 'Activar usuario'}
           </button>
         )}
       </div>
+
+      {confirmingStatusChange && (
+        <ConfirmDialog
+          title={user.status === 'active' ? 'Desactivar usuario' : 'Activar usuario'}
+          message={
+            user.status === 'active'
+              ? `¿Seguro que querés desactivar a ${user.full_name}? No podrá iniciar sesión mientras esté inactivo.`
+              : `¿Reactivar a ${user.full_name}? Podrá iniciar sesión nuevamente.`
+          }
+          confirmLabel={user.status === 'active' ? 'Desactivar' : 'Activar'}
+          danger={user.status === 'active'}
+          loading={isSaving}
+          onConfirm={handleToggleStatus}
+          onCancel={() => setConfirmingStatusChange(false)}
+        />
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
