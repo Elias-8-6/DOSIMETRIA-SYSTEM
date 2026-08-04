@@ -12,6 +12,8 @@ import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
 import { hashToken } from '@common/utils/token-hash.util';
+import { AuditService } from '@common/services/audit.service';
+import { RequestMeta } from '@common/interfaces/request-meta.interface';
 
 import { UpdateProfileUseCase } from './use-cases/update-profile.use-case';
 import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
@@ -28,9 +30,10 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly updateProfileUC: UpdateProfileUseCase,
     private readonly changePasswordUC: ChangePasswordUseCase,
+    private readonly audit: AuditService,
   ) {}
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, meta: RequestMeta = {}) {
     const client = this.supabase.getClient();
 
     const { data: user, error } = await client
@@ -40,15 +43,41 @@ export class AuthService {
       .single();
 
     if (error || !user) {
+      await this.audit.log({
+        userId: null,
+        entityName: 'users',
+        action: 'LOGIN_FAILED',
+        newValues: { email: dto.email, reason: 'credenciales_incorrectas' },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
     if (user.status !== 'active') {
+      await this.audit.log({
+        userId: user.id,
+        entityName: 'users',
+        entityId: user.id,
+        action: 'LOGIN_FAILED',
+        newValues: { email: dto.email, reason: 'usuario_inactivo' },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
       throw new UnauthorizedException('El usuario está inactivo o bloqueado');
     }
 
     const passwordValid = await bcrypt.compare(dto.password, user.password_hash);
     if (!passwordValid) {
+      await this.audit.log({
+        userId: user.id,
+        entityName: 'users',
+        entityId: user.id,
+        action: 'LOGIN_FAILED',
+        newValues: { email: dto.email, reason: 'credenciales_incorrectas' },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
@@ -63,6 +92,15 @@ export class AuthService {
 
     const accessToken = this.generateToken(user);
     const refreshToken = await this.generateRefreshToken(user.id, user.organization_id);
+
+    await this.audit.log({
+      userId: user.id,
+      entityName: 'users',
+      entityId: user.id,
+      action: 'LOGIN',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
 
     return {
       access_token: accessToken,
@@ -162,7 +200,10 @@ export class AuthService {
     return refreshToken;
   }
 
-  async refreshToken(userId: string, refreshToken: string) {
+  // Nota: el refresh exitoso NO se audita (ocurre cada ~15min por sesión
+  // activa y sería puro ruido). Sí se audita el intento fallido, que es
+  // la señal relevante para ISO 17025 (posible reuso de token robado).
+  async refreshToken(userId: string, refreshToken: string, meta: RequestMeta = {}) {
     const tokenHash = hashToken(refreshToken);
 
     const { data: matchingToken } = await this.supabase
@@ -175,6 +216,17 @@ export class AuthService {
       .maybeSingle();
 
     if (!matchingToken) {
+      // Token no encontrado (ya revocado o nunca existió): posible intento
+      // de reuso de un refresh token robado/expirado.
+      await this.audit.log({
+        userId,
+        entityName: 'users',
+        entityId: userId,
+        action: 'LOGIN_FAILED',
+        newValues: { reason: 'refresh_token_invalido' },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
       throw new UnauthorizedException('Refresh token inválido');
     }
 
@@ -211,7 +263,7 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string) {
+  async logout(userId: string, meta: RequestMeta = {}) {
     await this.supabase
       .getClient()
       .from('refresh_tokens')
@@ -222,6 +274,15 @@ export class AuthService {
       .eq('user_id', userId)
       .eq('revoked', false);
 
+    await this.audit.log({
+      userId,
+      entityName: 'users',
+      entityId: userId,
+      action: 'LOGOUT',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
+
     return { message: 'Sesión cerrada correctamente' };
   }
 
@@ -229,7 +290,7 @@ export class AuthService {
     return this.updateProfileUC.execute(userId, dto);
   }
 
-  changePassword(userId: string, dto: ChangePasswordDto) {
-    return this.changePasswordUC.execute(userId, dto);
+  changePassword(userId: string, dto: ChangePasswordDto, meta: RequestMeta = {}) {
+    return this.changePasswordUC.execute(userId, dto, meta);
   }
 }

@@ -62,12 +62,15 @@ describe('AuthService.refreshToken', () => {
       }),
     };
 
+    const audit = { log: jest.fn().mockResolvedValue(undefined) };
+
     service = new AuthService(
       supabase as any,
       jwt as any,
       config as any,
       {} as any,
       {} as any,
+      audit as any,
     );
   });
 

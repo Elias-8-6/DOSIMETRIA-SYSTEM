@@ -7,12 +7,17 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { SupabaseService } from '../../config/supabase.config';
 import { ChangePasswordDto } from '../dto/change-password.dto';
+import { AuditService } from '@common/services/audit.service';
+import { RequestMeta } from '@common/interfaces/request-meta.interface';
 
 @Injectable()
 export class ChangePasswordUseCase {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly audit: AuditService,
+  ) {}
 
-  async execute(userId: string, dto: ChangePasswordDto) {
+  async execute(userId: string, dto: ChangePasswordDto, meta: RequestMeta = {}) {
     // Validar que nueva contraseña y confirmación coinciden
     if (dto.new_password !== dto.confirm_password) {
       throw new BadRequestException(
@@ -54,6 +59,16 @@ export class ChangePasswordUseCase {
       .eq('id', userId);
 
     if (error) throw new Error(error.message);
+
+    await this.audit.log({
+      userId,
+      entityName: 'users',
+      entityId: userId,
+      action: 'UPDATE',
+      newValues: { password_changed: true },
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
 
     return { message: 'Contraseña actualizada correctamente' };
   }

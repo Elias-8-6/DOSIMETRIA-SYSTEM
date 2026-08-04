@@ -8,6 +8,8 @@ export interface AuditEntry {
   action: string;
   oldValues?: Record<string, unknown> | null;
   newValues?: Record<string, unknown> | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }
 
 /**
@@ -29,6 +31,8 @@ export class AuditService {
         action: entry.action,
         old_values: entry.oldValues ?? null,
         new_values: entry.newValues ?? null,
+        ip_address: entry.ipAddress ?? null,
+        user_agent: entry.userAgent ?? null,
       });
 
       if (error) {
