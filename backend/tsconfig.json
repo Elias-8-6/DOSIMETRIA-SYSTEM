@@ -18,6 +18,7 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    "types": ["node", "jest", "express", "passport-jwt", "cookie-parser", "bcrypt"],
     "paths": {
       "@common/*": ["src/common/*"],
       "@config/*": ["src/config/*"],
