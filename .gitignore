@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Build outputs
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE / OS
+.idea/
+.vscode/
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Nest / tooling
+backend/dist/
+frontend-web/dist/
+frontend-web/dist-ssr/
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Test / misc
+*.local
+.turbo
