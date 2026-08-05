@@ -28,16 +28,33 @@ export class GetDosimeterHistoryUseCase {
       if (!allowed) throw new NotFoundException('Dosímetro no encontrado');
     }
 
-    const { data, error } = await supabase
+    // Una organización cliente solo puede ver las filas de historial que
+    // corresponden a sus propios trabajadores -- isDosimeterAllowedForClientOrg
+    // solo valida que "alguna vez" tuvo el dosímetro, no filtra los datos de
+    // OTRAS organizaciones que también lo tuvieron. El join !inner aquí es
+    // seguro porque esta es una query hoja sobre dosimeter_assignments, no un
+    // embed bajo dosimeters -- filtrar filas no colapsa ningún registro padre.
+    let query = supabase
       .from('dosimeter_assignments')
       .select(
-        `
+        orgType === 'client'
+          ? `
+        id, assigned_at, returned_at, status, notes, assigned_by,
+        workers!inner(id, full_name, document_number, clients!inner(id, name, code))
+      `
+          : `
         id, assigned_at, returned_at, status, notes, assigned_by,
         workers(id, full_name, document_number, clients(id, name, code))
       `,
       )
       .eq('dosimeter_id', dosimeterId)
       .order('assigned_at', { ascending: false });
+
+    if (orgType === 'client') {
+      query = query.eq('workers.clients.organization_id', organizationId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw new Error('No se pudo obtener el historial de asignaciones');
 
