@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { getUsers } from '../../api/users.api';
 import type { User } from '../../api/users.api';
 import { useAuth } from '../../hooks/useAuth';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useToast } from '../../hooks/useToast';
 import { UserFormModal } from '../../components/users/UserFormModal';
+import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
+import { Pagination } from '../../components/ui/Pagination';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Button } from '../../components/ui/Button';
 
 /**
  * UsersPage — listado de usuarios con búsqueda y filtros.
@@ -11,8 +17,11 @@ import { UserFormModal } from '../../components/users/UserFormModal';
 export function UsersPage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const { showToast } = useToast();
 
   const [users, setUsers] = useState<User[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -20,30 +29,38 @@ export function UsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [modalKey, setModalKey] = useState(0);
+  const limit = 10;
 
-  // fetchUsers extraído como función del componente para poder llamarla
-  // tanto desde el useEffect como desde handleSuccess
+  const debouncedSearch = useDebounce(search, 400);
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       const data = await getUsers({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         status: status || undefined,
+        page,
+        limit,
       });
-      setUsers(data);
+      setUsers(data.items);
+      setTotal(data.total);
     } catch {
       setError('No se pudo cargar el listado de usuarios');
     } finally {
       setLoading(false);
     }
-  }, [search, status]);
+  }, [debouncedSearch, status, page]);
 
-  // Debounce — espera 400ms después de que el usuario deja de escribir
   useEffect(() => {
-    const timeout = setTimeout(fetchUsers, 400);
-    return () => clearTimeout(timeout);
+    setPage(1);
+  }, [debouncedSearch, status]);
+
+  useEffect(() => {
+    fetchUsers();
   }, [fetchUsers]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const handleOpenCreate = () => {
     setEditingUser(null);
@@ -66,8 +83,9 @@ export function UsersPage() {
   // Al guardar exitosamente, recarga la lista completa desde el backend.
   // Esto garantiza que los datos (incluyendo roles[]) estén siempre frescos.
   const handleSuccess = useCallback(() => {
+    showToast(editingUser ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
     fetchUsers();
-  }, [fetchUsers]);
+  }, [fetchUsers, showToast, editingUser]);
 
   return (
     <div>
@@ -78,13 +96,7 @@ export function UsersPage() {
           <p className="text-gray-500 mt-1 text-sm">Gestión de usuarios del sistema</p>
         </div>
         {hasPermission('users', 'create') && (
-          <button
-            onClick={handleOpenCreate}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm
-                       font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
-          >
-            Nuevo usuario
-          </button>
+          <Button onClick={handleOpenCreate}>Nuevo usuario</Button>
         )}
       </div>
 
@@ -111,48 +123,36 @@ export function UsersPage() {
       </div>
 
       {/* Tabla */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {loading && (
-          <div className="px-6 py-12 text-center text-gray-400 text-sm">Cargando usuarios...</div>
-        )}
-
-        {error && <div className="px-6 py-4 text-red-600 text-sm">{error}</div>}
-
-        {!loading && !error && users.length === 0 && (
-          <div className="px-6 py-12 text-center text-gray-400 text-sm">
-            No se encontraron usuarios
-          </div>
-        )}
-
-        {!loading && !error && users.length > 0 && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Nombre</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Email</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Rol</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Estado</th>
-                <th className="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {users.map((user) => (
+      <DataTable>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className={TH_CLASS}>Nombre</th>
+              <th className={TH_CLASS}>Email</th>
+              <th className={TH_CLASS}>Rol</th>
+              <th className={TH_CLASS}>Estado</th>
+              <th className="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {loading ? (
+              <TableStatusRow colSpan={5}>Cargando usuarios...</TableStatusRow>
+            ) : error ? (
+              <TableStatusRow colSpan={5}>
+                <span className="text-red-600">{error}</span>
+              </TableStatusRow>
+            ) : users.length === 0 ? (
+              <TableStatusRow colSpan={5}>No se encontraron usuarios</TableStatusRow>
+            ) : (
+              users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900">{user.full_name}</td>
-                  <td className="px-6 py-4 text-gray-600">{user.email}</td>
-                  <td className="px-6 py-4 text-gray-600">{user.roles[0]?.name ?? '—'}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        user.status === 'active'
-                          ? 'bg-green-50 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      {user.status === 'active' ? 'Activo' : 'Inactivo'}
-                    </span>
+                  <td className={`${TD_CLASS} font-medium text-gray-900`}>{user.full_name}</td>
+                  <td className={`${TD_CLASS} text-gray-600`}>{user.email}</td>
+                  <td className={`${TD_CLASS} text-gray-600`}>{user.roles[0]?.name ?? '—'}</td>
+                  <td className={TD_CLASS}>
+                    <StatusBadge active={user.status === 'active'} />
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className={`${TD_CLASS} text-right`}>
                     <div className="flex items-center justify-end gap-3">
                       {hasPermission('users', 'update') && (
                         <button
@@ -171,13 +171,21 @@ export function UsersPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              ))
+            )}
+          </tbody>
+        </table>
 
-      {/* Modal — se monta solo cuando showModal es true */}
+        {!loading && !error && total > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 text-sm text-gray-600">
+            <span>
+              {total} usuario{total === 1 ? '' : 's'}
+            </span>
+          </div>
+        )}
+        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      </DataTable>
+
       {showModal && (
         <UserFormModal
           key={modalKey}

@@ -7,6 +7,10 @@ import type {
   RiskLevel,
 } from '../../api/clients.api.ts';
 import { createClientLocation, updateClientLocation } from '../../api/clients.api.ts';
+import { Modal } from '../ui/Modal';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Button } from '../ui/Button';
 
 interface Props {
   clientId: string;
@@ -52,7 +56,8 @@ export function LocationFormModal({ clientId, location, onClose, onSuccess }: Pr
     setContactName(location?.contact_name ?? '');
     setRadiationType(location?.radiation_type ?? '');
     setRiskLevel(location?.risk_level ?? '');
-  }, [location]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.id]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -84,136 +89,85 @@ export function LocationFormModal({ clientId, location, onClose, onSuccess }: Pr
     }
   };
 
-  const inputClass = `w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`;
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
-
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-lg w-full max-w-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-base font-semibold text-gray-900">
-            {isEditing ? 'Editar sede' : 'Nueva sede'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-600 text-xl leading-none cursor-pointer"
-          >
-            ×
-          </button>
+    <Modal title={isEditing ? 'Editar sede' : 'Nueva sede'} onClose={onClose} maxWidth="max-w-lg">
+      <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+        <Input
+          label="Nombre del Departamento"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          placeholder="Área de Rayos X"
+        />
+
+        <Input
+          label="Dirección"
+          type="text"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Piso 1, Ala Norte"
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="Teléfono"
+            type="text"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+507 6000-0000"
+          />
+          <Input
+            label="Nombre del contacto"
+            type="text"
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            placeholder="Nombre del responsable"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <div>
-            <label className={labelClass}>Nombre del Departamento *</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              placeholder="Área de Rayos X"
-              className={inputClass}
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Select
+            label="Tipo de radiación"
+            value={radiationType}
+            onChange={(e) => setRadiationType(e.target.value as RadiationType | '')}
+          >
+            <option value="">Seleccionar</option>
+            {RADIATION_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Nivel de riesgo"
+            value={riskLevel}
+            onChange={(e) => setRiskLevel(e.target.value as RiskLevel | '')}
+          >
+            <option value="">Seleccionar</option>
+            {RISK_LEVELS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-          <div>
-            <label className={labelClass}>Dirección</label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Piso 1, Ala Norte"
-              className={inputClass}
-            />
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
+        )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Teléfono</label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+507 6000-0000"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Nombre del contacto</label>
-              <input
-                type="text"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder="Nombre del responsable"
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Tipo de radiación</label>
-              <select
-                value={radiationType}
-                onChange={(e) => setRadiationType(e.target.value as RadiationType | '')}
-                className={inputClass}
-              >
-                <option value="">Seleccionar</option>
-                {RADIATION_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Nivel de riesgo</label>
-              <select
-                value={riskLevel}
-                onChange={(e) => setRiskLevel(e.target.value as RiskLevel | '')}
-                className={inputClass}
-              >
-                <option value="">Seleccionar</option>
-                {RISK_LEVELS.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
-            >
-              {loading ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear sede'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+          <Button variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear sede'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

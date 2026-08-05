@@ -1,13 +1,18 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { SupabaseService } from '@config/supabase.config';
+import { AuditService } from '@common/services/audit.service';
+import { BCRYPT_COST_FACTOR } from '@common/utils/password.util';
 import { CreateUserDto } from '../dto/create-user.dto';
 
 @Injectable()
 export class CreateUserUseCase {
   private readonly logger = new Logger(CreateUserUseCase.name);
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly audit: AuditService,
+  ) {}
 
   async execute(dto: CreateUserDto, organizationId: string, grantedBy: string) {
     const client = this.supabase.getClient();
@@ -53,7 +58,7 @@ export class CreateUserUseCase {
     }
 
     // Hashear la contraseña
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_COST_FACTOR);
 
     // Crear el usuario con todos los campos
     const { data: newUser, error: createError } = await client
@@ -95,14 +100,12 @@ export class CreateUserUseCase {
       );
     }
 
-    // Audit log
-    await client.from('audit_logs').insert({
-      user_id: grantedBy,
-      entity_name: 'users',
-      entity_id: newUser.id,
+    await this.audit.log({
+      userId: grantedBy,
+      entityName: 'users',
+      entityId: newUser.id,
       action: 'CREATE',
-      old_values: null,
-      new_values: {
+      newValues: {
         full_name: newUser.full_name,
         email: newUser.email,
         status: newUser.status,

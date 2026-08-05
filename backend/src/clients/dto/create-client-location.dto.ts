@@ -3,7 +3,7 @@ import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 export class CreateClientLocationDto {
   @IsString()
   @IsNotEmpty({ message: 'El nombre de la sede es requerido' })
-  name: string;
+  name!: string;
 
   @IsString()
   @IsOptional()

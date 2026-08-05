@@ -11,11 +11,21 @@ import { SupabaseService } from '@config/supabase.config';
 import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
+import { hashToken } from '@common/utils/token-hash.util';
+import { AuditService } from '@common/services/audit.service';
+import { RequestMeta } from '@common/interfaces/request-meta.interface';
 
 import { UpdateProfileUseCase } from './use-cases/update-profile.use-case';
 import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+
+// Hash bcrypt fijo sin contraseña real asociada. Se compara contra él
+// cuando el email no existe, para que el tiempo de respuesta sea el
+// mismo que el de una contraseña incorrecta y no se pueda enumerar
+// usuarios válidos midiendo la latencia del login.
+const DUMMY_PASSWORD_HASH = '$2b$10$p/bL01HB8FdZWMC/LLZAjeyb5jMsMsfyHOQSNagKdc4Vdld0kw7Jq';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -26,9 +36,10 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly updateProfileUC: UpdateProfileUseCase,
     private readonly changePasswordUC: ChangePasswordUseCase,
+    private readonly audit: AuditService,
   ) {}
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, meta: RequestMeta = {}) {
     const client = this.supabase.getClient();
 
     const { data: user, error } = await client
@@ -38,15 +49,44 @@ export class AuthService {
       .single();
 
     if (error || !user) {
+      // Ejecutar un compare igual de costoso que el del camino "usuario
+      // existe" para no filtrar por timing si el email está registrado.
+      await bcrypt.compare(dto.password, DUMMY_PASSWORD_HASH);
+      await this.audit.log({
+        userId: null,
+        entityName: 'users',
+        action: 'LOGIN_FAILED',
+        newValues: { email: dto.email, reason: 'credenciales_incorrectas' },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
     if (user.status !== 'active') {
+      await this.audit.log({
+        userId: user.id,
+        entityName: 'users',
+        entityId: user.id,
+        action: 'LOGIN_FAILED',
+        newValues: { email: dto.email, reason: 'usuario_inactivo' },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
       throw new UnauthorizedException('El usuario está inactivo o bloqueado');
     }
 
     const passwordValid = await bcrypt.compare(dto.password, user.password_hash);
     if (!passwordValid) {
+      await this.audit.log({
+        userId: user.id,
+        entityName: 'users',
+        entityId: user.id,
+        action: 'LOGIN_FAILED',
+        newValues: { email: dto.email, reason: 'credenciales_incorrectas' },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
@@ -59,11 +99,20 @@ export class AuthService {
       throw new ForbiddenException('El usuario no tiene roles asignados');
     }
 
-    const token = this.generateToken(user);
+    const accessToken = this.generateToken(user);
     const refreshToken = await this.generateRefreshToken(user.id, user.organization_id);
 
+    await this.audit.log({
+      userId: user.id,
+      entityName: 'users',
+      entityId: user.id,
+      action: 'LOGIN',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
+
     return {
-      access_token: token,
+      access_token: accessToken,
       refresh_token: refreshToken,
     };
   }
@@ -71,51 +120,47 @@ export class AuthService {
   async getProfile(user: JwtPayload) {
     const client = this.supabase.getClient();
 
-    // Query 1: datos base del usuario
     const { data: userData, error: userError } = await client
       .from('users')
       .select(
-        `id, full_name, email, status, created_at, organization_id, degree_title, university, location, document_number, phone, date_of_birth, hire_date`,
+        `id, full_name, email, status, created_at, organization_id,
+         degree_title, university, location, document_number, phone,
+         date_of_birth, hire_date`,
       )
       .eq('id', user.sub)
-      .single();
+      .maybeSingle();
 
-    if (userError || !userData) {
+    if (userError) {
+      this.logger.error(`getProfile query error for ${user.sub}: ${userError.message}`);
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    // Query 2: organización
-    const { data: orgData } = await client
-      .from('organizations')
-      .select('name')
-      .eq('id', userData.organization_id)
-      .single();
+    if (!userData) {
+      this.logger.warn(`getProfile: no row for user ${user.sub}`);
+      throw new NotFoundException('Usuario no encontrado');
+    }
 
-    // Query 3: roles del usuario
-    const { data: rolesData, error: rolesError } = await client
-      .from('user_roles')
-      .select('roles(code, name)')
-      .eq('user_id', user.sub);
+    const [orgResult, rolesResult, permissionsResult] = await Promise.all([
+      client.from('organizations').select('name').eq('id', userData.organization_id).single(),
+      client.from('user_roles').select('roles(code, name)').eq('user_id', user.sub),
+      client
+        .from('user_permissions')
+        .select('granted, permissions(code, module, action, description)')
+        .eq('user_id', user.sub)
+        .eq('granted', true),
+    ]);
 
-    // Query 4: permisos activos del usuario
-    const { data: permissionsData, error: permissionsError } = await client
-      .from('user_permissions')
-      .select('granted, permissions(code, module, action, description)')
-      .eq('user_id', user.sub)
-      .eq('granted', true);
-
-    const roles = (rolesData ?? []).map((ur: any) => ur.roles);
-    const permissions = (permissionsData ?? []).map((up: any) => up.permissions);
+    const roles = (rolesResult.data ?? []).map((ur: any) => ur.roles);
+    const permissions = (permissionsResult.data ?? []).map((up: any) => up.permissions);
 
     return {
       id: userData.id,
       full_name: userData.full_name,
       email: userData.email,
       status: userData.status,
-      organization: orgData?.name ?? null,
+      organization: orgResult.data?.name ?? null,
       roles,
       permissions,
-
       degree_title: userData.degree_title ?? null,
       university: userData.university ?? null,
       location: userData.location ?? null,
@@ -142,17 +187,15 @@ export class AuthService {
   }
 
   private async generateRefreshToken(userId: string, organizationId: string): Promise<string> {
-    // Generar el token como JWT firmado con el refresh secret
     const refreshToken = this.jwt.sign(
-      { sub: userId, organization_id: organizationId }, // payload mínimo — solo necesita el user_id
+      { sub: userId, organization_id: organizationId },
       {
         secret: this.config.get('JWT_REFRESH_SECRET'),
         expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
       },
     );
 
-    // Hashear y guardar en DB igual que antes
-    const tokenHash = await bcrypt.hash(refreshToken, 10);
+    const tokenHash = hashToken(refreshToken);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -166,34 +209,37 @@ export class AuthService {
     return refreshToken;
   }
 
-  async refreshToken(userId: string, refreshToken: string) {
-    const { data: tokens } = await this.supabase
+  // Nota: el refresh exitoso NO se audita (ocurre cada ~15min por sesión
+  // activa y sería puro ruido). Sí se audita el intento fallido, que es
+  // la señal relevante para ISO 17025 (posible reuso de token robado).
+  async refreshToken(userId: string, refreshToken: string, meta: RequestMeta = {}) {
+    const tokenHash = hashToken(refreshToken);
+
+    const { data: matchingToken } = await this.supabase
       .getClient()
       .from('refresh_tokens')
-      .select('id, token_hash, expires_at, revoked')
+      .select('id, expires_at, revoked')
       .eq('user_id', userId)
-      .eq('revoked', false);
-
-    if (!tokens?.length) {
-      throw new UnauthorizedException('Sesión expirada - iniciá sesión nuevamente');
-    }
-
-    let matchingToken = null;
-    for (const token of tokens) {
-      const matches = await bcrypt.compare(refreshToken, token.token_hash);
-      if (matches) {
-        matchingToken = token;
-        break;
-      }
-    }
+      .eq('token_hash', tokenHash)
+      .eq('revoked', false)
+      .maybeSingle();
 
     if (!matchingToken) {
+      // Token no encontrado (ya revocado o nunca existió): posible intento
+      // de reuso de un refresh token robado/expirado.
+      await this.audit.log({
+        userId,
+        entityName: 'users',
+        entityId: userId,
+        action: 'LOGIN_FAILED',
+        newValues: { reason: 'refresh_token_invalido' },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
       throw new UnauthorizedException('Refresh token inválido');
     }
 
-    const now = new Date();
-    const expiresAt = new Date(matchingToken.expires_at);
-    if (now > expiresAt) {
+    if (new Date() > new Date(matchingToken.expires_at)) {
       throw new UnauthorizedException('Refresh token expirado -- Inicia sesión Nuevamente');
     }
 
@@ -217,22 +263,16 @@ export class AuthService {
       throw new UnauthorizedException('Usuario inactivo');
     }
 
-    // 7 — Generar nuevo par de tokens
     const newAccessToken = this.generateToken(user);
     const newRefreshToken = await this.generateRefreshToken(userId, user.organization_id);
 
-    // 8 — Retornar ambos tokens al cliente
     return {
       access_token: newAccessToken,
       refresh_token: newRefreshToken,
     };
   }
 
-  async logout(userId: string) {
-    // Revocar TODOS los refresh tokens activos del usuario
-    // Usamos "todos" en lugar de uno específico porque el usuario
-    // puede tener sesiones abiertas en múltiples dispositivos
-    // y el logout debería cerrarlas todas
+  async logout(userId: string, meta: RequestMeta = {}) {
     await this.supabase
       .getClient()
       .from('refresh_tokens')
@@ -243,9 +283,15 @@ export class AuthService {
       .eq('user_id', userId)
       .eq('revoked', false);
 
-    // El access_token sigue siendo válido hasta que expire (8h)
-    // Esto es una limitación conocida de los JWT stateless
-    // En producción se puede mitigar con tokens de vida corta (15min)
+    await this.audit.log({
+      userId,
+      entityName: 'users',
+      entityId: userId,
+      action: 'LOGOUT',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
+
     return { message: 'Sesión cerrada correctamente' };
   }
 
@@ -253,7 +299,7 @@ export class AuthService {
     return this.updateProfileUC.execute(userId, dto);
   }
 
-  changePassword(userId: string, dto: ChangePasswordDto) {
-    return this.changePasswordUC.execute(userId, dto);
+  changePassword(userId: string, dto: ChangePasswordDto, meta: RequestMeta = {}) {
+    return this.changePasswordUC.execute(userId, dto, meta);
   }
 }

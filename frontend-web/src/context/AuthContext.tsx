@@ -1,38 +1,36 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { login as loginApi, logout as logoutApi, getProfile } from '../api/auth.api';
 import type { LoginCredentials, UserProfile } from '../api/auth.api';
 import { AuthContext } from './auth.context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user,      setUser]      = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
       try {
         const profile = await getProfile();
         setUser(profile);
       } catch {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
+        try {
+          const { default: api } = await import('../api/axios.config');
+          await api.post('/auth/refresh');
+          const profile = await getProfile();
+          setUser(profile);
+        } catch {
+          setUser(null);
+        }
       } finally {
         setIsLoading(false);
       }
     };
-    initAuth();
+    void initAuth();
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    const response = await loginApi(credentials);
-    localStorage.setItem('access_token',  response.access_token);
-    localStorage.setItem('refresh_token', response.refresh_token);
+    await loginApi(credentials);
     const profile = await getProfile();
     setUser(profile);
   }, []);
@@ -41,52 +39,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await logoutApi();
     } catch {
-      // Si el backend falla, igual limpiamos la sesión local
+      // limpiar sesión local aunque falle el backend
     } finally {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
       setUser(null);
     }
   }, []);
 
-  /**
-   * refreshProfile — recarga el perfil completo desde el backend.
-   * Se llama después de actualizar datos en ProfileModal para que
-   * el Sidebar y cualquier otro componente reflejen los cambios.
-   */
   const refreshProfile = useCallback(async () => {
     try {
       const profile = await getProfile();
       setUser(profile);
     } catch {
-      // Si falla, mantener el perfil actual sin cambios
+      // mantener perfil actual
     }
   }, []);
 
   const hasPermission = useCallback(
     (module: string, action: string): boolean => {
       if (!user) return false;
-      return user.permissions.some(
-        (p) => p.module === module && p.action === action,
-      );
+      return user.permissions.some((p) => p.module === module && p.action === action);
     },
     [user],
   );
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        hasPermission,
-        refreshProfile,  // ← nuevo
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      login,
+      logout,
+      hasPermission,
+      refreshProfile,
+    }),
+    [user, isLoading, login, logout, hasPermission, refreshProfile],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

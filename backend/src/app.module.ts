@@ -1,25 +1,24 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from '@auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SupabaseModule } from '@config/supabase.module';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
+import { JwtGuard } from '@common/guards/jwt.guard';
 
 import { ClientsModule } from '@clients/clients.module';
+import { WorkersModule } from './workers/workers.module';
+import { CatalogsModule } from './catalogs/catalogs.module';
+import { DosimetersModule } from '@dosimeters/dosimeters.module';
 
 /**
- * AppModule — módulo raíz de la aplicación.
+ * AppModule — módulo raíz.
  *
- * SupabaseModule es @Global() — SupabaseService queda disponible
- * en todos los módulos sin importarlo en cada uno.
- * Esto es necesario para que PermissionsGuard pueda consultar
- * user_permissions en cualquier módulo que lo use.
- *
- * Sistema de autorización en cada controller:
- *   @UseGuards(JwtGuard, PermissionsGuard)
- *   @CheckPermission('modulo', 'accion')
+ * JwtGuard global: endpoints públicos usan @Public().
+ * ThrottlerGuard global: límites por defecto; login usa límite más estricto.
  */
 @Module({
   imports: [
@@ -27,11 +26,25 @@ import { ClientsModule } from '@clients/clients.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    SupabaseModule, // @Global() — SupabaseService disponible en toda la app
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: 100,
+      },
+    ]),
+    SupabaseModule,
     AuthModule,
     UsersModule,
     ClientsModule,
-    // DosimetersModule,
+    WorkersModule,
+    CatalogsModule,
+    DosimetersModule,
+    // Módulos de laboratorio (al implementar, aplicar desde el día 1):
+    // - @UseGuards(PermissionsGuard) + @CheckPermission('modulo', 'accion')
+    // - organization_id siempre desde @CurrentUser() JWT, nunca del body
+    // - AuditService.log() en CREATE / UPDATE / STATUS_CHANGE
+    // - paginación con normalizePagination() y sanitizeSearchTerm()
     // ServiceOrdersModule,
     // ReceptionsModule,
     // LabProcessModule,
@@ -49,6 +62,14 @@ import { ClientsModule } from '@clients/clients.module';
         forbidNonWhitelisted: true,
         transform: true,
       }),
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtGuard,
     },
   ],
 })

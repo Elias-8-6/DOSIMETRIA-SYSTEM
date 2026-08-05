@@ -48,6 +48,18 @@ export function Sidebar() {
               <span>Clientes</span>
             </NavLink>
           )}
+
+          {hasPermission('workers', 'read') && (
+            <NavLink to="/workers" className={navClass}>
+              <span>Trabajadores</span>
+            </NavLink>
+          )}
+
+          {hasPermission('dosimeters', 'read') && (
+            <NavLink to="/dosimeters" className={navClass}>
+              <span>Dosímetros</span>
+            </NavLink>
+          )}
         </nav>
 
         {/* Info del usuario — click abre el modal de perfil */}

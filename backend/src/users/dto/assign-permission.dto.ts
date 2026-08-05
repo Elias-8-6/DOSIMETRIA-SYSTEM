@@ -4,5 +4,5 @@ export class AssignPermissionDto {
   @IsNotEmpty()
   @IsUUID()
   @IsString()
-  permission_id: string;
+  permission_id!: string;
 }
