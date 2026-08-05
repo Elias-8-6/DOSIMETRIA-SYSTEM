@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsEnum, IsUUID, IsDateString, IsIn, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsEnum, IsUUID, IsDateString, IsIn, IsBoolean, IsInt, Min } from 'class-validator';
 
 export class UpdateDosimeterDto {
   @IsOptional()
@@ -26,7 +26,8 @@ export class UpdateDosimeterDto {
   commissioning_date?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsInt()
+  @Min(1)
   wear_period_days?: number;
 
   @IsOptional()

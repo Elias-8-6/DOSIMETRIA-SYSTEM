@@ -40,7 +40,7 @@ export class CreateDosimeterDto {
 
   @IsOptional()
   @IsIn(['normal', 'danado', 'contaminado', 'perdido'])
-  current_condition!: string;
+  current_condition?: string;
 
   @IsOptional()
   @IsBoolean()

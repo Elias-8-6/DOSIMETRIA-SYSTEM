@@ -14,7 +14,7 @@ export class QueryDosimetersDto {
   status_code?: string;
 
   @IsOptional()
-  @IsIn(['Normal', 'Dañado', 'Contaminado', 'Perdido'])
+  @IsIn(['normal', 'danado', 'contaminado', 'perdido'])
   current_condition?: string;
 
   @IsOptional()
