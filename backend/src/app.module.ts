@@ -11,6 +11,7 @@ import { JwtGuard } from '@common/guards/jwt.guard';
 
 import { ClientsModule } from '@clients/clients.module';
 import { WorkersModule } from './workers/workers.module';
+import { CatalogsModule } from './catalogs/catalogs.module';
 
 /**
  * AppModule — módulo raíz.
@@ -36,6 +37,7 @@ import { WorkersModule } from './workers/workers.module';
     UsersModule,
     ClientsModule,
     WorkersModule,
+    CatalogsModule,
     // Módulos de laboratorio (al implementar, aplicar desde el día 1):
     // - @UseGuards(PermissionsGuard) + @CheckPermission('modulo', 'accion')
     // - organization_id siempre desde @CurrentUser() JWT, nunca del body
