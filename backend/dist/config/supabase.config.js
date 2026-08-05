@@ -16,8 +16,8 @@ const supabase_js_1 = require("@supabase/supabase-js");
 let SupabaseService = class SupabaseService {
     constructor(config) {
         this.config = config;
-        const url = this.config.getOrThrow('SUPABASE_URL');
-        const key = this.config.getOrThrow('SUPABASE_SERVICE_ROLE_KEY');
+        const url = this.config.getOrThrow("SUPABASE_URL");
+        const key = this.config.getOrThrow("SUPABASE_SERVICE_ROLE_KEY");
         this.client = (0, supabase_js_1.createClient)(url, key, {
             auth: {
                 autoRefreshToken: false,

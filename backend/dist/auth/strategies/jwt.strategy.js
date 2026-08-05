@@ -19,12 +19,12 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         super({
             jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: config.getOrThrow('JWT_SECRET'),
+            secretOrKey: config.getOrThrow("JWT_SECRET"),
         });
     }
     async validate(payload) {
-        if (!payload.sub || !payload.organization_id || !payload.active_role) {
-            throw new common_1.UnauthorizedException('Token inválido — payload incompleto');
+        if (!payload.sub || !payload.organization_id) {
+            throw new common_1.UnauthorizedException("Token inválido — payload incompleto");
         }
         return payload;
     }

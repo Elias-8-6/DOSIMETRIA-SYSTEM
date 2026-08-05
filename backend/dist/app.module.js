@@ -12,7 +12,8 @@ const config_1 = require("@nestjs/config");
 const core_1 = require("@nestjs/core");
 const common_2 = require("@nestjs/common");
 const auth_module_1 = require("./auth/auth.module");
-const supabase_config_1 = require("./config/supabase.config");
+const users_module_1 = require("./users/users.module");
+const supabase_module_1 = require("./config/supabase.module");
 const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 let AppModule = class AppModule {
 };
@@ -22,12 +23,13 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
-                envFilePath: '.env',
+                envFilePath: ".env",
             }),
+            supabase_module_1.SupabaseModule,
             auth_module_1.AuthModule,
+            users_module_1.UsersModule,
         ],
         providers: [
-            supabase_config_1.SupabaseService,
             {
                 provide: core_1.APP_FILTER,
                 useClass: http_exception_filter_1.HttpExceptionFilter,

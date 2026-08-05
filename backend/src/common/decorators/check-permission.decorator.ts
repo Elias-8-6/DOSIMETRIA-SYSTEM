@@ -28,8 +28,5 @@ export interface RequiredPermission {
  * NestJS construye el código como 'modulo:accion' y lo busca
  * en la tabla user_permissions del usuario autenticado.
  */
-export const CheckPermission = (
-  module: string,
-  action: 'create' | 'read' | 'update' | 'delete',
-) =>
+export const CheckPermission = (module: string, action: 'create' | 'read' | 'update' | 'delete') =>
   SetMetadata(CHECK_PERMISSION_KEY, { module, action } as RequiredPermission);

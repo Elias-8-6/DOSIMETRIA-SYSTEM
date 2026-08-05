@@ -11,10 +11,8 @@ async function bootstrap() {
 
   // CORS — en producción restringir a los dominios del frontend
   app.enableCors({
-    origin:      process.env.NODE_ENV === 'production'
-                   ? ['https://tu-dominio-react.com']
-                   : '*',
-    methods:     'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: process.env.NODE_ENV === 'production' ? ['https://tu-dominio-react.com'] : '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 

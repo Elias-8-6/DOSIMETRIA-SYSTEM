@@ -17,6 +17,6 @@ import { SupabaseService } from './supabase.config';
 @Global()
 @Module({
   providers: [SupabaseService],
-  exports:   [SupabaseService],
+  exports: [SupabaseService],
 })
 export class SupabaseModule {}

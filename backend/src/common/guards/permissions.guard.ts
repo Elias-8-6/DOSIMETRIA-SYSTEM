@@ -6,10 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import {
-  CHECK_PERMISSION_KEY,
-  RequiredPermission,
-} from '../decorators/check-permission.decorator';
+import { CHECK_PERMISSION_KEY, RequiredPermission } from '../decorators/check-permission.decorator';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { SupabaseService } from '@config/supabase.config';
 
@@ -42,10 +39,10 @@ export class PermissionsGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Leer el permiso requerido del decorador
-    const required = this.reflector.getAllAndOverride<RequiredPermission>(
-      CHECK_PERMISSION_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const required = this.reflector.getAllAndOverride<RequiredPermission>(CHECK_PERMISSION_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // Si el endpoint no tiene @CheckPermission(), acceso libre
     if (!required) return true;
@@ -76,9 +73,7 @@ export class PermissionsGuard implements CanActivate {
     }
 
     if (!data) {
-      throw new ForbiddenException(
-        `No tenés permiso para '${permissionCode}'`,
-      );
+      throw new ForbiddenException(`No tenés permiso para '${permissionCode}'`);
     }
 
     return true;

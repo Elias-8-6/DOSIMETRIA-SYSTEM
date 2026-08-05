@@ -5,8 +5,6 @@
 #   supabase start
 # ============================================================
 
-version: '3.9'
-
 services:
 
   backend:
@@ -31,23 +29,23 @@ services:
 
   # ── Frontend React ────────────────────────────────────────
   # Descomentar cuando esté listo el frontend
-  # frontend-web:
-  #   build:
-  #     context: ./frontend-web
-  #     dockerfile: Dockerfile
-  #   container_name: dosimetria_web
-  #   ports:
-  #     - "5173:5173"
-  #   env_file:
-  #     - ./frontend-web/.env
-  #   volumes:
-  #     - ./frontend-web/src:/app/src
-  #     - /app/node_modules
-  #   networks:
-  #     - dosimetria_net
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - backend
+  frontend-web:
+     build:
+       context: ./frontend-web
+       dockerfile: Dockerfile
+     container_name: dosimetria_web
+     ports:
+       - "5173:5173"
+     env_file:
+       - ./frontend-web/.env
+     volumes:
+       - ./frontend-web/src:/app/src
+       - /app/node_modules
+       - ./frontend-web/index.html:/app/index.html
+     networks:
+       - dosimetria_net
+     depends_on:
+       - backend
 
 networks:
   dosimetria_net:

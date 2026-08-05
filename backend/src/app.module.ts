@@ -3,8 +3,11 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AuthModule } from '@auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { SupabaseModule } from '@config/supabase.module';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
+
+import { ClientsModule } from '@clients/clients.module';
 
 /**
  * AppModule — módulo raíz de la aplicación.
@@ -21,14 +24,13 @@ import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal:    true,
+      isGlobal: true,
       envFilePath: '.env',
     }),
-    SupabaseModule,   // @Global() — SupabaseService disponible en toda la app
+    SupabaseModule, // @Global() — SupabaseService disponible en toda la app
     AuthModule,
-    // próximos módulos:
-    // UsersModule,
-    // ClientsModule,
+    UsersModule,
+    ClientsModule,
     // DosimetersModule,
     // ServiceOrdersModule,
     // ReceptionsModule,
@@ -37,15 +39,15 @@ import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
   ],
   providers: [
     {
-      provide:  APP_FILTER,
+      provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
-        whitelist:            true,
+        whitelist: true,
         forbidNonWhitelisted: true,
-        transform:            true,
+        transform: true,
       }),
     },
   ],
