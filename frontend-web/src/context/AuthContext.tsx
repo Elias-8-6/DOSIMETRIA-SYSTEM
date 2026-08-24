@@ -11,17 +11,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // Un 401 acá dispara automáticamente el intento de refresh
+        // del interceptor de axios (axios.config.ts); solo llegan a este
+        // catch los fallos de autenticación genuinos (sin refresh token
+        // válido).
         const profile = await getProfile();
         setUser(profile);
       } catch {
-        try {
-          const { default: api } = await import('../api/axios.config');
-          await api.post('/auth/refresh');
-          const profile = await getProfile();
-          setUser(profile);
-        } catch {
-          setUser(null);
-        }
+        setUser(null);
       } finally {
         setIsLoading(false);
       }

@@ -44,6 +44,7 @@ services:
        - ./frontend-web/src:/app/src
        - /app/node_modules
        - ./frontend-web/index.html:/app/index.html
+       - ./frontend-web/vite.config.ts:/app/vite.config.ts
      networks:
        - dosimetria_net
      depends_on:
