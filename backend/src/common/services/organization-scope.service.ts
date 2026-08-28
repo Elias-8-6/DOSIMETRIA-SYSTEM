@@ -65,4 +65,42 @@ export class OrganizationScopeService {
     if (error) throw new Error('No se pudo verificar el acceso a este dosímetro');
     return !!data;
   }
+
+  /**
+   * IDs de la(s) fila(s) de `clients` que pertenecen a esta organización
+   * (clients.organization_id = organizationId). Para una organización tipo
+   * 'client' normalmente es un único id -- es la institución que representa.
+   * Usado por service_orders/receptions para resolver "mis propias órdenes"
+   * sin pasar por la indirección de workers que necesita dosimeters.
+   */
+  async getOwnClientIds(organizationId: string): Promise<string[]> {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('clients')
+      .select('id')
+      .eq('organization_id', organizationId);
+
+    if (error) throw new Error('No se pudo resolver el cliente asociado a esta organización');
+    return (data ?? []).map((row) => row.id as string);
+  }
+
+  /**
+   * Un dosímetro "pertenece" a un cliente si alguna vez fue asignado a un
+   * worker de ese cliente (workers.client_id es FK directa, migración 003 --
+   * no requiere el join a clients.organization_id que usa
+   * isDosimeterAllowedForClientOrg).
+   */
+  async isDosimeterOwnedByClient(dosimeterId: string, clientId: string): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('dosimeter_assignments')
+      .select('id, workers!inner(client_id)')
+      .eq('dosimeter_id', dosimeterId)
+      .eq('workers.client_id', clientId)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw new Error('No se pudo verificar la pertenencia del dosímetro');
+    return !!data;
+  }
 }

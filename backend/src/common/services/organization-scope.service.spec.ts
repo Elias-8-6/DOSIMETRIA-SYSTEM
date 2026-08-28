@@ -109,4 +109,71 @@ describe('OrganizationScopeService', () => {
       await expect(service.isDosimeterAllowedForClientOrg('d-1', 'org-1')).resolves.toBe(false);
     });
   });
+
+  describe('getOwnClientIds', () => {
+    it('returns the client ids owned by the organization', async () => {
+      supabase.getClient.mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({
+              data: [{ id: 'client-1' }],
+              error: null,
+            }),
+          }),
+        }),
+      });
+
+      await expect(service.getOwnClientIds('org-1')).resolves.toEqual(['client-1']);
+    });
+
+    it('returns an empty list when the organization owns no client', async () => {
+      supabase.getClient.mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        }),
+      });
+
+      await expect(service.getOwnClientIds('org-1')).resolves.toEqual([]);
+    });
+  });
+
+  describe('isDosimeterOwnedByClient', () => {
+    it('returns true when an assignment links the dosimeter to a worker of the client', async () => {
+      supabase.getClient.mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                limit: jest.fn().mockReturnValue({
+                  maybeSingle: jest.fn().mockResolvedValue({ data: { id: 'a-1' }, error: null }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      await expect(service.isDosimeterOwnedByClient('d-1', 'client-1')).resolves.toBe(true);
+    });
+
+    it('returns false when no assignment links the dosimeter to the client', async () => {
+      supabase.getClient.mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                limit: jest.fn().mockReturnValue({
+                  maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      await expect(service.isDosimeterOwnedByClient('d-1', 'client-1')).resolves.toBe(false);
+    });
+  });
 });
