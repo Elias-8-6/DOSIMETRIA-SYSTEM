@@ -1,3 +1,4 @@
+import 'multer';
 import { Injectable } from '@nestjs/common';
 import { CreateDosimeterDto } from './dto/create-dosimeter.dto';
 import { UpdateDosimeterDto } from './dto/update-dosimeter.dto';
@@ -12,6 +13,7 @@ import { UpdateDosimeterStatusUseCase } from './use-cases/update-dosimeter-statu
 import { AssignDosimeterUseCase } from './use-cases/assign-dosimeter.use-case';
 import { ReturnDosimeterUseCase } from './use-cases/return-dosimeter.use-case';
 import { GetDosimeterHistoryUseCase } from './use-cases/get-dosimeter-history.use-case';
+import { UploadDosimeterPhotoUseCase } from './use-cases/upload-dosimeter-photo.use-case';
 
 @Injectable()
 export class DosimetersService {
@@ -24,6 +26,7 @@ export class DosimetersService {
     private readonly assignDosimeterUseCase: AssignDosimeterUseCase,
     private readonly returnDosimeterUseCase: ReturnDosimeterUseCase,
     private readonly getDosimeterHistoryUseCase: GetDosimeterHistoryUseCase,
+    private readonly uploadDosimeterPhotoUseCase: UploadDosimeterPhotoUseCase,
   ) {}
 
   findAll(
@@ -97,5 +100,13 @@ export class DosimetersService {
     requestingUserId: string,
   ) {
     return this.returnDosimeterUseCase.execute(dosimeterId, dto, organizationId, requestingUserId);
+  }
+
+  uploadPhoto(
+    file: Express.Multer.File,
+    organizationId: string,
+    dosimeterId?: string,
+  ) {
+    return this.uploadDosimeterPhotoUseCase.execute(file, organizationId, dosimeterId);
   }
 }

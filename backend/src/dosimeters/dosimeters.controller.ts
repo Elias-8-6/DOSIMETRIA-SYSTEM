@@ -1,3 +1,4 @@
+import 'multer';
 import {
   Controller,
   Get,
@@ -10,7 +11,10 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { DosimetersService } from './dosimeters.service';
 import { CreateDosimeterDto } from './dto/create-dosimeter.dto';
 import { UpdateDosimeterDto } from './dto/update-dosimeter.dto';
@@ -100,5 +104,26 @@ export class DosimetersController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.dosimetersService.return(id, dto, user.organization_id, user.sub);
+  }
+
+  @Post('upload-photo')
+  @UseInterceptors(FileInterceptor('file'))
+  @CheckPermission('dosimeters', 'create')
+  uploadPhoto(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.dosimetersService.uploadPhoto(file, user.organization_id);
+  }
+
+  @Post(':id/photo')
+  @UseInterceptors(FileInterceptor('file'))
+  @CheckPermission('dosimeters', 'update')
+  uploadDosimeterPhoto(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.dosimetersService.uploadPhoto(file, user.organization_id, id);
   }
 }

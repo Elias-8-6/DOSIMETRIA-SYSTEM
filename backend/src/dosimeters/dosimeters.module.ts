@@ -9,6 +9,7 @@ import { UpdateDosimeterStatusUseCase } from './use-cases/update-dosimeter-statu
 import { AssignDosimeterUseCase } from './use-cases/assign-dosimeter.use-case';
 import { ReturnDosimeterUseCase } from './use-cases/return-dosimeter.use-case';
 import { GetDosimeterHistoryUseCase } from './use-cases/get-dosimeter-history.use-case';
+import { UploadDosimeterPhotoUseCase } from './use-cases/upload-dosimeter-photo.use-case';
 
 @Module({
   controllers: [DosimetersController],
@@ -22,6 +23,7 @@ import { GetDosimeterHistoryUseCase } from './use-cases/get-dosimeter-history.us
     AssignDosimeterUseCase,
     ReturnDosimeterUseCase,
     GetDosimeterHistoryUseCase,
+    UploadDosimeterPhotoUseCase,
   ],
 })
 export class DosimetersModule {}

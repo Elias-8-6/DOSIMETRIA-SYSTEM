@@ -72,13 +72,16 @@ export class CreateDosimeterUseCase {
         current_condition: dto.current_condition ?? 'normal',
         reusable: dto.reusable ?? true,
         notes: dto.notes ?? null,
+        model: dto.model ?? null,
+        manufacturer: dto.manufacturer ?? null,
+        photo_url: dto.photo_url ?? null,
       })
       .select(
         `
         id, serial_number, internal_code, lot_number,
         manufacture_date, commissioning_date, wear_period_days,
         max_dose_limit, last_annealing_date, current_condition,
-        reusable, notes, created_at,
+        reusable, notes, model, manufacturer, photo_url, created_at,
         dosimeter_types(id, code, name, technology),
         dosimeter_statuses(id, code, name)
       `,

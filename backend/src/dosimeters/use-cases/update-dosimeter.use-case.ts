@@ -78,6 +78,9 @@ export class UpdateDosimeterUseCase {
         ...(dto.current_condition !== undefined && { current_condition: dto.current_condition }),
         ...(dto.reusable !== undefined && { reusable: dto.reusable }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
+        ...(dto.model !== undefined && { model: dto.model }),
+        ...(dto.manufacturer !== undefined && { manufacturer: dto.manufacturer }),
+        ...(dto.photo_url !== undefined && { photo_url: dto.photo_url }),
       })
       .eq('id', dosimeterId)
       .select(
@@ -85,7 +88,7 @@ export class UpdateDosimeterUseCase {
         id, serial_number, internal_code, lot_number,
         manufacture_date, commissioning_date, wear_period_days,
         max_dose_limit, last_annealing_date, current_condition,
-        reusable, notes, created_at,
+        reusable, notes, model, manufacturer, photo_url, created_at,
         dosimeter_types(id, code, name, technology),
         dosimeter_statuses(id, code, name)
       `,

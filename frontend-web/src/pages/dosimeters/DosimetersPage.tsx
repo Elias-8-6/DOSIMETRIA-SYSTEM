@@ -110,7 +110,7 @@ export default function DosimetersPage() {
       <div className="flex gap-3 mb-4 flex-wrap">
         <input
           type="text"
-          placeholder="Buscar por serie, código o lote..."
+          placeholder="Buscar por serie, código, lote, modelo o fabricante..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 min-w-[220px] px-3 py-2 border border-gray-300 rounded-lg text-sm
@@ -183,7 +183,12 @@ export default function DosimetersPage() {
                   className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
                 >
                   <td className={`${TD_CLASS} font-medium text-gray-900`}>
-                    {dosimeter.serial_number}
+                    <div>{dosimeter.serial_number}</div>
+                    {(dosimeter.model || dosimeter.manufacturer) && (
+                      <div className="text-xs font-normal text-gray-500">
+                        {[dosimeter.manufacturer, dosimeter.model].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
                   </td>
                   <td className={`${TD_CLASS} text-gray-500`}>{dosimeter.internal_code ?? '—'}</td>
                   <td className={`${TD_CLASS} text-gray-600`}>{dosimeter.dosimeter_types.name}</td>

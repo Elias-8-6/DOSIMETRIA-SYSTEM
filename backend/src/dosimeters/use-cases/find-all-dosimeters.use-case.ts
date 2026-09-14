@@ -8,7 +8,7 @@ const SELECT_FIELDS = `
   id, serial_number, internal_code, lot_number,
   manufacture_date, commissioning_date, wear_period_days,
   max_dose_limit, last_annealing_date, current_condition,
-  reusable, notes, created_at,
+  reusable, notes, model, manufacturer, photo_url, created_at,
   dosimeter_types(id, code, name, technology),
   dosimeter_statuses(id, code, name)
 `;
@@ -59,7 +59,7 @@ export class FindAllDosimetersUseCase {
     if (currentCondition) query = query.eq('current_condition', currentCondition);
     if (safeSearch) {
       query = query.or(
-        `serial_number.ilike.%${safeSearch}%,internal_code.ilike.%${safeSearch}%,lot_number.ilike.%${safeSearch}%`,
+        `serial_number.ilike.%${safeSearch}%,internal_code.ilike.%${safeSearch}%,lot_number.ilike.%${safeSearch}%,model.ilike.%${safeSearch}%,manufacturer.ilike.%${safeSearch}%`,
       );
     }
 

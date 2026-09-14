@@ -49,4 +49,16 @@ export class CreateDosimeterDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
+
+  @IsOptional()
+  @IsString()
+  manufacturer?: string;
+
+  @IsOptional()
+  @IsString()
+  photo_url?: string;
 }

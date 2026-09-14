@@ -59,6 +59,28 @@ describe('GetDosimeterHistoryUseCase', () => {
             }),
           };
         }
+        if (table === 'dosimeter_readings') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => ({
+                  data: [],
+                  error: null,
+                  eq: jest.fn().mockReturnValue({ data: [], error: null }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === 'contamination_checks') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          };
+        }
         throw new Error(`unexpected table ${table}`);
       }),
     }),

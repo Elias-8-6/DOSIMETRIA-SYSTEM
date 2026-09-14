@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import type { FormEvent } from 'react';
+import { useState, useRef } from 'react';
+import type { FormEvent, ChangeEvent } from 'react';
 import type {
   Dosimeter,
   DosimeterCondition,
   CreateDosimeterPayload,
   UpdateDosimeterPayload,
 } from '../../api/dosimeters.api';
-import { createDosimeter, updateDosimeter } from '../../api/dosimeters.api';
+import { createDosimeter, updateDosimeter, uploadDosimeterPhoto } from '../../api/dosimeters.api';
 import type { DosimeterType } from '../../api/catalogs.api';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
@@ -42,6 +42,8 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
   const [dosimeterTypeId, setDosimeterTypeId] = useState(dosimeter?.dosimeter_types.id ?? '');
   const [internalCode, setInternalCode] = useState(dosimeter?.internal_code ?? '');
   const [lotNumber, setLotNumber] = useState(dosimeter?.lot_number ?? '');
+  const [manufacturer, setManufacturer] = useState(dosimeter?.manufacturer ?? '');
+  const [model, setModel] = useState(dosimeter?.model ?? '');
 
   // Parámetros de uso
   const [manufactureDate, setManufactureDate] = useState(dosimeter?.manufacture_date ?? '');
@@ -61,10 +63,34 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
     dosimeter?.current_condition ?? '',
   );
   const [reusable, setReusable] = useState(dosimeter?.reusable ?? true);
+  const [photoUrl, setPhotoUrl] = useState(dosimeter?.photo_url ?? '');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>(dosimeter?.photo_url ?? '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [notes, setNotes] = useState(dosimeter?.notes ?? '');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('La fotografía no debe superar los 5 MB');
+        return;
+      }
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setError('');
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setSelectedFile(null);
+    setPreviewUrl('');
+    setPhotoUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -72,6 +98,14 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
     setLoading(true);
 
     try {
+      let finalPhotoUrl = photoUrl;
+      if (selectedFile) {
+        const uploadResult = await uploadDosimeterPhoto(selectedFile);
+        finalPhotoUrl = uploadResult.url;
+      } else if (!previewUrl) {
+        finalPhotoUrl = '';
+      }
+
       if (isEditing && dosimeter) {
         const payload: UpdateDosimeterPayload = {};
         if (serialNumber !== dosimeter.serial_number) payload.serial_number = serialNumber;
@@ -79,6 +113,9 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
           payload.dosimeter_type_id = dosimeterTypeId;
         if (internalCode !== (dosimeter.internal_code ?? '')) payload.internal_code = internalCode;
         if (lotNumber !== (dosimeter.lot_number ?? '')) payload.lot_number = lotNumber;
+        if (manufacturer !== (dosimeter.manufacturer ?? ''))
+          payload.manufacturer = manufacturer || undefined;
+        if (model !== (dosimeter.model ?? '')) payload.model = model || undefined;
         if (manufactureDate !== (dosimeter.manufacture_date ?? ''))
           payload.manufacture_date = manufactureDate;
         if (commissioningDate !== (dosimeter.commissioning_date ?? ''))
@@ -94,6 +131,8 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
         if (currentCondition && currentCondition !== dosimeter.current_condition)
           payload.current_condition = currentCondition;
         if (reusable !== dosimeter.reusable) payload.reusable = reusable;
+        if (finalPhotoUrl !== (dosimeter.photo_url ?? ''))
+          payload.photo_url = finalPhotoUrl || undefined;
         if (notes !== (dosimeter.notes ?? '')) payload.notes = notes;
 
         if (Object.keys(payload).length === 0) {
@@ -108,6 +147,8 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
         };
         if (internalCode) payload.internal_code = internalCode;
         if (lotNumber) payload.lot_number = lotNumber;
+        if (manufacturer) payload.manufacturer = manufacturer;
+        if (model) payload.model = model;
         if (manufactureDate) payload.manufacture_date = manufactureDate;
         if (commissioningDate) payload.commissioning_date = commissioningDate;
         if (wearPeriodDays) payload.wear_period_days = Number(wearPeriodDays);
@@ -115,6 +156,7 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
         if (lastAnnealingDate) payload.last_annealing_date = lastAnnealingDate;
         if (currentCondition) payload.current_condition = currentCondition;
         payload.reusable = reusable;
+        if (finalPhotoUrl) payload.photo_url = finalPhotoUrl;
         if (notes) payload.notes = notes;
         await createDosimeter(payload);
       }
@@ -170,6 +212,20 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               type="text"
               value={lotNumber}
               onChange={(e) => setLotNumber(e.target.value)}
+            />
+            <Input
+              label="Fabricante"
+              type="text"
+              value={manufacturer}
+              onChange={(e) => setManufacturer(e.target.value)}
+              placeholder="Ej: Thermo Fisher, Landauer"
+            />
+            <Input
+              label="Modelo"
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="Ej: Harshaw 8807, Panasonic UD-802"
             />
           </div>
         </div>
@@ -238,6 +294,63 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               />
               Reutilizable
             </label>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Fotografía del dosímetro
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              {previewUrl ? (
+                <div className="flex items-center gap-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                  <img
+                    src={previewUrl}
+                    alt="Vista previa"
+                    className="w-16 h-16 object-cover rounded-md border border-gray-200"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-700 truncate">
+                      {selectedFile ? selectedFile.name : 'Fotografía guardada'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {selectedFile
+                        ? `${(selectedFile.size / 1024).toFixed(0)} KB`
+                        : 'Almacenada en Supabase Storage'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs px-2.5 py-1.5 font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors cursor-pointer"
+                    >
+                      Cambiar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      className="text-xs px-2.5 py-1.5 font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors cursor-pointer"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-lg p-4 text-center cursor-pointer transition-colors bg-gray-50 hover:bg-blue-50/40"
+                >
+                  <p className="text-xs font-medium text-gray-700">
+                    Haz clic aquí para seleccionar una imagen desde tu dispositivo
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Formatos admitidos: JPG, PNG, WebP (máx. 5 MB)</p>
+                </div>
+              )}
+            </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
               <textarea
