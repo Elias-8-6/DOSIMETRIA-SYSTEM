@@ -5,6 +5,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { StatusBadge } from '../ui/StatusBadge';
+import { DosimeterStatusBadge } from '../ui/DosimeterStatusBadge';
 import { formatDate } from '../../utils/date';
 
 interface Props {
@@ -156,6 +157,12 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
                           activeLabel="En campo"
                           inactiveLabel="Devuelto"
                         />
+                        {assignment.dosimeters.dosimeter_statuses && (
+                          <DosimeterStatusBadge
+                            code={assignment.dosimeters.dosimeter_statuses.code}
+                            name={assignment.dosimeters.dosimeter_statuses.name}
+                          />
+                        )}
                       </div>
                       <div className="flex gap-4 mt-1 flex-wrap">
                         <p className="text-xs text-gray-400">
@@ -170,6 +177,11 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
                           </p>
                         )}
                       </div>
+                      {assignment.notes && (
+                        <p className="text-xs text-gray-500 mt-1 italic">
+                          Nota: {assignment.notes}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -78,7 +78,8 @@
       "^@config/(.*)$": "<rootDir>/config/$1",
       "^@auth/(.*)$": "<rootDir>/auth/$1",
       "^@clients/(.*)$": "<rootDir>/clients/$1",
-      "^@dosimeters/(.*)$": "<rootDir>/dosimeters/$1"
+      "^@dosimeters/(.*)$": "<rootDir>/dosimeters/$1",
+      "^@service-orders/(.*)$": "<rootDir>/service-orders/$1"
     }
   }
 }

@@ -24,7 +24,8 @@
       "@config/*": ["src/config/*"],
       "@auth/*": ["src/auth/*"],
       "@clients/*": ["src/clients/*"],
-      "@dosimeters/*": ["src/dosimeters/*"]
+      "@dosimeters/*": ["src/dosimeters/*"],
+      "@service-orders/*": ["src/service-orders/*"]
     }
   }
 }

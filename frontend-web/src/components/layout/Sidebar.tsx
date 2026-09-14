@@ -60,6 +60,12 @@ export function Sidebar() {
               <span>Dosímetros</span>
             </NavLink>
           )}
+
+          {hasPermission('service_orders', 'read') && (
+            <NavLink to="/service-orders" className={navClass}>
+              <span>Órdenes de servicio</span>
+            </NavLink>
+          )}
         </nav>
 
         {/* Info del usuario — click abre el modal de perfil */}

@@ -20,6 +20,8 @@ const ClientsPage = lazy(() => import('../pages/clients/ClientPage'));
 const ClientDetailPage = lazy(() => import('../pages/clients/ClientDetailPage'));
 const DosimetersPage = lazy(() => import('../pages/dosimeters/DosimetersPage'));
 const DosimeterDetailPage = lazy(() => import('../pages/dosimeters/DosimeterDetailPage'));
+const ServiceOrdersPage = lazy(() => import('../pages/service-orders/ServiceOrdersPage'));
+const ServiceOrderDetailPage = lazy(() => import('../pages/service-orders/ServiceOrderDetailPage'));
 
 function LoadingScreen() {
   return (
@@ -138,6 +140,22 @@ export function AppRouter() {
             element={
               <PermissionRoute module="dosimeters" action="read">
                 <DosimeterDetailPage />
+              </PermissionRoute>
+            }
+          />
+          <Route
+            path="service-orders"
+            element={
+              <PermissionRoute module="service_orders" action="read">
+                <ServiceOrdersPage />
+              </PermissionRoute>
+            }
+          />
+          <Route
+            path="service-orders/:id"
+            element={
+              <PermissionRoute module="service_orders" action="read">
+                <ServiceOrderDetailPage />
               </PermissionRoute>
             }
           />

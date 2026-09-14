@@ -13,6 +13,7 @@ import { DosimeterFormModal } from '../../components/dosimeters/DosimeterFormMod
 import { AssignDosimeterModal } from '../../components/dosimeters/AssignDosimeterModal';
 import { ReturnDosimeterModal } from '../../components/dosimeters/ReturnDosimeterModal';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { DosimeterStatusBadge } from '../../components/ui/DosimeterStatusBadge';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { formatDate } from '../../utils/date';
@@ -82,8 +83,11 @@ export default function DosimeterDetailPage() {
       await updateDosimeterStatus(dosimeter.id, statusValue);
       showToast('Estado actualizado correctamente');
       fetchAll();
-    } catch {
-      showToast('No se pudo actualizar el estado');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string | string[] } } };
+      const msg = e?.response?.data?.message;
+      const errorMsg = Array.isArray(msg) ? msg.join(', ') : msg ?? 'No se pudo actualizar el estado';
+      showToast(errorMsg);
     } finally {
       setStatusLoading(false);
     }
@@ -142,10 +146,9 @@ export default function DosimeterDetailPage() {
             {dosimeter.internal_code && (
               <span className="text-sm text-gray-400">{dosimeter.internal_code}</span>
             )}
-            <StatusBadge
-              active={dosimeter.dosimeter_statuses.code === 'DISPONIBLE'}
-              activeLabel={dosimeter.dosimeter_statuses.name}
-              inactiveLabel={dosimeter.dosimeter_statuses.name}
+            <DosimeterStatusBadge
+              code={dosimeter.dosimeter_statuses.code}
+              name={dosimeter.dosimeter_statuses.name}
             />
           </div>
         </div>
@@ -201,20 +204,36 @@ export default function DosimeterDetailPage() {
                     value={statusValue}
                     onChange={(e) => setStatusValue(e.target.value as DosimeterStatusCode)}
                   >
-                    {statuses.map((s) => (
-                      <option key={s.id} value={s.code}>
-                        {s.name}
-                      </option>
-                    ))}
+                    {statuses.map((s) => {
+                      const isAsignado = s.code === 'ASIGNADO';
+                      const isDisponibleBlocked = !!openAssignment && s.code === 'DISPONIBLE';
+                      const disabled = isAsignado || isDisponibleBlocked;
+                      return (
+                        <option key={s.id} value={s.code} disabled={disabled}>
+                          {s.name}
+                          {isAsignado ? ' (Vía Asignar)' : isDisponibleBlocked ? ' (Requiere registrar devolución)' : ''}
+                        </option>
+                      );
+                    })}
                   </Select>
                 </div>
                 <Button
                   onClick={handleStatusChange}
-                  disabled={statusLoading || statusValue === dosimeter.dosimeter_statuses.code}
+                  disabled={
+                    statusLoading ||
+                    statusValue === dosimeter.dosimeter_statuses.code ||
+                    statusValue === 'ASIGNADO' ||
+                    (!!openAssignment && statusValue === 'DISPONIBLE')
+                  }
                 >
                   {statusLoading ? '...' : 'Guardar'}
                 </Button>
               </div>
+              {openAssignment && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5 mt-2">
+                  Este dosímetro tiene una asignación activa en campo. Para marcarlo como disponible, registre su devolución en la sección «Asignación actual».
+                </p>
+              )}
             </div>
           )}
 

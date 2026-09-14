@@ -13,6 +13,7 @@ import { ClientsModule } from '@clients/clients.module';
 import { WorkersModule } from './workers/workers.module';
 import { CatalogsModule } from './catalogs/catalogs.module';
 import { DosimetersModule } from '@dosimeters/dosimeters.module';
+import { ServiceOrdersModule } from '@service-orders/service-orders.module';
 
 /**
  * AppModule — módulo raíz.
@@ -45,7 +46,7 @@ import { DosimetersModule } from '@dosimeters/dosimeters.module';
     // - organization_id siempre desde @CurrentUser() JWT, nunca del body
     // - AuditService.log() en CREATE / UPDATE / STATUS_CHANGE
     // - paginación con normalizePagination() y sanitizeSearchTerm()
-    // ServiceOrdersModule,
+    ServiceOrdersModule,
     // ReceptionsModule,
     // LabProcessModule,
     // ReportsModule,

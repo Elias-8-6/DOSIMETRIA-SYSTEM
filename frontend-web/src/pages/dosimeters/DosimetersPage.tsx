@@ -9,7 +9,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { useToast } from '../../hooks/useToast';
 import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
-import { StatusBadge } from '../../components/ui/StatusBadge';
+import { DosimeterStatusBadge } from '../../components/ui/DosimeterStatusBadge';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -188,10 +188,9 @@ export default function DosimetersPage() {
                   <td className={`${TD_CLASS} text-gray-500`}>{dosimeter.internal_code ?? '—'}</td>
                   <td className={`${TD_CLASS} text-gray-600`}>{dosimeter.dosimeter_types.name}</td>
                   <td className={TD_CLASS}>
-                    <StatusBadge
-                      active={dosimeter.dosimeter_statuses.code === 'DISPONIBLE'}
-                      activeLabel={dosimeter.dosimeter_statuses.name}
-                      inactiveLabel={dosimeter.dosimeter_statuses.name}
+                    <DosimeterStatusBadge
+                      code={dosimeter.dosimeter_statuses.code}
+                      name={dosimeter.dosimeter_statuses.name}
                     />
                   </td>
                   <td className={`${TD_CLASS} text-gray-600`}>
