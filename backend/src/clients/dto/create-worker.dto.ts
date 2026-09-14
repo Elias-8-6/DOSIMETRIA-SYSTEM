@@ -3,7 +3,7 @@ import { IsNotEmpty, IsOptional, IsUUID, IsString } from 'class-validator';
 export class CreateWorkerDto {
   @IsNotEmpty({ message: 'El Nombre completo es un campo es obligatorio' })
   @IsString()
-  full_name: string;
+  full_name!: string;
 
   @IsOptional()
   @IsString()

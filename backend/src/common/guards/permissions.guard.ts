@@ -9,42 +9,25 @@ import { Reflector } from '@nestjs/core';
 import { CHECK_PERMISSION_KEY, RequiredPermission } from '../decorators/check-permission.decorator';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { SupabaseService } from '@config/supabase.config';
+import { PermissionsCacheService } from '../services/permissions-cache.service';
 
 /**
- * PermissionsGuard — verifica que el usuario tenga el permiso
- * granular requerido para acceder al endpoint.
- *
- * Siempre se usa junto a JwtGuard:
- *   @UseGuards(JwtGuard, PermissionsGuard)
- *   @CheckPermission('dosimeters', 'create')
- *   @Post()
- *   create() { ... }
- *
- * Flujo de verificación:
- * 1. Lee el permiso requerido del decorador @CheckPermission()
- * 2. Extrae el user_id del JWT (puesto por JwtGuard)
- * 3. Consulta user_permissions en Supabase
- * 4. Si granted = true → permite el acceso
- * 5. Si no existe o granted = false → lanza 403
- *
- * La consulta usa el índice idx_user_permissions_lookup
- * definido en la migración 010 para máxima performance.
+ * PermissionsGuard — verifica permiso granular con cache en memoria (TTL 60s).
  */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly supabase: SupabaseService,
+    private readonly permissionsCache: PermissionsCacheService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Leer el permiso requerido del decorador
     const required = this.reflector.getAllAndOverride<RequiredPermission>(CHECK_PERMISSION_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    // Si el endpoint no tiene @CheckPermission(), acceso libre
     if (!required) return true;
 
     const request = context.switchToHttp().getRequest();
@@ -54,28 +37,45 @@ export class PermissionsGuard implements CanActivate {
       throw new UnauthorizedException('Usuario no autenticado');
     }
 
-    // Construir el código del permiso: 'modulo:accion'
     const permissionCode = `${required.module}:${required.action}`;
 
-    // Consultar si el usuario tiene el permiso con granted = true
-    const { data, error } = await this.supabase
-      .getClient()
-      .from('user_permissions')
-      .select('granted, permissions!inner(code)')
-      .eq('user_id', user.sub)
-      .eq('granted', true)
-      .eq('permissions.code', permissionCode)
-      .maybeSingle();
-
-    if (error) {
-      // Error de base de datos — no asumimos acceso, fallamos seguro
-      throw new ForbiddenException('Error al verificar permisos');
+    const cached = this.permissionsCache.hasPermission(user.sub, permissionCode);
+    if (cached === true) return true;
+    if (cached === false) {
+      throw new ForbiddenException(`No tenés permiso para '${permissionCode}'`);
     }
 
-    if (!data) {
+    const permissions = await this.loadPermissions(user.sub);
+    this.permissionsCache.set(user.sub, permissions);
+
+    if (!permissions.has(permissionCode)) {
       throw new ForbiddenException(`No tenés permiso para '${permissionCode}'`);
     }
 
     return true;
+  }
+
+  private async loadPermissions(userId: string): Promise<Set<string>> {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user_permissions')
+      .select('permissions!inner(code)')
+      .eq('user_id', userId)
+      .eq('granted', true);
+
+    if (error) {
+      throw new ForbiddenException('Error al verificar permisos');
+    }
+
+    const codes = new Set<string>();
+    for (const row of data ?? []) {
+      const permission = row.permissions as unknown as { code: string } | { code: string }[];
+      if (Array.isArray(permission)) {
+        permission.forEach((p) => codes.add(p.code));
+      } else if (permission?.code) {
+        codes.add(permission.code);
+      }
+    }
+    return codes;
   }
 }

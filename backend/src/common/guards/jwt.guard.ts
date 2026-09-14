@@ -1,16 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /**
- * JwtGuard — protege endpoints con autenticación JWT.
- *
- * Uso en controlador:
- *   @UseGuards(JwtGuard)
- *   @Get('profile')
- *   getProfile() { ... }
- *
- * Si el token es inválido o está expirado, retorna 401 automáticamente.
- * Si el token es válido, adjunta el JwtPayload al request.user.
+ * JwtGuard global — protege todos los endpoints salvo los marcados con @Public().
+ * Extrae el token de cookie httpOnly o del header Authorization Bearer.
  */
 @Injectable()
-export class JwtGuard extends AuthGuard('jwt') {}
+export class JwtGuard extends AuthGuard('jwt') {
+  constructor(private readonly reflector: Reflector) {
+    super();
+  }
+
+  canActivate(context: ExecutionContext) {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
+
+    return super.canActivate(context);
+  }
+}

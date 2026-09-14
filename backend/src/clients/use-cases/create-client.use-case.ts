@@ -1,12 +1,16 @@
 import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
+import { AuditService } from '@common/services/audit.service';
 import { CreateClientDto } from '../dto/create-client.dto';
 
 @Injectable()
 export class CreateClientUseCase {
   private readonly logger = new Logger(CreateClientUseCase.name);
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly audit: AuditService,
+  ) {}
 
   async execute(dto: CreateClientDto, organizationId: string, requestingUserId: string) {
     const client = this.supabase.getClient();
@@ -81,14 +85,12 @@ export class CreateClientUseCase {
       throw new Error('No se pudo crear el cliente');
     }
 
-    // Audit log
-    await client.from('audit_logs').insert({
-      user_id: requestingUserId,
-      entity_name: 'clients',
-      entity_id: newClient.id,
+    await this.audit.log({
+      userId: requestingUserId,
+      entityName: 'clients',
+      entityId: newClient.id,
       action: 'CREATE',
-      old_values: null,
-      new_values: { name: newClient.name, code: newClient.code, status: newClient.status },
+      newValues: { name: newClient.name, code: newClient.code, status: newClient.status },
     });
 
     return newClient;

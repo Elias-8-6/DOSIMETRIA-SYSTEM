@@ -2,20 +2,22 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
 import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
+import { SupabaseService } from '@config/supabase.config';
+import { ACCESS_COOKIE } from '@common/utils/cookie.util';
 
-/**
- * JwtStrategy — valida el token JWT en cada request protegido.
- *
- * Extrae el token del header: Authorization: Bearer <token>
- * Si el token es válido adjunta el payload a request.user.
- * Si es inválido o expirado retorna 401.
- */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private readonly supabase: SupabaseService,
+  ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (req: Request) => req?.cookies?.[ACCESS_COOKIE] ?? null,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: config.getOrThrow<string>('JWT_SECRET'),
     });
@@ -25,6 +27,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!payload.sub || !payload.organization_id) {
       throw new UnauthorizedException('Token inválido — payload incompleto');
     }
+
+    const { data: user } = await this.supabase
+      .getClient()
+      .from('users')
+      .select('id, status')
+      .eq('id', payload.sub)
+      .maybeSingle();
+
+    if (!user || user.status !== 'active') {
+      throw new UnauthorizedException('Usuario inactivo o no encontrado');
+    }
+
     return payload;
   }
 }

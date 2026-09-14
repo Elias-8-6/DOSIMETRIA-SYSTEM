@@ -36,12 +36,15 @@ services:
      container_name: dosimetria_web
      ports:
        - "5173:5173"
+     environment:
+       VITE_PROXY_TARGET: http://backend:3000
      env_file:
        - ./frontend-web/.env
      volumes:
        - ./frontend-web/src:/app/src
        - /app/node_modules
        - ./frontend-web/index.html:/app/index.html
+       - ./frontend-web/vite.config.ts:/app/vite.config.ts
      networks:
        - dosimetria_net
      depends_on:

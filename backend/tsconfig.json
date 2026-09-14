@@ -6,6 +6,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
@@ -17,12 +18,14 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    "types": ["node", "jest", "express", "passport-jwt", "cookie-parser", "bcrypt"],
     "paths": {
       "@common/*": ["src/common/*"],
       "@config/*": ["src/config/*"],
       "@auth/*": ["src/auth/*"],
       "@clients/*": ["src/clients/*"],
-      "@dosimeters/*": ["src/dosimeters/*"]
+      "@dosimeters/*": ["src/dosimeters/*"],
+      "@service-orders/*": ["src/service-orders/*"]
     }
   }
 }

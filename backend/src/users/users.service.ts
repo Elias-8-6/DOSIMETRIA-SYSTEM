@@ -35,8 +35,14 @@ export class UsersService {
   ) {}
 
   // Consultas
-  findAll(organizationId: string, search?: string, status?: string) {
-    return this.findAllUsersUseCase.execute(organizationId, search, status);
+  findAll(
+    organizationId: string,
+    search?: string,
+    status?: string,
+    page?: string,
+    limit?: string,
+  ) {
+    return this.findAllUsersUseCase.execute(organizationId, search, status, page, limit);
   }
 
   findOne(userId: string, organizationId: string) {

@@ -1,12 +1,18 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
+import { AuditService } from '@common/services/audit.service';
+import { PermissionsCacheService } from '@common/services/permissions-cache.service';
 import { AssignPermissionDto } from '../dto/assign-permission.dto';
 
 @Injectable()
 export class AssignPermissionUseCase {
   private readonly logger = new Logger(AssignPermissionUseCase.name);
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly audit: AuditService,
+    private readonly permissionsCache: PermissionsCacheService,
+  ) {}
 
   /**
    * execute()
@@ -105,16 +111,16 @@ export class AssignPermissionUseCase {
       throw new Error('No se pudo asignar el permiso');
     }
 
-    // Registrar en audit_logs
-    const action = existingPermission ? 'UPDATE' : 'CREATE';
+    this.permissionsCache.invalidate(userId);
 
-    await client.from('audit_logs').insert({
-      user_id: grantedBy,
-      entity_name: 'user_permissions',
-      entity_id: userId,
+    const action = existingPermission ? 'UPDATE' : 'CREATE';
+    await this.audit.log({
+      userId: grantedBy,
+      entityName: 'user_permissions',
+      entityId: userId,
       action,
-      old_values: existingPermission ? { granted: false } : null,
-      new_values: {
+      oldValues: existingPermission ? { granted: false } : null,
+      newValues: {
         permission_code: permission.code,
         granted: true,
         granted_by: grantedBy,

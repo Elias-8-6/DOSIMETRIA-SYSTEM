@@ -1,13 +1,12 @@
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { IsStrongAppPassword } from '@common/utils/password.util';
 
 export class ChangePasswordDto {
   @IsString()
   @IsNotEmpty({ message: 'La contraseña actual es requerida' })
   current_password: string;
 
-  @IsString()
-  @MinLength(8, { message: 'La nueva contraseña debe tener al menos 8 caracteres' })
-  @IsNotEmpty({ message: 'La nueva contraseña es requerida' })
+  @IsStrongAppPassword()
   new_password: string;
 
   @IsString()

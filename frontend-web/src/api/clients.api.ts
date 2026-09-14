@@ -37,7 +37,14 @@ export interface Client {
   contract_end_date: string | null;
   status: ClientStatus;
   created_at: string;
+  /**
+   * Solo viene poblado con objetos reales en el detalle (GET /clients/:id).
+   * En el listado (GET /clients) siempre es [] — usar locations_count para
+   * mostrar la cantidad sin pagar el JOIN completo.
+   */
   client_locations: ClientLocation[];
+  /** Solo presente en el listado (GET /clients), no en el detalle. */
+  locations_count?: number;
 }
 
 export interface CreateClientPayload {

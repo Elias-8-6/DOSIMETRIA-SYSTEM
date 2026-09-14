@@ -67,11 +67,18 @@ export interface UpdateUserPayload {
   hire_date?:       string;
 }
 
+export interface PaginatedUsers {
+  items: User[];
+  total: number;
+}
+
 export const getUsers = async (params?: {
   search?: string;
   status?: string;
-}): Promise<User[]> => {
-  const { data } = await api.get<User[]>('/users', { params });
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedUsers> => {
+  const { data } = await api.get<PaginatedUsers>('/users', { params });
   return data;
 };
 

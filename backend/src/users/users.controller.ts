@@ -61,7 +61,13 @@ export class UsersController {
   @Get('users')
   @CheckPermission('users', 'read')
   findAll(@CurrentUser() user: JwtPayload, @Query() query: QueryUsersDto) {
-    return this.usersService.findAll(user.organization_id, query.search, query.status);
+    return this.usersService.findAll(
+      user.organization_id,
+      query.search,
+      query.status,
+      query.page,
+      query.limit,
+    );
   }
 
   /**
@@ -72,7 +78,7 @@ export class UsersController {
    */
   @Get('users/:id')
   @CheckPermission('users', 'read')
-  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
     return this.usersService.findOne(id, user.organization_id);
   }
 
@@ -93,7 +99,11 @@ export class UsersController {
    */
   @Patch('users/:id')
   @CheckPermission('users', 'update')
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() user: JwtPayload) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
     return this.usersService.update(id, dto, user.organization_id, user.sub);
   }
 
@@ -106,7 +116,7 @@ export class UsersController {
   @Patch('users/:id/status')
   @CheckPermission('users', 'update')
   updateStatus(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserStatusDto,
     @CurrentUser() user: JwtPayload,
   ) {
@@ -122,7 +132,7 @@ export class UsersController {
   @Post('users/:id/permissions')
   @CheckPermission('users', 'update')
   assignPermission(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignPermissionDto,
     @CurrentUser() user: JwtPayload,
   ) {
@@ -139,7 +149,7 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   @CheckPermission('users', 'update')
   revokePermission(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Param('permissionId', ParseUUIDPipe) permissionId: string,
     @CurrentUser() user: JwtPayload,
   ) {

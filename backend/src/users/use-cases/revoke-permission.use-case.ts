@@ -1,11 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
+import { AuditService } from '@common/services/audit.service';
+import { PermissionsCacheService } from '@common/services/permissions-cache.service';
 
 @Injectable()
 export class RevokePermissionUseCase {
   private readonly logger = new Logger(RevokePermissionUseCase.name);
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly audit: AuditService,
+    private readonly permissionsCache: PermissionsCacheService,
+  ) {}
 
   /**
    * execute()
@@ -84,17 +90,18 @@ export class RevokePermissionUseCase {
       throw new Error('No se pudo revocar el permiso');
     }
 
-    //Registrar en audit_logs
-    await client.from('audit_logs').insert({
-      user_id: revokedBy,
-      entity_name: 'user_permissions',
-      entity_id: userId,
+    this.permissionsCache.invalidate(userId);
+
+    await this.audit.log({
+      userId: revokedBy,
+      entityName: 'user_permissions',
+      entityId: userId,
       action: 'REVOKE_PERMISSION',
-      old_values: {
+      oldValues: {
         permission_code: permission.code,
         granted: true,
       },
-      new_values: {
+      newValues: {
         permission_code: permission.code,
         granted: false,
         revoked_by: revokedBy,

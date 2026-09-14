@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
+import { AuditService } from '@common/services/audit.service';
 import { UpdateUserStatusDto } from '../dto/update-user-status.dto';
 
 @Injectable()
 export class DeactivateUserUseCase {
   private readonly logger = new Logger(DeactivateUserUseCase.name);
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly audit: AuditService,
+  ) {}
 
   /**
    * execute()
@@ -69,16 +73,13 @@ export class DeactivateUserUseCase {
       throw new Error('No se pudo actualizar el status del usuario');
     }
 
-    // Registrar en audit_logs
-    // action STATUS_CHANGE es diferente a UPDATE — permite filtrar
-    // específicamente cambios de estado en las auditorías ISO 17025.
-    await client.from('audit_logs').insert({
-      user_id: requestingUserId,
-      entity_name: 'users',
-      entity_id: userId,
+    await this.audit.log({
+      userId: requestingUserId,
+      entityName: 'users',
+      entityId: userId,
       action: 'STATUS_CHANGE',
-      old_values: { status: existingUser.status },
-      new_values: { status: dto.status },
+      oldValues: { status: existingUser.status },
+      newValues: { status: dto.status },
     });
 
     return {
