@@ -99,8 +99,9 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
     setFormModal({ open: true, worker });
   };
 
-  // Cuando es embebido (dentro de ClientDetailPage) el layout es compacto
-  const colSpan = clientId ? 6 : 7;
+  // Cuando es embebido (dentro de ClientDetailPage) el layout es compacto.
+  // La tabla tiene 7 columnas; se oculta 1 por clientId y 1 por clientLocationId.
+  const colSpan = 7 - (clientId ? 1 : 0) - (clientLocationId ? 1 : 0);
 
   return (
     <div className={embedded ? '' : 'p-6'}>
@@ -142,6 +143,20 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
           <option value="active">Activo</option>
           <option value="inactive">Inactivo</option>
         </select>
+
+        {/* Botón "+ Trabajador" embebido — solo cuando hay clientId fijo.
+            Queda aquí para que handleFormSuccess pueda llamar a fetchWorkers(). */}
+        {embedded && clientId && (
+          <button
+            onClick={() => {
+              setModalKey((k) => k + 1);
+              setFormModal({ open: true, worker: null });
+            }}
+            className="px-3 py-2 text-xs font-medium text-emerald-600 border border-emerald-300 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            + Trabajador
+          </button>
+        )}
       </div>
 
       {detailError && (
@@ -218,6 +233,7 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
           key={modalKey}
           worker={formModal.worker}
           clientId={clientId}
+          clientLocationId={clientLocationId}
           onClose={() => setFormModal({ open: false, worker: null })}
           onSuccess={handleFormSuccess}
         />

@@ -1,4 +1,7 @@
-import { IsOptional, IsString, IsIn, IsUUID, IsNumber, IsNumberString } from 'class-validator';
+import { IsOptional, IsString, IsIn, Matches, IsNumberString } from 'class-validator';
+
+export const UUID_REGEX =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export class QueryWorkersDto {
   @IsOptional()
@@ -10,18 +13,18 @@ export class QueryWorkersDto {
   status?: string;
 
   @IsOptional()
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'client_id must be a UUID' })
   client_id?: string;
 
   @IsOptional()
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'client_location_id must be a UUID' })
   client_location_id?: string;
 
   @IsOptional()
   @IsNumberString()
-  page?: number;
+  page?: string;
 
   @IsOptional()
   @IsNumberString()
-  limit?: number;
+  limit?: string;
 }

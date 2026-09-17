@@ -2,11 +2,11 @@ import {
   IsDateString,
   IsEmail,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
+  Matches,
 } from 'class-validator';
+import { UUID_REGEX } from './query-workers.dto';
 
 export class CreateWorkerDto {
   //campos requeridos
@@ -15,7 +15,7 @@ export class CreateWorkerDto {
   full_name!: string;
 
   @IsNotEmpty({ message: 'El cliente es un campo requerido para registrar trabajadores' })
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'client_id must be a UUID' })
   client_id!: string;
 
   @IsNotEmpty({ message: 'El email es un campo requerido' })
@@ -23,7 +23,7 @@ export class CreateWorkerDto {
   email!: string;
 
   @IsNotEmpty({ message: 'La departamento en el que trabaja es un campo requerido' })
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'client_location_id must be a UUID' })
   client_location_id!: string;
 
   @IsNotEmpty({ message: 'La cédula/DNI es un campo requerido' })

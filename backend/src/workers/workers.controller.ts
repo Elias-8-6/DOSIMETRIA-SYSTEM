@@ -36,8 +36,8 @@ export class WorkersController {
       query.status,
       query.client_id,
       query.client_location_id,
-      query.page ?? 1,
-      query.limit ?? 10,
+      query.page ? Number(query.page) : 1,
+      query.limit ? Number(query.limit) : 10,
     );
   }
 

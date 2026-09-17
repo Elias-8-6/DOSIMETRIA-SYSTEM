@@ -1,4 +1,5 @@
-import { IsDateString, IsEmail, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsDateString, IsEmail, IsOptional, IsString, Matches } from 'class-validator';
+import { UUID_REGEX } from './query-workers.dto';
 
 export class UpdateWorkerDto {
   @IsOptional()
@@ -6,7 +7,7 @@ export class UpdateWorkerDto {
   full_name?: string;
 
   @IsOptional()
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'client_id must be a UUID' })
   client_id?: string;
 
   @IsOptional()
@@ -14,7 +15,7 @@ export class UpdateWorkerDto {
   email?: string;
 
   @IsOptional()
-  @IsUUID()
+  @Matches(UUID_REGEX, { message: 'client_location_id must be a UUID' })
   client_location_id?: string;
 
   @IsOptional()
@@ -30,7 +31,7 @@ export class UpdateWorkerDto {
   start_date?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsString()
   employee_code?: string;
 
   @IsOptional()

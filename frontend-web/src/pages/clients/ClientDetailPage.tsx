@@ -4,7 +4,6 @@ import type { Client, ClientLocation, ClientStatus } from '../../api/clients.api
 import { getClient, updateClientStatus, updateClientLocationStatus } from '../../api/clients.api';
 import { ClientFormModal } from '../../components/clients/ClientFormModal';
 import { LocationFormModal } from '../../components/clients/LocationFormModal';
-import { WorkerFormModal } from '../../components/workers/WorkerFormModal';
 import WorkersPage from '../workers/WorkersPage';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -56,11 +55,6 @@ export default function ClientDetailPage() {
     open: boolean;
     location: ClientLocation | null;
   }>({ open: false, location: null });
-  const [workerModal, setWorkerModal] = useState<{
-    open: boolean;
-    locationId: string | null;
-    workerKey: number;
-  }>({ open: false, locationId: null, workerKey: 0 });
 
   const fetchClient = useCallback(async () => {
     if (!id) return;
@@ -328,18 +322,6 @@ export default function ClientDetailPage() {
                           ? 'Desactivar'
                           : 'Activar'}
                     </button>
-                    <button
-                      onClick={() =>
-                        setWorkerModal({
-                          open: true,
-                          locationId: loc.id,
-                          workerKey: workerModal.workerKey + 1,
-                        })
-                      }
-                      className="text-xs font-medium text-emerald-600 hover:text-emerald-700 cursor-pointer"
-                    >
-                      + Trabajador
-                    </button>
                   </div>
                 </div>
 
@@ -391,19 +373,6 @@ export default function ClientDetailPage() {
           loading={locStatusLoading === confirmingLocation.id}
           onConfirm={() => handleToggleLocationStatus(confirmingLocation)}
           onCancel={() => setConfirmingLocation(null)}
-        />
-      )}
-
-      {/* Modal nuevo trabajador */}
-      {workerModal.open && (
-        <WorkerFormModal
-          key={workerModal.workerKey}
-          clientId={client.id}
-          clientLocationId={workerModal.locationId ?? undefined}
-          onClose={() => setWorkerModal({ open: false, locationId: null, workerKey: 0 })}
-          onSuccess={() => {
-            setWorkerModal({ open: false, locationId: null, workerKey: 0 });
-          }}
         />
       )}
     </div>

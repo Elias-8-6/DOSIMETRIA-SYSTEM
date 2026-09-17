@@ -68,8 +68,6 @@ export const getWorker = async (id: string): Promise<WorkerDetail> => {
 };
 
 export const createWorker = async (payload: CreateWorkerPayload): Promise<Worker> => {
-  console.log(payload);
-
   const { data } = await api.post<Worker>('/workers', payload);
   return data;
 };
