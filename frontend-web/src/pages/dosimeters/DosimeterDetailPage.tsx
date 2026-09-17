@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type {
   DosimeterDetail,
@@ -39,6 +39,32 @@ export default function DosimeterDetailPage() {
   const [history, setHistory] = useState<DosimeterAssignment[]>([]);
   const [readings, setReadings] = useState<DosimeterReading[]>([]);
   const [contaminations, setContaminations] = useState<ContaminationCheck[]>([]);
+
+  // Historial de asignaciones ordenado estrictamente del más reciente al más antiguo:
+  // 1. Asignación activa primero (status === 'activo' o returned_at null).
+  // 2. Por fecha de asignación descendente (assigned_at DESC).
+  // 3. En caso de coincidencia en assigned_at, returned_at descendente (abiertas primero).
+  const sortedHistory = useMemo(() => {
+    return [...history].sort((a, b) => {
+      const aIsActive = a.status === 'activo' || !a.returned_at;
+      const bIsActive = b.status === 'activo' || !b.returned_at;
+      if (aIsActive && !bIsActive) return -1;
+      if (!aIsActive && bIsActive) return 1;
+
+      const dateA = new Date(a.assigned_at).getTime();
+      const dateB = new Date(b.assigned_at).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+
+      if (!a.returned_at && b.returned_at) return -1;
+      if (a.returned_at && !b.returned_at) return 1;
+      if (a.returned_at && b.returned_at) {
+        return new Date(b.returned_at).getTime() - new Date(a.returned_at).getTime();
+      }
+
+      return 0;
+    });
+  }, [history]);
+
   const [activeTab, setActiveTab] = useState<'assignments' | 'readings' | 'contaminations'>('assignments');
   const [statuses, setStatuses] = useState<DosimeterStatus[]>([]);
   const [types, setTypes] = useState<DosimeterType[]>([]);
@@ -313,7 +339,7 @@ export default function DosimeterDetailPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Historial de asignaciones ({history.length})
+            Historial de asignaciones ({sortedHistory.length})
           </button>
           <button
             onClick={() => setActiveTab('readings')}
@@ -340,11 +366,11 @@ export default function DosimeterDetailPage() {
         {/* Pestaña: Asignaciones */}
         {activeTab === 'assignments' && (
           <div>
-            {history.length === 0 ? (
+            {sortedHistory.length === 0 ? (
               <p className="text-sm text-gray-400 py-10 text-center">Sin asignaciones registradas</p>
             ) : (
               <div className="divide-y divide-gray-100">
-                {history.map((assignment) => (
+                {sortedHistory.map((assignment) => (
                   <div
                     key={assignment.id}
                     className="p-5 hover:bg-gray-50 transition-colors space-y-2"

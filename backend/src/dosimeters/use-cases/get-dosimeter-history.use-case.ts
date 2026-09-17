@@ -51,7 +51,8 @@ export class GetDosimeterHistoryUseCase {
       `,
       )
       .eq('dosimeter_id', dosimeterId)
-      .order('assigned_at', { ascending: false });
+      .order('assigned_at', { ascending: false })
+      .order('returned_at', { ascending: false, nullsFirst: true });
 
     if (orgType === 'client') {
       assignmentsQuery = assignmentsQuery.eq('workers.clients.organization_id', organizationId);

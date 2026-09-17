@@ -47,14 +47,16 @@ describe('GetDosimeterHistoryUseCase', () => {
           };
         }
         if (table === 'dosimeter_assignments') {
+          const queryResult: any = {
+            data: assignmentsResult.data,
+            error: assignmentsResult.error,
+            eq: eqFilterMock ?? jest.fn(),
+          };
+          queryResult.order = () => queryResult;
           return {
             select: () => ({
               eq: () => ({
-                order: () => ({
-                  data: assignmentsResult.data,
-                  error: assignmentsResult.error,
-                  eq: eqFilterMock ?? jest.fn(),
-                }),
+                order: () => queryResult,
               }),
             }),
           };
