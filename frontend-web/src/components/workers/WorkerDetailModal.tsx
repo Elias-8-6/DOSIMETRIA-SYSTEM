@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { WorkerDetail, WorkerStatus } from '../../api/workers.api';
 import { updateWorkerStatus } from '../../api/workers.api';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -25,6 +25,31 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
   const [localWorker, setLocalWorker] = useState<WorkerDetail>(worker);
   const [statusLoading, setStatusLoading] = useState(false);
   const [confirmingStatus, setConfirmingStatus] = useState(false);
+
+  // Historial de dosímetros ordenado estrictamente del más reciente al más antiguo:
+  // 1. Asignación activa primero (status === 'activo' o returned_at null).
+  // 2. Por fecha de asignación descendente (assigned_at DESC).
+  // 3. En caso de coincidencia en assigned_at, returned_at descendente (abiertas primero).
+  const sortedAssignments = useMemo(() => {
+    return [...(localWorker.dosimeter_assignments ?? [])].sort((a, b) => {
+      const aIsActive = a.status === 'activo' || !a.returned_at;
+      const bIsActive = b.status === 'activo' || !b.returned_at;
+      if (aIsActive && !bIsActive) return -1;
+      if (!aIsActive && bIsActive) return 1;
+
+      const dateA = new Date(a.assigned_at).getTime();
+      const dateB = new Date(b.assigned_at).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+
+      if (!a.returned_at && b.returned_at) return -1;
+      if (a.returned_at && !b.returned_at) return 1;
+      if (a.returned_at && b.returned_at) {
+        return new Date(b.returned_at).getTime() - new Date(a.returned_at).getTime();
+      }
+
+      return 0;
+    });
+  }, [localWorker.dosimeter_assignments]);
 
   const handleToggleStatus = async () => {
     setStatusLoading(true);
@@ -127,17 +152,17 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
           <div>
             <div className="flex items-center justify-between mb-3">
               {sectionHead(
-                `Historial de dosímetros (${localWorker.dosimeter_assignments?.length ?? 0})`,
+                `Historial de dosímetros (${sortedAssignments.length})`,
               )}
             </div>
 
-            {!localWorker.dosimeter_assignments?.length ? (
+            {!sortedAssignments.length ? (
               <p className="text-sm text-gray-400 py-4 text-center border border-dashed border-gray-200 rounded-lg">
                 Sin asignaciones de dosímetros
               </p>
             ) : (
               <div className="space-y-2">
-                {localWorker.dosimeter_assignments.map((assignment) => (
+                {sortedAssignments.map((assignment) => (
                   <div
                     key={assignment.id}
                     className="flex items-start justify-between p-3 border border-gray-200 rounded-lg"
