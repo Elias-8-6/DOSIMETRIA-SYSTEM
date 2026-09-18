@@ -7,16 +7,10 @@ import { LocationFormModal } from '../../components/clients/LocationFormModal';
 import WorkersPage from '../workers/WorkersPage';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Field } from '../../components/ui/Field';
+import { SectionHead } from '../../components/ui/SectionHead';
+import { CLIENT_TYPE_LABELS } from '../../constants/clients';
 import { formatDate } from '../../utils/date';
-
-const CLIENT_TYPE_LABELS: Record<string, string> = {
-  hospital: 'Hospital',
-  clinica: 'Clínica',
-  industria: 'Industria',
-  investigacion: 'Investigación',
-  gobierno: 'Gobierno',
-  otro: 'Otro',
-};
 
 const RADIATION_LABELS: Record<string, string> = {
   rayos_x: 'Rayos X',
@@ -117,14 +111,6 @@ export default function ClientDetailPage() {
     setExpandedLocs((prev) => ({ ...prev, [locId]: !prev[locId] }));
   };
 
-  const field = (label: string, value: string | null | undefined) =>
-    value ? (
-      <div>
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-sm text-gray-800 mt-0.5">{value}</p>
-      </div>
-    ) : null;
-
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center py-20 text-gray-400 text-sm">
@@ -150,7 +136,7 @@ export default function ClientDetailPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div>
           <button
             onClick={() => navigate('/clients')}
@@ -160,11 +146,10 @@ export default function ClientDetailPage() {
           </button>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
-            {client.code && <span className="text-sm text-gray-400">{client.code}</span>}
             <StatusBadge active={client.status === 'active'} />
           </div>
         </div>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => {
               setEditClientKey((k) => k + 1);
@@ -208,14 +193,12 @@ export default function ClientDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Datos institucionales */}
         <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
-            Datos institucionales
-          </h2>
+          <SectionHead label="Datos institucionales" />
           <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-            {field('Tipo', client.client_type ? CLIENT_TYPE_LABELS[client.client_type] : null)}
-            {field('Teléfono', client.phone)}
-            {field('Dirección', client.address)}
-            {field('Sitio web', client.website)}
+            <Field label="Tipo" value={client.client_type ? CLIENT_TYPE_LABELS[client.client_type] : null} />
+            <Field label="Teléfono" value={client.phone} />
+            <Field label="Dirección" value={client.address} />
+            <Field label="Sitio web" value={client.website} />
           </div>
         </div>
 
@@ -223,23 +206,19 @@ export default function ClientDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
           {(client.contact_name || client.contact_email) && (
             <div>
-              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                Contacto
-              </h2>
+              <SectionHead label="Contacto" />
               <div className="grid grid-cols-2 gap-y-3 gap-x-6">
-                {field('Nombre', client.contact_name)}
-                {field('Email', client.contact_email)}
+                <Field label="Nombre" value={client.contact_name} />
+                <Field label="Email" value={client.contact_email} />
               </div>
             </div>
           )}
           {(client.contract_start_date || client.contract_end_date) && (
             <div>
-              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                Contrato
-              </h2>
+              <SectionHead label="Contrato" />
               <div className="grid grid-cols-2 gap-y-3 gap-x-6">
-                {field('Inicio', formatDate(client.contract_start_date))}
-                {field('Vencimiento', formatDate(client.contract_end_date))}
+                <Field label="Inicio" value={formatDate(client.contract_start_date)} />
+                <Field label="Vencimiento" value={formatDate(client.contract_end_date)} />
               </div>
             </div>
           )}

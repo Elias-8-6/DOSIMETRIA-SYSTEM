@@ -11,7 +11,11 @@ import type { DosimeterType } from '../../api/catalogs.api';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
-import { Button } from '../ui/Button';
+import { Textarea } from '../ui/Textarea';
+import { FormFooter } from '../ui/FormFooter';
+import { FormSection } from '../ui/FormSection';
+import { CONDITIONS } from '../../constants/dosimeters';
+import { extractApiError } from '../../utils/api';
 
 interface Props {
   dosimeter?: Dosimeter | null;
@@ -19,20 +23,6 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
 }
-
-const CONDITIONS: { value: DosimeterCondition; label: string }[] = [
-  { value: 'normal', label: 'Normal' },
-  { value: 'danado', label: 'Dañado' },
-  { value: 'contaminado', label: 'Contaminado' },
-  { value: 'perdido', label: 'Perdido' },
-];
-
-const sectionHead = (label: string, color: string) => (
-  <div className="flex items-center gap-2 mb-3">
-    <div className={`w-1 h-4 rounded-full ${color}`} />
-    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</h3>
-  </div>
-);
 
 export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Props) {
   const isEditing = !!dosimeter;
@@ -164,9 +154,7 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
       onClose();
       onSuccess();
     } catch (err) {
-      const e = err as { response?: { data?: { message?: string | string[] } } };
-      const msg = e?.response?.data?.message ?? 'Error al guardar el dosímetro';
-      setError(Array.isArray(msg) ? msg.join(', ') : msg);
+      setError(extractApiError(err, 'Error al guardar el dosímetro'));
     } finally {
       setLoading(false);
     }
@@ -176,8 +164,7 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
     <Modal title={isEditing ? 'Editar dosímetro' : 'Nuevo dosímetro'} onClose={onClose}>
       <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
         {/* Identificación */}
-        <div>
-          {sectionHead('Identificación', 'bg-blue-500')}
+        <FormSection label="Identificación" color="bg-blue-500">
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Número de serie"
@@ -228,11 +215,10 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               placeholder="Ej: Harshaw 8807, Panasonic UD-802"
             />
           </div>
-        </div>
+        </FormSection>
 
         {/* Parámetros de uso */}
-        <div>
-          {sectionHead('Parámetros de uso', 'bg-violet-400')}
+        <FormSection label="Parámetros de uso" color="bg-violet-400">
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Fecha de fabricación"
@@ -261,11 +247,10 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               onChange={(e) => setMaxDoseLimit(e.target.value)}
             />
           </div>
-        </div>
+        </FormSection>
 
         {/* Estado físico */}
-        <div>
-          {sectionHead('Estado físico', 'bg-amber-400')}
+        <FormSection label="Estado físico" color="bg-amber-400">
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Último recocido (annealing)"
@@ -352,31 +337,24 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               )}
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-              <textarea
+              <Textarea
+                label="Notas"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
-        </div>
+        </FormSection>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-          <Button variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear dosímetro'}
-          </Button>
-        </div>
+        <FormFooter
+          error={error}
+          loading={loading}
+          isEditing={isEditing}
+          editLabel="Guardar cambios"
+          createLabel="Crear dosímetro"
+          onClose={onClose}
+        />
       </form>
     </Modal>
   );

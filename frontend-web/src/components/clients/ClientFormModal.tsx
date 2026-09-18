@@ -10,7 +10,8 @@ import { createClient, updateClient } from '../../api/clients.api.ts';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
-import { Button } from '../ui/Button';
+import { FormFooter } from '../ui/FormFooter';
+import { extractApiError } from '../../utils/api';
 
 interface Props {
   client?: Client | null;
@@ -98,9 +99,7 @@ export function ClientFormModal({ client, onClose, onSuccess }: Props) {
       onClose();
       onSuccess();
     } catch (err) {
-      const e = err as { response?: { data?: { message?: string | string[] } } };
-      const msg = e?.response?.data?.message ?? 'Error al guardar el cliente';
-      setError(Array.isArray(msg) ? msg.join(', ') : msg);
+      setError(extractApiError(err, 'Error al guardar el cliente'));
     } finally {
       setLoading(false);
     }
@@ -209,20 +208,14 @@ export function ClientFormModal({ client, onClose, onSuccess }: Props) {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-          <Button variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear cliente'}
-          </Button>
-        </div>
+        <FormFooter
+          error={error}
+          loading={loading}
+          isEditing={isEditing}
+          editLabel="Guardar cambios"
+          createLabel="Crear cliente"
+          onClose={onClose}
+        />
       </form>
     </Modal>
   );

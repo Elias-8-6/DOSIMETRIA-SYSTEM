@@ -3,8 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import type {
   ServiceOrderDetail,
   ServiceOrderStatus,
-  ServiceType,
-  Priority,
 } from '../../api/serviceOrders.api';
 import {
   getServiceOrder,
@@ -20,37 +18,13 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { formatDate } from '../../utils/date';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
-
-const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
-  lectura_dosis: 'Lectura de dosis',
-  lectura_y_recarga: 'Lectura y recarga',
-  mantenimiento: 'Mantenimiento',
-  calibracion: 'Calibración',
-};
-
-const STATUS_LABELS: Record<ServiceOrderStatus, string> = {
-  PENDING: 'Pendiente',
-  RECEIVED: 'Recibida',
-  IN_PROCESS: 'En proceso',
-  QC_REVIEW: 'Revisión QC',
-  COMPLETED: 'Completada',
-  CANCELLED: 'Cancelada',
-};
-
-const STATUS_CLASSES: Record<ServiceOrderStatus, string> = {
-  PENDING: 'bg-gray-100 text-gray-600',
-  RECEIVED: 'bg-blue-100 text-blue-700',
-  IN_PROCESS: 'bg-amber-100 text-amber-700',
-  QC_REVIEW: 'bg-violet-100 text-violet-700',
-  COMPLETED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-};
-
-const PRIORITY_LABELS: Record<Priority, string> = {
-  normal: 'Normal',
-  urgente: 'Urgente',
-  critica: 'Crítica',
-};
+import { Field } from '../../components/ui/Field';
+import { SectionHead } from '../../components/ui/SectionHead';
+import { ServiceOrderStatusBadge } from '../../components/service-orders/ServiceOrderStatusBadge';
+import {
+  SERVICE_TYPE_LABELS,
+  PRIORITY_LABELS,
+} from '../../constants/serviceOrders';
 
 const REQUESTED_ACTION_LABELS: Record<string, string> = {
   lectura: 'Lectura',
@@ -58,16 +32,6 @@ const REQUESTED_ACTION_LABELS: Record<string, string> = {
   recarga: 'Recarga',
   inspeccion: 'Inspección',
 };
-
-function OrderStatusBadge({ status }: { status: ServiceOrderStatus }) {
-  return (
-    <span
-      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CLASSES[status]}`}
-    >
-      {STATUS_LABELS[status]}
-    </span>
-  );
-}
 
 export default function ServiceOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -150,18 +114,6 @@ export default function ServiceOrderDetailPage() {
     }
   };
 
-  const sectionHead = (label: string) => (
-    <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{label}</h2>
-  );
-
-  const field = (label: string, value: string | null | undefined) =>
-    value ? (
-      <div>
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-sm text-gray-800 mt-0.5">{value}</p>
-      </div>
-    ) : null;
-
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center py-20 text-gray-400 text-sm">
@@ -173,12 +125,12 @@ export default function ServiceOrderDetailPage() {
   if (error || !order) {
     return (
       <div className="p-6">
-        <p className="text-sm text-red-600">{error || 'Orden de servicio no encontrada'}</p>
+        <p className="text-sm text-red-600">{error || 'Orden no encontrada'}</p>
         <button
           onClick={() => navigate('/service-orders')}
           className="mt-4 text-sm text-blue-600 hover:text-blue-800 cursor-pointer"
         >
-          ← Volver a órdenes de servicio
+          ← Volver a órdenes
         </button>
       </div>
     );
@@ -186,9 +138,11 @@ export default function ServiceOrderDetailPage() {
 
   const isPending = order.status === 'PENDING';
   const canEdit = hasPermission('service_orders', 'update') && !['COMPLETED', 'CANCELLED'].includes(order.status);
+  const canManage = canEdit;
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <button
@@ -199,11 +153,10 @@ export default function ServiceOrderDetailPage() {
           </button>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{order.order_number}</h1>
-            <OrderStatusBadge status={order.status} />
-            <span className="text-sm text-gray-400">{PRIORITY_LABELS[order.priority]}</span>
+            <ServiceOrderStatusBadge status={order.status} />
           </div>
         </div>
-        {canEdit && (
+        {canManage && (
           <button
             onClick={() => {
               setEditKey((k) => k + 1);
@@ -211,23 +164,25 @@ export default function ServiceOrderDetailPage() {
             }}
             className="px-3 py-1.5 text-xs font-medium text-gray-600 border bg-gray-100 border-gray-300 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
           >
-            Editar
+            Editar orden
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Datos generales */}
         <div className="bg-white border border-gray-200 rounded-xl p-5">
-          {sectionHead('Datos de la orden')}
+          <SectionHead label="Datos de la orden" />
           <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-            {field('Cliente', order.clients?.name)}
-            {field('Tipo de servicio', SERVICE_TYPE_LABELS[order.service_type])}
-            {field('Fecha solicitada', formatDate(order.requested_date))}
-            {field('Fecha límite', formatDate(order.due_date))}
-            {field('Creada', formatDate(order.created_at))}
+            <Field label="Cliente" value={order.clients?.name} />
+            <Field label="Tipo de servicio" value={SERVICE_TYPE_LABELS[order.service_type]} />
+            <Field label="Prioridad" value={PRIORITY_LABELS[order.priority]} />
+            <Field label="Fecha solicitada" value={formatDate(order.requested_date)} />
+            <Field label="Fecha límite" value={formatDate(order.due_date)} />
+            <Field label="Creada" value={formatDate(order.created_at)} />
           </div>
           {order.observations && (
-            <div className="mt-4">
+            <div className="mt-4 pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-400">Observaciones</p>
               <p className="text-sm text-gray-800 mt-0.5">{order.observations}</p>
             </div>
@@ -235,7 +190,7 @@ export default function ServiceOrderDetailPage() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
-          {sectionHead('Estado')}
+          <SectionHead label="Estado" />
           <ServiceOrderStatusControl
             status={order.status}
             canUpdate={hasPermission('service_orders', 'update')}

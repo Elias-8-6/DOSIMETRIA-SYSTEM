@@ -5,3 +5,7 @@ export function formatDate(value: string | null | undefined): string {
   if (Number.isNaN(date.getTime())) return '—';
   return date.toLocaleDateString('es-PA');
 }
+
+export function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}

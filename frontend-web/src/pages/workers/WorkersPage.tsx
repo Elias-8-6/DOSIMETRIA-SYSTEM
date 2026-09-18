@@ -10,6 +10,7 @@ import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/
 import { Pagination } from '../../components/ui/Pagination';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 interface Props {
   clientId?: string;
@@ -107,21 +108,21 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
     <div className={embedded ? '' : 'p-6'}>
       {/* Header — se oculta cuando es embebido */}
       {!embedded && (
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Trabajadores</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Gestión de trabajadores dosimetrados</p>
-          </div>
-          <Button
-            accent="emerald"
-            onClick={() => {
-              setModalKey((k) => k + 1);
-              setFormModal({ open: true, worker: null });
-            }}
-          >
-            Nuevo trabajador
-          </Button>
-        </div>
+        <PageHeader
+          title="Trabajadores"
+          subtitle="Gestión de trabajadores dosimetrados"
+          action={
+            <Button
+              accent="emerald"
+              onClick={() => {
+                setModalKey((k) => k + 1);
+                setFormModal({ open: true, worker: null });
+              }}
+            >
+              Nuevo trabajador
+            </Button>
+          }
+        />
       )}
 
       {/* Filtros — más compactos cuando es embebido */}

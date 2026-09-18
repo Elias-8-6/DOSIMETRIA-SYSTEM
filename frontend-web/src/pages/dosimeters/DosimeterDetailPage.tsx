@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type {
   DosimeterDetail,
   DosimeterAssignment,
   DosimeterReading,
   ContaminationCheck,
-  DosimeterCondition,
   DosimeterStatusCode,
 } from '../../api/dosimeters.api';
 import { getDosimeter, getDosimeterHistory, updateDosimeterStatus } from '../../api/dosimeters.api';
@@ -18,16 +17,13 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { DosimeterStatusBadge } from '../../components/ui/DosimeterStatusBadge';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
+import { Field } from '../../components/ui/Field';
+import { SectionHead } from '../../components/ui/SectionHead';
+import { CONDITION_LABELS } from '../../constants/dosimeters';
+import { useSortedAssignments } from '../../hooks/useSortedAssignments';
 import { formatDate } from '../../utils/date';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
-
-const CONDITION_LABELS: Record<DosimeterCondition, string> = {
-  normal: 'Normal',
-  danado: 'Dañado',
-  contaminado: 'Contaminado',
-  perdido: 'Perdido',
-};
 
 export default function DosimeterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -40,30 +36,7 @@ export default function DosimeterDetailPage() {
   const [readings, setReadings] = useState<DosimeterReading[]>([]);
   const [contaminations, setContaminations] = useState<ContaminationCheck[]>([]);
 
-  // Historial de asignaciones ordenado estrictamente del más reciente al más antiguo:
-  // 1. Asignación activa primero (status === 'activo' o returned_at null).
-  // 2. Por fecha de asignación descendente (assigned_at DESC).
-  // 3. En caso de coincidencia en assigned_at, returned_at descendente (abiertas primero).
-  const sortedHistory = useMemo(() => {
-    return [...history].sort((a, b) => {
-      const aIsActive = a.status === 'activo' || !a.returned_at;
-      const bIsActive = b.status === 'activo' || !b.returned_at;
-      if (aIsActive && !bIsActive) return -1;
-      if (!aIsActive && bIsActive) return 1;
-
-      const dateA = new Date(a.assigned_at).getTime();
-      const dateB = new Date(b.assigned_at).getTime();
-      if (dateB !== dateA) return dateB - dateA;
-
-      if (!a.returned_at && b.returned_at) return -1;
-      if (a.returned_at && !b.returned_at) return 1;
-      if (a.returned_at && b.returned_at) {
-        return new Date(b.returned_at).getTime() - new Date(a.returned_at).getTime();
-      }
-
-      return 0;
-    });
-  }, [history]);
+  const sortedHistory = useSortedAssignments(history);
 
   const [activeTab, setActiveTab] = useState<'assignments' | 'readings' | 'contaminations'>('assignments');
   const [statuses, setStatuses] = useState<DosimeterStatus[]>([]);
@@ -83,14 +56,17 @@ export default function DosimeterDetailPage() {
     setLoading(true);
     setError('');
     try {
-      const [detail, historyRes] = await Promise.all([getDosimeter(id), getDosimeterHistory(id)]);
+      const [detail, historyRes] = await Promise.all([
+        getDosimeter(id),
+        getDosimeterHistory(id),
+      ]);
       setDosimeter(detail);
       setHistory(historyRes.assignments || historyRes.items || []);
       setReadings(historyRes.readings || []);
       setContaminations(historyRes.contaminations || []);
       setStatusValue(detail.dosimeter_statuses.code);
     } catch {
-      setError('No se pudo cargar el dosímetro');
+      setError('No se pudo cargar el detalle del dosímetro');
     } finally {
       setLoading(false);
     }
@@ -110,33 +86,18 @@ export default function DosimeterDetailPage() {
   }, []);
 
   const handleStatusChange = async () => {
-    if (!dosimeter || !statusValue || statusValue === dosimeter.dosimeter_statuses.code) return;
+    if (!id || !statusValue || statusValue === dosimeter?.dosimeter_statuses.code) return;
     setStatusLoading(true);
     try {
-      await updateDosimeterStatus(dosimeter.id, statusValue);
+      await updateDosimeterStatus(id, statusValue);
       showToast('Estado actualizado correctamente');
       fetchAll();
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string | string[] } } };
-      const msg = e?.response?.data?.message;
-      const errorMsg = Array.isArray(msg) ? msg.join(', ') : msg ?? 'No se pudo actualizar el estado';
-      showToast(errorMsg);
+    } catch {
+      showToast('Error al actualizar el estado', 'error');
     } finally {
       setStatusLoading(false);
     }
   };
-
-  const field = (label: string, value: string | null | undefined) =>
-    value ? (
-      <div>
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-sm text-gray-800 mt-0.5">{value}</p>
-      </div>
-    ) : null;
-
-  const sectionHead = (label: string) => (
-    <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{label}</h2>
-  );
 
   if (loading) {
     return (
@@ -202,7 +163,7 @@ export default function DosimeterDetailPage() {
         {/* Datos del dosímetro */}
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <div className="flex items-start justify-between">
-            {sectionHead('Datos del dosímetro')}
+            <SectionHead label="Datos del dosímetro" />
             {dosimeter.photo_url && (
               <a
                 href={dosimeter.photo_url}
@@ -228,21 +189,21 @@ export default function DosimeterDetailPage() {
               </div>
             )}
             <div className="flex-1 grid grid-cols-2 gap-y-4 gap-x-6">
-              {field('Tipo', dosimeter.dosimeter_types.name)}
-              {field('Tecnología', dosimeter.dosimeter_types.technology)}
-              {field('Fabricante', dosimeter.manufacturer)}
-              {field('Modelo', dosimeter.model)}
-              {field('Lote', dosimeter.lot_number)}
-              {field('Condición', CONDITION_LABELS[dosimeter.current_condition])}
-              {field('Fabricación', formatDate(dosimeter.manufacture_date))}
-              {field('Puesta en servicio', formatDate(dosimeter.commissioning_date))}
-              {field(
-                'Período de uso',
-                dosimeter.wear_period_days ? `${dosimeter.wear_period_days} días` : null,
-              )}
-              {field('Límite máx. de dosis', dosimeter.max_dose_limit ? `${dosimeter.max_dose_limit} mSv` : null)}
-              {field('Último recocido', formatDate(dosimeter.last_annealing_date))}
-              {field('Reutilizable', dosimeter.reusable ? 'Sí' : 'No')}
+              <Field label="Tipo" value={dosimeter.dosimeter_types.name} />
+              <Field label="Tecnología" value={dosimeter.dosimeter_types.technology} />
+              <Field label="Fabricante" value={dosimeter.manufacturer} />
+              <Field label="Modelo" value={dosimeter.model} />
+              <Field label="Lote" value={dosimeter.lot_number} />
+              <Field label="Condición" value={CONDITION_LABELS[dosimeter.current_condition]} />
+              <Field label="Fabricación" value={formatDate(dosimeter.manufacture_date)} />
+              <Field label="Puesta en servicio" value={formatDate(dosimeter.commissioning_date)} />
+              <Field
+                label="Período de uso"
+                value={dosimeter.wear_period_days ? `${dosimeter.wear_period_days} días` : null}
+              />
+              <Field label="Límite máx. de dosis" value={dosimeter.max_dose_limit ? `${dosimeter.max_dose_limit} mSv` : null} />
+              <Field label="Último recocido" value={formatDate(dosimeter.last_annealing_date)} />
+              <Field label="Reutilizable" value={dosimeter.reusable ? 'Sí' : 'No'} />
             </div>
           </div>
           {dosimeter.notes && (
@@ -257,7 +218,7 @@ export default function DosimeterDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
           {hasPermission('dosimeters', 'update') && (
             <div>
-              {sectionHead('Cambiar estado')}
+              <SectionHead label="Cambiar estado" />
               <div className="flex gap-2">
                 <div className="flex-1">
                   <Select
@@ -299,15 +260,15 @@ export default function DosimeterDetailPage() {
           )}
 
           <div>
-            {sectionHead('Asignación actual')}
+            <SectionHead label="Asignación actual" />
             {openAssignment ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-y-3 gap-x-6">
-                  {field('Trabajador', openAssignment.workers.full_name)}
-                  {field('Institución', openAssignment.workers.clients.name)}
-                  {field('Sede / Ubicación', openAssignment.workers.client_locations?.name)}
-                  {field('Asignado', formatDate(openAssignment.assigned_at))}
-                  {field('Responsable', openAssignment.users?.full_name)}
+                  <Field label="Trabajador" value={openAssignment.workers.full_name} />
+                  <Field label="Institución" value={openAssignment.workers.clients.name} />
+                  <Field label="Sede / Ubicación" value={openAssignment.workers.client_locations?.name} />
+                  <Field label="Asignado" value={formatDate(openAssignment.assigned_at)} />
+                  <Field label="Responsable" value={openAssignment.users?.full_name} />
                 </div>
                 {hasPermission('assignments', 'update') && (
                   <Button variant="danger" onClick={() => setReturnModal(true)}>

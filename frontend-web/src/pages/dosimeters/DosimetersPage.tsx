@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Dosimeter, DosimeterCondition } from '../../api/dosimeters.api';
+import type { Dosimeter } from '../../api/dosimeters.api';
 import { getDosimeters } from '../../api/dosimeters.api';
 import type { DosimeterType, DosimeterStatus } from '../../api/catalogs.api';
 import { getDosimeterTypes, getDosimeterStatuses } from '../../api/catalogs.api';
@@ -11,14 +11,9 @@ import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/
 import { Pagination } from '../../components/ui/Pagination';
 import { DosimeterStatusBadge } from '../../components/ui/DosimeterStatusBadge';
 import { Button } from '../../components/ui/Button';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { CONDITION_LABELS } from '../../constants/dosimeters';
 import { useAuth } from '../../hooks/useAuth';
-
-const CONDITION_LABELS: Record<DosimeterCondition, string> = {
-  normal: 'Normal',
-  danado: 'Dañado',
-  contaminado: 'Contaminado',
-  perdido: 'Perdido',
-};
 
 const PAGE_SIZE = 10;
 
@@ -88,23 +83,22 @@ export default function DosimetersPage() {
 
   return (
     <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dosímetros</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Inventario y asignación de dosímetros</p>
-        </div>
-        {hasPermission('dosimeters', 'create') && (
-          <Button
-            onClick={() => {
-              setModalKey((k) => k + 1);
-              setFormModalOpen(true);
-            }}
-          >
-            Nuevo dosímetro
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Dosímetros"
+        subtitle="Inventario y asignación de dosímetros"
+        action={
+          hasPermission('dosimeters', 'create') && (
+            <Button
+              onClick={() => {
+                setModalKey((k) => k + 1);
+                setFormModalOpen(true);
+              }}
+            >
+              Nuevo dosímetro
+            </Button>
+          )
+        }
+      />
 
       {/* Filtros */}
       <div className="flex gap-3 mb-4 flex-wrap">

@@ -1,23 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Client, ClientType } from '../../api/clients.api';
+import type { Client } from '../../api/clients.api';
 import { getClients } from '../../api/clients.api';
 import { ClientFormModal } from '../../components/clients/ClientFormModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useToast } from '../../hooks/useToast';
+import { useListPage } from '../../hooks/useListPage';
+import { useFormModal } from '../../hooks/useFormModal';
 import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
-
-const CLIENT_TYPE_LABELS: Record<ClientType, string> = {
-  hospital: 'Hospital',
-  clinica: 'Clínica',
-  industria: 'Industria',
-  investigacion: 'Investigación',
-  gobierno: 'Gobierno',
-  otro: 'Otro',
-};
+import { PageHeader } from '../../components/ui/PageHeader';
+import { CLIENT_TYPE_LABELS } from '../../constants/clients';
 
 const CLIENT_TYPE_FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'Todos los tipos' },
@@ -35,75 +30,53 @@ export default function ClientsPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [modalKey, setModalKey] = useState(0);
 
-  const [formModal, setFormModal] = useState<{ open: boolean; client: Client | null }>({
-    open: false,
-    client: null,
-  });
+  const {
+    isOpen: isFormOpen,
+    entity: editingClient,
+    modalKey,
+    openCreate,
+    close: closeForm,
+  } = useFormModal<Client>();
 
   const debouncedSearch = useDebounce(search, 300);
 
-  const fetchClients = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await getClients({
-        search: debouncedSearch || undefined,
-        status: statusFilter || undefined,
-        client_type: typeFilter || undefined,
-        page,
-        limit: PAGE_SIZE,
-      });
-      setClients(data.items);
-      setTotalPages(Math.ceil(data.total / PAGE_SIZE));
-    } catch {
-      setError('No se pudo cargar el listado de clientes');
-    } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch, statusFilter, typeFilter, page]);
-
-  useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, statusFilter, typeFilter]);
+  const {
+    items: clients,
+    loading,
+    error,
+    page,
+    setPage,
+    totalPages,
+    refetch: fetchClients,
+  } = useListPage({
+    fetcher: getClients,
+    params: {
+      search: debouncedSearch || undefined,
+      status: statusFilter || undefined,
+      client_type: typeFilter || undefined,
+    },
+    pageSize: PAGE_SIZE,
+    errorMessage: 'No se pudo cargar el listado de clientes',
+  });
 
   const handleFormSuccess = useCallback(() => {
     showToast(
-      formModal.client ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente',
+      editingClient ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente',
     );
     fetchClients();
-  }, [fetchClients, showToast, formModal.client]);
+  }, [fetchClients, showToast, editingClient]);
 
   return (
     <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Gestión de instituciones cliente</p>
-        </div>
-        <Button
-          onClick={() => {
-            setModalKey((k) => k + 1);
-            setFormModal({ open: true, client: null });
-          }}
-        >
-          Nuevo cliente
-        </Button>
-      </div>
+      <PageHeader
+        title="Clientes"
+        subtitle="Gestión de instituciones cliente"
+        action={<Button onClick={openCreate}>Nuevo cliente</Button>}
+      />
 
       {/* Filtros */}
       <div className="flex gap-3 mb-4 flex-wrap">
@@ -203,11 +176,11 @@ export default function ClientsPage() {
       </DataTable>
 
       {/* Modal crear cliente */}
-      {formModal.open && (
+      {isFormOpen && (
         <ClientFormModal
           key={modalKey}
-          client={formModal.client}
-          onClose={() => setFormModal({ open: false, client: null })}
+          client={editingClient}
+          onClose={closeForm}
           onSuccess={handleFormSuccess}
         />
       )}
