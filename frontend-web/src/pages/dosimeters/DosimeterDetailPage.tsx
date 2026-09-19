@@ -526,6 +526,7 @@ export default function DosimeterDetailPage() {
       {returnModal && (
         <ReturnDosimeterModal
           dosimeterId={dosimeter.id}
+          assignedAt={history.find((a) => !a.returned_at)?.assigned_at}
           onClose={() => setReturnModal(false)}
           onSuccess={fetchAll}
         />

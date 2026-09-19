@@ -13,6 +13,8 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
+import { isValidPhone, isDateNotFuture, sanitizePhoneInput } from '../../utils/validation';
+import { today } from '../../utils/date';
 
 interface Props {
   worker?: Worker | null;
@@ -81,8 +83,6 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
   }, [clientId]);
 
   // Cargar sedes cuando cambia el cliente seleccionado (sin clientId fijo).
-  // getClients() (listado) no trae objetos de sede reales, solo el conteo
-  // — hay que pedir el detalle del cliente para obtener las sedes.
   useEffect(() => {
     if (clientId) return; // ya se cargaron arriba
     if (!selectedClientId) {
@@ -103,6 +103,17 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validaciones de negocio
+    if (phone && !isValidPhone(phone)) {
+      setError('El teléfono debe tener entre 7 y 15 dígitos (puede incluir +, guiones y espacios)');
+      return;
+    }
+    if (dateOfBirth && !isDateNotFuture(dateOfBirth)) {
+      setError('La fecha de nacimiento no puede ser una fecha futura');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -168,6 +179,8 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
+                minLength={3}
+                maxLength={100}
                 placeholder="Juan Pérez"
                 accent="emerald"
               />
@@ -178,6 +191,8 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
               value={documentNumber}
               onChange={(e) => setDocumentNumber(e.target.value)}
               required={!isEditing}
+              minLength={5}
+              maxLength={20}
               placeholder="8-123-456"
               accent="emerald"
             />
@@ -186,6 +201,7 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
               type="text"
               value={employeeCode}
               onChange={(e) => setEmployeeCode(e.target.value)}
+              maxLength={20}
               placeholder="EMP-001"
               accent="emerald"
             />
@@ -214,14 +230,16 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
+              max={today()}
               accent="emerald"
             />
             <Input
               label="Teléfono"
-              type="text"
+              type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
               required={!isEditing}
+              maxLength={20}
               placeholder="+507 6000-0000"
               accent="emerald"
             />

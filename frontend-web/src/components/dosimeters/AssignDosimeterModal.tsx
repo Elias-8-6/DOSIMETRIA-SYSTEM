@@ -11,6 +11,7 @@ import { Textarea } from '../ui/Textarea';
 import { FormFooter } from '../ui/FormFooter';
 import { extractApiError } from '../../utils/api';
 import { today } from '../../utils/date';
+import { isDateNotFuture } from '../../utils/validation';
 
 interface Props {
   dosimeterId: string;
@@ -41,6 +42,10 @@ export function AssignDosimeterModal({ dosimeterId, onClose, onSuccess }: Props)
     setError('');
     if (!workerId) {
       setError('Seleccioná un trabajador');
+      return;
+    }
+    if (!isDateNotFuture(assignedAt)) {
+      setError('La fecha de asignación no puede ser una fecha futura');
       return;
     }
     setLoading(true);
@@ -87,6 +92,7 @@ export function AssignDosimeterModal({ dosimeterId, onClose, onSuccess }: Props)
           type="date"
           value={assignedAt}
           onChange={(e) => setAssignedAt(e.target.value)}
+          max={today()}
           required
         />
         <Textarea

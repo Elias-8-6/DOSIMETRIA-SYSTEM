@@ -10,14 +10,16 @@ import { FormFooter } from '../ui/FormFooter';
 import { CONDITIONS } from '../../constants/dosimeters';
 import { extractApiError } from '../../utils/api';
 import { today } from '../../utils/date';
+import { isDateNotFuture, isDateAfterOrEqual } from '../../utils/validation';
 
 interface Props {
   dosimeterId: string;
+  assignedAt?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function ReturnDosimeterModal({ dosimeterId, onClose, onSuccess }: Props) {
+export function ReturnDosimeterModal({ dosimeterId, assignedAt, onClose, onSuccess }: Props) {
   const [returnedAt, setReturnedAt] = useState(today());
   const [condition, setCondition] = useState<DosimeterCondition | ''>('');
   const [notes, setNotes] = useState('');
@@ -28,6 +30,17 @@ export function ReturnDosimeterModal({ dosimeterId, onClose, onSuccess }: Props)
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!isDateNotFuture(returnedAt)) {
+      setError('La fecha de devolución no puede ser una fecha futura');
+      return;
+    }
+
+    if (assignedAt && !isDateAfterOrEqual(returnedAt, assignedAt)) {
+      setError('La fecha de devolución no puede ser anterior a la fecha de asignación');
+      return;
+    }
+
     setLoading(true);
     try {
       await returnDosimeter(dosimeterId, {
@@ -52,6 +65,7 @@ export function ReturnDosimeterModal({ dosimeterId, onClose, onSuccess }: Props)
           type="date"
           value={returnedAt}
           onChange={(e) => setReturnedAt(e.target.value)}
+          max={today()}
           required
         />
         <Select

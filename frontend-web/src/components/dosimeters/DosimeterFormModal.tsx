@@ -16,6 +16,8 @@ import { FormFooter } from '../ui/FormFooter';
 import { FormSection } from '../ui/FormSection';
 import { CONDITIONS } from '../../constants/dosimeters';
 import { extractApiError } from '../../utils/api';
+import { isDateNotFuture, isDateAfterOrEqual } from '../../utils/validation';
+import { today } from '../../utils/date';
 
 interface Props {
   dosimeter?: Dosimeter | null;
@@ -85,6 +87,39 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validaciones de negocio
+    if (wearPeriodDays) {
+      const days = Number(wearPeriodDays);
+      if (isNaN(days) || days < 1 || days > 365) {
+        setError('El período de uso debe estar entre 1 y 365 días');
+        return;
+      }
+    }
+
+    if (maxDoseLimit) {
+      const dose = Number(maxDoseLimit);
+      if (isNaN(dose) || dose < 0 || dose > 1000) {
+        setError('El límite máximo de dosis debe estar entre 0 y 1000 mSv');
+        return;
+      }
+    }
+
+    if (manufactureDate && !isDateNotFuture(manufactureDate)) {
+      setError('La fecha de fabricación no puede ser una fecha futura');
+      return;
+    }
+
+    if (commissioningDate && manufactureDate && !isDateAfterOrEqual(commissioningDate, manufactureDate)) {
+      setError('La fecha de puesta en servicio debe ser posterior o igual a la fecha de fabricación');
+      return;
+    }
+
+    if (lastAnnealingDate && !isDateNotFuture(lastAnnealingDate)) {
+      setError('La fecha del último recocido no puede ser una fecha futura');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -172,6 +207,8 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               value={serialNumber}
               onChange={(e) => setSerialNumber(e.target.value)}
               required
+              minLength={3}
+              maxLength={50}
               placeholder="SN-000123"
             />
             <Select
@@ -192,6 +229,7 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               type="text"
               value={internalCode}
               onChange={(e) => setInternalCode(e.target.value)}
+              maxLength={50}
               placeholder="INT-000123"
             />
             <Input
@@ -199,12 +237,14 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               type="text"
               value={lotNumber}
               onChange={(e) => setLotNumber(e.target.value)}
+              maxLength={50}
             />
             <Input
               label="Fabricante"
               type="text"
               value={manufacturer}
               onChange={(e) => setManufacturer(e.target.value)}
+              maxLength={100}
               placeholder="Ej: Thermo Fisher, Landauer"
             />
             <Input
@@ -212,6 +252,7 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               type="text"
               value={model}
               onChange={(e) => setModel(e.target.value)}
+              maxLength={100}
               placeholder="Ej: Harshaw 8807, Panasonic UD-802"
             />
           </div>
@@ -225,6 +266,7 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               type="date"
               value={manufactureDate}
               onChange={(e) => setManufactureDate(e.target.value)}
+              max={today()}
             />
             <Input
               label="Fecha de puesta en servicio"
@@ -236,13 +278,16 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               label="Período de uso (días)"
               type="number"
               min={1}
+              max={365}
               value={wearPeriodDays}
               onChange={(e) => setWearPeriodDays(e.target.value)}
             />
             <Input
-              label="Límite máximo de dosis"
+              label="Límite máximo de dosis (mSv)"
               type="number"
               step="any"
+              min={0}
+              max={1000}
               value={maxDoseLimit}
               onChange={(e) => setMaxDoseLimit(e.target.value)}
             />
@@ -257,6 +302,7 @@ export function DosimeterFormModal({ dosimeter, types, onClose, onSuccess }: Pro
               type="date"
               value={lastAnnealingDate}
               onChange={(e) => setLastAnnealingDate(e.target.value)}
+              max={today()}
             />
             <Select
               label="Condición actual"
