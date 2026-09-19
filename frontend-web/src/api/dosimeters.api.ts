@@ -17,12 +17,49 @@ export interface DosimeterAssignment {
   returned_at: string | null;
   status: string;
   notes: string | null;
+  assigned_by?: string | null;
+  users?: { id: string; full_name: string; email: string } | null;
   workers: {
     id: string;
     full_name: string;
     document_number: string | null;
     clients: { id: string; name: string; code: string | null };
+    client_locations?: { id: string; name: string } | null;
   };
+}
+
+export interface DosimeterReading {
+  id: string;
+  read_at: string;
+  measured_dose: number;
+  dose_unit: string;
+  uncertainty: number | null;
+  reading_status: 'valido' | 'sospechoso' | 'invalido' | 'fuera_rango' | string;
+  hp10: number | null;
+  hp007: number | null;
+  background_dose: number | null;
+  period_start: string | null;
+  period_end: string | null;
+  equipment: { id: string; name: string; model: string | null } | null;
+  service_orders?: { id: string; order_number?: string } | null;
+}
+
+export interface ContaminationCheck {
+  id: string;
+  checked_at: string;
+  result: 'libre' | 'contaminado_leve' | 'contaminado_grave' | string;
+  measured_value: number | null;
+  unit: string | null;
+  observations: string | null;
+  users?: { id: string; full_name: string; email: string } | null;
+  equipment?: { id: string; name: string; model: string | null } | null;
+}
+
+export interface DosimeterHistoryResponse {
+  items: DosimeterAssignment[];
+  assignments: DosimeterAssignment[];
+  readings: DosimeterReading[];
+  contaminations: ContaminationCheck[];
 }
 
 export interface Dosimeter {
@@ -38,6 +75,9 @@ export interface Dosimeter {
   current_condition: DosimeterCondition;
   reusable: boolean;
   notes: string | null;
+  model: string | null;
+  manufacturer: string | null;
+  photo_url: string | null;
   created_at: string;
   dosimeter_types: { id: string; code: string; name: string; technology: string };
   dosimeter_statuses: { id: string; code: DosimeterStatusCode; name: string };
@@ -61,6 +101,9 @@ export interface CreateDosimeterPayload {
   current_condition?: DosimeterCondition;
   reusable?: boolean;
   notes?: string;
+  model?: string;
+  manufacturer?: string;
+  photo_url?: string;
 }
 
 export type UpdateDosimeterPayload = Partial<CreateDosimeterPayload>;
@@ -96,8 +139,8 @@ export const getDosimeter = async (id: string): Promise<DosimeterDetail> => {
 
 export const getDosimeterHistory = async (
   id: string,
-): Promise<{ items: DosimeterAssignment[] }> => {
-  const { data } = await api.get<{ items: DosimeterAssignment[] }>(`/dosimeters/${id}/history`);
+): Promise<DosimeterHistoryResponse> => {
+  const { data } = await api.get<DosimeterHistoryResponse>(`/dosimeters/${id}/history`);
   return data;
 };
 
@@ -145,5 +188,18 @@ export const returnDosimeter = async (
   payload: ReturnDosimeterPayload,
 ): Promise<AssignmentMutationResult> => {
   const { data } = await api.post<AssignmentMutationResult>(`/dosimeters/${id}/return`, payload);
+  return data;
+};
+
+export const uploadDosimeterPhoto = async (
+  file: File,
+  dosimeterId?: string,
+): Promise<{ url: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const endpoint = dosimeterId ? `/dosimeters/${dosimeterId}/photo` : '/dosimeters/upload-photo';
+  const { data } = await api.post<{ url: string }>(endpoint, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return data;
 };

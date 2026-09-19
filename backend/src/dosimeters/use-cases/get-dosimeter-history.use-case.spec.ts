@@ -47,14 +47,38 @@ describe('GetDosimeterHistoryUseCase', () => {
           };
         }
         if (table === 'dosimeter_assignments') {
+          const queryResult: any = {
+            data: assignmentsResult.data,
+            error: assignmentsResult.error,
+            eq: eqFilterMock ?? jest.fn(),
+          };
+          queryResult.order = () => queryResult;
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => queryResult,
+              }),
+            }),
+          };
+        }
+        if (table === 'dosimeter_readings') {
           return {
             select: () => ({
               eq: () => ({
                 order: () => ({
-                  data: assignmentsResult.data,
-                  error: assignmentsResult.error,
-                  eq: eqFilterMock ?? jest.fn(),
+                  data: [],
+                  error: null,
+                  eq: jest.fn().mockReturnValue({ data: [], error: null }),
                 }),
+              }),
+            }),
+          };
+        }
+        if (table === 'contamination_checks') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => Promise.resolve({ data: [], error: null }),
               }),
             }),
           };

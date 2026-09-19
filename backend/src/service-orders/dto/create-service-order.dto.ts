@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 import { CreateServiceOrderItemDto } from './create-service-order-item.dto';
@@ -31,6 +32,7 @@ export class CreateServiceOrderDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500, { message: 'Las observaciones no pueden superar 500 caracteres' })
   observations?: string;
 
   @IsOptional()
@@ -43,3 +45,4 @@ export class CreateServiceOrderDto {
   @Type(() => CreateServiceOrderItemDto)
   items!: CreateServiceOrderItemDto[];
 }
+

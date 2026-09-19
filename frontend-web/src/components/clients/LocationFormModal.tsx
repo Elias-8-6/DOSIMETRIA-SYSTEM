@@ -11,6 +11,7 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
+import { isValidPhone, sanitizePhoneInput } from '../../utils/validation';
 
 interface Props {
   clientId: string;
@@ -62,6 +63,13 @@ export function LocationFormModal({ clientId, location, onClose, onSuccess }: Pr
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validaciones de negocio
+    if (phone && !isValidPhone(phone)) {
+      setError('El teléfono debe tener entre 7 y 15 dígitos (puede incluir +, guiones y espacios)');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -112,9 +120,10 @@ export function LocationFormModal({ clientId, location, onClose, onSuccess }: Pr
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="Teléfono"
-            type="text"
+            type="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
+            maxLength={20}
             placeholder="+507 6000-0000"
           />
           <Input

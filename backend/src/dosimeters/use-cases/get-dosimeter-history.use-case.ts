@@ -34,30 +34,91 @@ export class GetDosimeterHistoryUseCase {
     // OTRAS organizaciones que también lo tuvieron. El join !inner aquí es
     // seguro porque esta es una query hoja sobre dosimeter_assignments, no un
     // embed bajo dosimeters -- filtrar filas no colapsa ningún registro padre.
-    let query = supabase
+    // Consulta de asignaciones
+    let assignmentsQuery = supabase
       .from('dosimeter_assignments')
       .select(
         orgType === 'client'
           ? `
         id, assigned_at, returned_at, status, notes, assigned_by,
-        workers!inner(id, full_name, document_number, clients!inner(id, name, code))
+        users:assigned_by(id, full_name, email),
+        workers!inner(id, full_name, document_number, clients!inner(id, name, code), client_locations(id, name))
       `
           : `
         id, assigned_at, returned_at, status, notes, assigned_by,
-        workers(id, full_name, document_number, clients(id, name, code))
+        users:assigned_by(id, full_name, email),
+        workers(id, full_name, document_number, clients(id, name, code), client_locations(id, name))
       `,
       )
       .eq('dosimeter_id', dosimeterId)
-      .order('assigned_at', { ascending: false });
+      .order('assigned_at', { ascending: false })
+      .order('returned_at', { ascending: false, nullsFirst: true });
 
     if (orgType === 'client') {
-      query = query.eq('workers.clients.organization_id', organizationId);
+      assignmentsQuery = assignmentsQuery.eq('workers.clients.organization_id', organizationId);
     }
 
-    const { data, error } = await query;
+    // Consulta de lecturas radiológicas
+    let readingsQuery = supabase
+      .from('dosimeter_readings')
+      .select(
+        orgType === 'client'
+          ? `
+        id, read_at, measured_dose, dose_unit, uncertainty,
+        reading_status, hp10, hp007, background_dose, period_start, period_end,
+        equipment(id, name, model),
+        service_orders!inner(id, clients!inner(organization_id))
+      `
+          : `
+        id, read_at, measured_dose, dose_unit, uncertainty,
+        reading_status, hp10, hp007, background_dose, period_start, period_end,
+        equipment(id, name, model),
+        service_orders(id, order_number)
+      `,
+      )
+      .eq('dosimeter_id', dosimeterId)
+      .order('read_at', { ascending: false });
 
-    if (error) throw new Error('No se pudo obtener el historial de asignaciones');
+    if (orgType === 'client') {
+      readingsQuery = readingsQuery.eq('service_orders.clients.organization_id', organizationId);
+    }
 
-    return { items: data ?? [] };
+    // Consulta de controles de contaminación
+    const contaminationsQuery = supabase
+      .from('contamination_checks')
+      .select(
+        `
+        id, checked_at, result, measured_value, unit, observations,
+        users:checked_by(id, full_name, email),
+        equipment(id, name, model)
+      `,
+      )
+      .eq('dosimeter_id', dosimeterId)
+      .order('checked_at', { ascending: false });
+
+    const [
+      { data: assignments, error: assignmentsError },
+      { data: readings, error: readingsError },
+      { data: contaminations, error: contaminationsError },
+    ] = await Promise.all([assignmentsQuery, readingsQuery, contaminationsQuery]);
+
+    if (assignmentsError) {
+      throw new Error('No se pudo obtener el historial de asignaciones');
+    }
+    if (readingsError) {
+      throw new Error('No se pudo obtener el historial de lecturas');
+    }
+    if (contaminationsError) {
+      throw new Error('No se pudo obtener el historial de chequeos de contaminación');
+    }
+
+    const assignmentsList = assignments ?? [];
+
+    return {
+      items: assignmentsList,
+      assignments: assignmentsList,
+      readings: readings ?? [],
+      contaminations: contaminations ?? [],
+    };
   }
 }

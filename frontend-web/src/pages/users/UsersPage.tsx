@@ -10,6 +10,7 @@ import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/
 import { Pagination } from '../../components/ui/Pagination';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 /**
  * UsersPage — listado de usuarios con búsqueda y filtros.
@@ -89,16 +90,15 @@ export function UsersPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
-          <p className="text-gray-500 mt-1 text-sm">Gestión de usuarios del sistema</p>
-        </div>
-        {hasPermission('users', 'create') && (
-          <Button onClick={handleOpenCreate}>Nuevo usuario</Button>
-        )}
-      </div>
+      <PageHeader
+        title="Usuarios"
+        subtitle="Gestión de usuarios del sistema"
+        action={
+          hasPermission('users', 'create') && (
+            <Button onClick={handleOpenCreate}>Nuevo usuario</Button>
+          )
+        }
+      />
 
       {/* Filtros */}
       <div className="flex gap-3 mb-4">

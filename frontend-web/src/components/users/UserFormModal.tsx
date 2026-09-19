@@ -6,6 +6,9 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
+import { isValidPhone, isDateNotFuture, hasMinimumAge, sanitizePhoneInput } from '../../utils/validation';
+import { today } from '../../utils/date';
+import { extractApiError } from '../../utils/api';
 
 interface Props {
   user?: User | null;
@@ -66,6 +69,24 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validaciones de negocio
+    if (phone && !isValidPhone(phone)) {
+      setError('El teléfono debe tener entre 7 y 15 dígitos (puede incluir +, guiones y espacios)');
+      return;
+    }
+
+    if (dateOfBirth) {
+      if (!isDateNotFuture(dateOfBirth)) {
+        setError('La fecha de nacimiento no puede ser una fecha futura');
+        return;
+      }
+      if (!hasMinimumAge(dateOfBirth, 18)) {
+        setError('El usuario debe ser mayor de 18 años');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -112,9 +133,7 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
       onSuccess();
       onClose();
     } catch (err) {
-      const apiError = err as { response?: { data?: { message?: string | string[] } } };
-      const msg = apiError?.response?.data?.message ?? 'Error al guardar el usuario';
-      setError(Array.isArray(msg) ? msg.join(', ') : msg);
+      setError(extractApiError(err, 'Error al guardar el usuario'));
     } finally {
       setLoading(false);
     }
@@ -135,6 +154,8 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
+              minLength={3}
+              maxLength={100}
               placeholder="Juan Pérez"
             />
             <Input
@@ -187,14 +208,17 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
               value={documentNumber}
               onChange={(e) => setDocumentNumber(e.target.value)}
               required={!isEditing}
+              minLength={5}
+              maxLength={20}
               placeholder="8-123-456"
             />
             <Input
               label="Teléfono"
-              type="text"
+              type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
               required={!isEditing}
+              maxLength={20}
               placeholder="+507 6000-0000"
             />
             <Input
@@ -202,6 +226,7 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
+              max={today()}
             />
             <Input
               label="Fecha de contratación"

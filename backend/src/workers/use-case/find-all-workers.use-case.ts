@@ -24,7 +24,7 @@ export class FindAllWorkersUseCase {
       .from('workers')
       .select(
         `
-      id, employee_code, full_name, document_number, status,
+      id, employee_code, full_name, document_number, status, occupation,
       clients!inner(id, name, code, organization_id),
       client_locations(id, name)
       `,

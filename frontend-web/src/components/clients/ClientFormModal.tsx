@@ -10,7 +10,9 @@ import { createClient, updateClient } from '../../api/clients.api.ts';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
-import { Button } from '../ui/Button';
+import { FormFooter } from '../ui/FormFooter';
+import { extractApiError } from '../../utils/api';
+import { isValidPhone, isValidUrl, isDateAfterOrEqual, sanitizePhoneInput } from '../../utils/validation';
 
 interface Props {
   client?: Client | null;
@@ -59,6 +61,21 @@ export function ClientFormModal({ client, onClose, onSuccess }: Props) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validaciones de negocio en el frontend
+    if (phone && !isValidPhone(phone)) {
+      setError('El teléfono debe tener entre 7 y 15 dígitos (puede incluir +, guiones y espacios)');
+      return;
+    }
+    if (website && !isValidUrl(website)) {
+      setError('El sitio web debe comenzar con http:// o https://');
+      return;
+    }
+    if (contractStartDate && contractEndDate && !isDateAfterOrEqual(contractEndDate, contractStartDate)) {
+      setError('La fecha de vencimiento del contrato debe ser posterior a la fecha de inicio');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -98,9 +115,7 @@ export function ClientFormModal({ client, onClose, onSuccess }: Props) {
       onClose();
       onSuccess();
     } catch (err) {
-      const e = err as { response?: { data?: { message?: string | string[] } } };
-      const msg = e?.response?.data?.message ?? 'Error al guardar el cliente';
-      setError(Array.isArray(msg) ? msg.join(', ') : msg);
+      setError(extractApiError(err, 'Error al guardar el cliente'));
     } finally {
       setLoading(false);
     }
@@ -139,9 +154,10 @@ export function ClientFormModal({ client, onClose, onSuccess }: Props) {
             </Select>
             <Input
               label="Teléfono"
-              type="text"
+              type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
+              maxLength={20}
               placeholder="+507 6000-0000"
             />
             <div className="col-span-2">
@@ -209,20 +225,14 @@ export function ClientFormModal({ client, onClose, onSuccess }: Props) {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-          <Button variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear cliente'}
-          </Button>
-        </div>
+        <FormFooter
+          error={error}
+          loading={loading}
+          isEditing={isEditing}
+          editLabel="Guardar cambios"
+          createLabel="Crear cliente"
+          onClose={onClose}
+        />
       </form>
     </Modal>
   );

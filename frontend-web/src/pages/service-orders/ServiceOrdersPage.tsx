@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ServiceOrder, ServiceOrderStatus, ServiceType, Priority } from '../../api/serviceOrders.api';
+import type { ServiceOrder } from '../../api/serviceOrders.api';
 import { getServiceOrders } from '../../api/serviceOrders.api';
 import { ServiceOrderFormModal } from '../../components/service-orders/ServiceOrderFormModal';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -8,47 +8,15 @@ import { useToast } from '../../hooks/useToast';
 import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
 import { Button } from '../../components/ui/Button';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { ServiceOrderStatusBadge } from '../../components/service-orders/ServiceOrderStatusBadge';
+import {
+  SERVICE_TYPE_LABELS,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+} from '../../constants/serviceOrders';
 import { useAuth } from '../../hooks/useAuth';
 import { formatDate } from '../../utils/date';
-
-const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
-  lectura_dosis: 'Lectura de dosis',
-  lectura_y_recarga: 'Lectura y recarga',
-  mantenimiento: 'Mantenimiento',
-  calibracion: 'Calibración',
-};
-
-const STATUS_LABELS: Record<ServiceOrderStatus, string> = {
-  PENDING: 'Pendiente',
-  RECEIVED: 'Recibida',
-  IN_PROCESS: 'En proceso',
-  QC_REVIEW: 'Revisión QC',
-  COMPLETED: 'Completada',
-  CANCELLED: 'Cancelada',
-};
-
-const STATUS_CLASSES: Record<ServiceOrderStatus, string> = {
-  PENDING: 'bg-gray-100 text-gray-600',
-  RECEIVED: 'bg-blue-100 text-blue-700',
-  IN_PROCESS: 'bg-amber-100 text-amber-700',
-  QC_REVIEW: 'bg-violet-100 text-violet-700',
-  COMPLETED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-};
-
-const PRIORITY_LABELS: Record<Priority, string> = {
-  normal: 'Normal',
-  urgente: 'Urgente',
-  critica: 'Crítica',
-};
-
-function OrderStatusBadge({ status }: { status: ServiceOrderStatus }) {
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CLASSES[status]}`}>
-      {STATUS_LABELS[status]}
-    </span>
-  );
-}
 
 const PAGE_SIZE = 10;
 
@@ -107,22 +75,22 @@ export default function ServiceOrdersPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Órdenes de servicio</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Solicitudes de procesamiento de dosímetros</p>
-        </div>
-        {hasPermission('service_orders', 'create') && (
-          <Button
-            onClick={() => {
-              setModalKey((k) => k + 1);
-              setFormModalOpen(true);
-            }}
-          >
-            Nueva orden
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Órdenes de servicio"
+        subtitle="Solicitudes de procesamiento de dosímetros"
+        action={
+          hasPermission('service_orders', 'create') && (
+            <Button
+              onClick={() => {
+                setModalKey((k) => k + 1);
+                setFormModalOpen(true);
+              }}
+            >
+              Nueva orden
+            </Button>
+          )
+        }
+      />
 
       <div className="flex gap-3 mb-4 flex-wrap">
         <input
@@ -204,7 +172,7 @@ export default function ServiceOrdersPage() {
                   <td className={`${TD_CLASS} text-gray-600`}>{order.clients.name}</td>
                   <td className={`${TD_CLASS} text-gray-600`}>{SERVICE_TYPE_LABELS[order.service_type]}</td>
                   <td className={TD_CLASS}>
-                    <OrderStatusBadge status={order.status} />
+                    <ServiceOrderStatusBadge status={order.status} />
                   </td>
                   <td className={`${TD_CLASS} text-gray-600`}>{PRIORITY_LABELS[order.priority]}</td>
                   <td className={`${TD_CLASS} text-gray-600`}>{order.items_count}</td>

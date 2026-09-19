@@ -16,6 +16,9 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
+import { isDateAfterOrEqual } from '../../utils/validation';
+import { today } from '../../utils/date';
+import { extractApiError } from '../../utils/api';
 
 interface Props {
   onClose: () => void;
@@ -124,6 +127,21 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
       return;
     }
 
+    if (dueDate && !isDateAfterOrEqual(dueDate, today())) {
+      setError('La fecha límite debe ser hoy o una fecha futura');
+      return;
+    }
+
+    if (dueDate && requestedDate && !isDateAfterOrEqual(dueDate, requestedDate)) {
+      setError('La fecha límite no puede ser anterior a la fecha solicitada');
+      return;
+    }
+
+    if (observations && observations.length > 500) {
+      setError('Las observaciones no pueden superar los 500 caracteres');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: CreateServiceOrderPayload = {
@@ -143,9 +161,7 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
       onClose();
       onSuccess();
     } catch (err) {
-      const e = err as { response?: { data?: { message?: string | string[] } } };
-      const msg = e?.response?.data?.message ?? 'Error al crear la orden de servicio';
-      setError(Array.isArray(msg) ? msg.join(', ') : msg);
+      setError(extractApiError(err, 'Error al crear la orden de servicio'));
     } finally {
       setLoading(false);
     }
@@ -205,12 +221,14 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
+              min={today()}
             />
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
               <textarea
                 value={observations}
                 onChange={(e) => setObservations(e.target.value)}
+                maxLength={500}
                 rows={2}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />

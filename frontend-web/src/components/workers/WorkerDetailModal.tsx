@@ -6,6 +6,9 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { StatusBadge } from '../ui/StatusBadge';
 import { DosimeterStatusBadge } from '../ui/DosimeterStatusBadge';
+import { Field } from '../ui/Field';
+import { SectionHead } from '../ui/SectionHead';
+import { useSortedAssignments } from '../../hooks/useSortedAssignments';
 import { formatDate } from '../../utils/date';
 
 interface Props {
@@ -26,6 +29,8 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
   const [statusLoading, setStatusLoading] = useState(false);
   const [confirmingStatus, setConfirmingStatus] = useState(false);
 
+  const sortedAssignments = useSortedAssignments(localWorker.dosimeter_assignments);
+
   const handleToggleStatus = async () => {
     setStatusLoading(true);
     try {
@@ -39,18 +44,6 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
       setConfirmingStatus(false);
     }
   };
-
-  const field = (label: string, value: string | null | undefined) =>
-    value ? (
-      <div>
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-sm text-gray-800 mt-0.5">{value}</p>
-      </div>
-    ) : null;
-
-  const sectionHead = (label: string) => (
-    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{label}</h3>
-  );
 
   return (
     <>
@@ -89,10 +82,10 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
         <div className="px-6 py-5 space-y-6">
           {/* Identificación */}
           <div>
-            {sectionHead('Identificación')}
+            <SectionHead label="Identificación" />
             <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-              {field('Documento', localWorker.document_number)}
-              {field('Código empleado', localWorker.employee_code)}
+              <Field label="Documento" value={localWorker.document_number} />
+              <Field label="Código empleado" value={localWorker.employee_code} />
             </div>
           </div>
 
@@ -102,42 +95,40 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
             localWorker.phone ||
             localWorker.email) && (
             <div>
-              {sectionHead('Datos personales')}
+              <SectionHead label="Datos personales" />
               <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                {field('Sexo', localWorker.gender ? GENDER_LABELS[localWorker.gender] : null)}
-                {field('Fecha nacimiento', formatDate(localWorker.date_of_birth))}
-                {field('Teléfono', localWorker.phone)}
-                {field('Email', localWorker.email)}
+                <Field label="Sexo" value={localWorker.gender ? GENDER_LABELS[localWorker.gender] : null} />
+                <Field label="Fecha nacimiento" value={formatDate(localWorker.date_of_birth)} />
+                <Field label="Teléfono" value={localWorker.phone} />
+                <Field label="Email" value={localWorker.email} />
               </div>
             </div>
           )}
 
           {/* Datos laborales */}
           <div>
-            {sectionHead('Datos laborales')}
+            <SectionHead label="Datos laborales" />
             <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-              {field('Institución', localWorker.clients?.name)}
-              {field('Sede', localWorker.client_locations?.name)}
-              {field('Ocupación', localWorker.occupation)}
-              {field('Inicio en dosimetría', formatDate(localWorker.start_date))}
+              <Field label="Institución" value={localWorker.clients?.name} />
+              <Field label="Sede" value={localWorker.client_locations?.name} />
+              <Field label="Ocupación" value={localWorker.occupation} />
+              <Field label="Inicio en dosimetría" value={formatDate(localWorker.start_date)} />
             </div>
           </div>
 
           {/* Historial de dosímetros */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              {sectionHead(
-                `Historial de dosímetros (${localWorker.dosimeter_assignments?.length ?? 0})`,
-              )}
-            </div>
+            <SectionHead
+              label={`Historial de dosímetros (${sortedAssignments.length})`}
+            />
 
-            {!localWorker.dosimeter_assignments?.length ? (
+            {!sortedAssignments.length ? (
               <p className="text-sm text-gray-400 py-4 text-center border border-dashed border-gray-200 rounded-lg">
                 Sin asignaciones de dosímetros
               </p>
             ) : (
               <div className="space-y-2">
-                {localWorker.dosimeter_assignments.map((assignment) => (
+                {sortedAssignments.map((assignment) => (
                   <div
                     key={assignment.id}
                     className="flex items-start justify-between p-3 border border-gray-200 rounded-lg"

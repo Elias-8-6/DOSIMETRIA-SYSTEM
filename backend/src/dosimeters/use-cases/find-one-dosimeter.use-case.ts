@@ -24,7 +24,7 @@ export class FindOneDosimeterUseCase {
         id, serial_number, internal_code, lot_number,
         manufacture_date, commissioning_date, wear_period_days,
         max_dose_limit, last_annealing_date, current_condition,
-        reusable, notes, created_at,
+        reusable, notes, model, manufacturer, photo_url, created_at,
         dosimeter_types(id, code, name, technology),
         dosimeter_statuses(id, code, name)
       `,
@@ -54,11 +54,11 @@ export class FindOneDosimeterUseCase {
         orgType === 'client'
           ? `
         id, assigned_at, returned_at, status, notes,
-        workers!inner(id, full_name, document_number, clients!inner(id, name, code))
+        workers!inner(id, full_name, document_number, clients!inner(id, name, code), client_locations(id, name))
       `
           : `
         id, assigned_at, returned_at, status, notes,
-        workers(id, full_name, document_number, clients(id, name, code))
+        workers(id, full_name, document_number, clients(id, name, code), client_locations(id, name))
       `,
       )
       .eq('dosimeter_id', dosimeterId)

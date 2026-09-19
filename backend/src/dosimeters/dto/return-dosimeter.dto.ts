@@ -1,8 +1,10 @@
-import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNotFutureDate } from '@common/utils/date.validators';
 
 export class ReturnDosimeterDto {
-    @IsNotEmpty({ message: 'La fecha de devolucion del dosímetro es obligatorio' })
+    @IsNotEmpty({ message: 'La fecha de devolución del dosímetro es obligatoria' })
     @IsDateString()
+    @IsNotFutureDate({ message: 'La fecha de devolución no puede ser una fecha futura' })
     returned_at!: string;
 
     @IsOptional()
@@ -11,6 +13,6 @@ export class ReturnDosimeterDto {
 
     @IsOptional()
     @IsString()
+    @MaxLength(500, { message: 'Las notas no pueden superar 500 caracteres' })
     notes?: string;
-
 }
