@@ -1,4 +1,5 @@
-import { IsIn, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsIn, IsNotEmpty } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class CreateServiceOrderItemDto {
   @IsNotEmpty({ message: 'El dosímetro es obligatorio' })

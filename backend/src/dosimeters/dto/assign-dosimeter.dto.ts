@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, IsDateString, IsOptional, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsDateString, IsOptional } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 import { IsNotFutureDate } from '@common/utils/date.validators';
 
 export class AssignDosimeterDto {
