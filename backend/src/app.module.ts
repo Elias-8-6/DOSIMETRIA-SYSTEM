@@ -14,6 +14,7 @@ import { WorkersModule } from './workers/workers.module';
 import { CatalogsModule } from './catalogs/catalogs.module';
 import { DosimetersModule } from '@dosimeters/dosimeters.module';
 import { ServiceOrdersModule } from '@service-orders/service-orders.module';
+import { ReceptionsModule } from './receptions/receptions.module';
 
 /**
  * AppModule — módulo raíz.
@@ -47,7 +48,7 @@ import { ServiceOrdersModule } from '@service-orders/service-orders.module';
     // - AuditService.log() en CREATE / UPDATE / STATUS_CHANGE
     // - paginación con normalizePagination() y sanitizeSearchTerm()
     ServiceOrdersModule,
-    // ReceptionsModule,
+    ReceptionsModule,
     // LabProcessModule,
     // ReportsModule,
   ],

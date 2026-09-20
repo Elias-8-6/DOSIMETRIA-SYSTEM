@@ -25,7 +25,8 @@
       "@auth/*": ["src/auth/*"],
       "@clients/*": ["src/clients/*"],
       "@dosimeters/*": ["src/dosimeters/*"],
-      "@service-orders/*": ["src/service-orders/*"]
+      "@service-orders/*": ["src/service-orders/*"],
+      "@receptions/*": ["src/receptions/*"]
     }
   }
 }

@@ -66,6 +66,12 @@ export function Sidebar() {
               <span>Órdenes de servicio</span>
             </NavLink>
           )}
+
+          {hasPermission('receptions', 'read') && (
+            <NavLink to="/receptions" className={navClass}>
+              <span>Recepciones</span>
+            </NavLink>
+          )}
         </nav>
 
         {/* Info del usuario — click abre el modal de perfil */}

@@ -5,11 +5,11 @@ import { OrganizationScopeService } from '@common/services/organization-scope.se
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-const BUCKET_NAME = 'dosimeters';
+const BUCKET_NAME = 'receptions';
 
 @Injectable()
-export class UploadDosimeterPhotoUseCase {
-  private readonly logger = new Logger(UploadDosimeterPhotoUseCase.name);
+export class UploadReceptionPhotoUseCase {
+  private readonly logger = new Logger(UploadReceptionPhotoUseCase.name);
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -19,11 +19,10 @@ export class UploadDosimeterPhotoUseCase {
   async execute(
     file: Express.Multer.File,
     organizationId: string,
-    dosimeterId?: string,
   ): Promise<{ url: string }> {
     const orgType = await this.orgScope.getOrganizationType(organizationId);
     if (orgType !== 'laboratory') {
-      throw new ForbiddenException('Solo el laboratorio puede cargar fotos de dosímetros');
+      throw new ForbiddenException('Solo el laboratorio puede cargar fotos de recepción');
     }
 
     if (!file) {
@@ -57,7 +56,7 @@ export class UploadDosimeterPhotoUseCase {
 
     const fileExt = file.originalname?.split('.').pop()?.toLowerCase() || 'jpg';
     const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-    const storagePath = dosimeterId ? `${dosimeterId}/${cleanFileName}` : `photos/${cleanFileName}`;
+    const storagePath = `evidence/${cleanFileName}`;
 
     const { error: uploadError } = await client.storage
       .from(BUCKET_NAME)
@@ -67,20 +66,12 @@ export class UploadDosimeterPhotoUseCase {
       });
 
     if (uploadError) {
-      this.logger.error('Error al subir la fotografía a Supabase Storage:', uploadError);
-      throw new Error('Error al almacenar la fotografía');
+      this.logger.error('Error al subir la fotografía de recepción a Supabase Storage:', uploadError);
+      throw new Error('Error al almacenar la fotografía de recepción');
     }
 
     const { data: publicData } = client.storage.from(BUCKET_NAME).getPublicUrl(storagePath);
     const photoUrl = publicData.publicUrl.replace('host.docker.internal', 'localhost');
-
-    if (dosimeterId) {
-      await client
-        .from('dosimeters')
-        .update({ photo_url: photoUrl })
-        .eq('id', dosimeterId);
-    }
-
     return { url: photoUrl };
   }
 }

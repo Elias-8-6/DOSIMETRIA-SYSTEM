@@ -20,6 +20,7 @@ services:
       - ./backend/.env
     volumes:
       - ./backend/src:/app/src
+      - ./backend/tsconfig.json:/app/tsconfig.json
     command: npm run start:dev
     networks:
       - dosimetria_net

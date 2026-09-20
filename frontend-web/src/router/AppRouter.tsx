@@ -23,6 +23,9 @@ const DosimeterDetailPage = lazy(() => import('../pages/dosimeters/DosimeterDeta
 const ServiceOrdersPage = lazy(() => import('../pages/service-orders/ServiceOrdersPage'));
 const ServiceOrderDetailPage = lazy(() => import('../pages/service-orders/ServiceOrderDetailPage'));
 const CreateServiceOrderPage = lazy(() => import('../pages/service-orders/CreateServiceOrderPage'));
+const ReceptionsPage = lazy(() => import('../pages/receptions/ReceptionsPage'));
+const CreateReceptionPage = lazy(() => import('../pages/receptions/CreateReceptionPage'));
+const ReceptionDetailPage = lazy(() => import('../pages/receptions/ReceptionDetailPage'));
 
 function LoadingScreen() {
   return (
@@ -165,6 +168,30 @@ export function AppRouter() {
             element={
               <PermissionRoute module="service_orders" action="read">
                 <ServiceOrderDetailPage />
+              </PermissionRoute>
+            }
+          />
+          <Route
+            path="receptions"
+            element={
+              <PermissionRoute module="receptions" action="read">
+                <ReceptionsPage />
+              </PermissionRoute>
+            }
+          />
+          <Route
+            path="receptions/new"
+            element={
+              <PermissionRoute module="receptions" action="create">
+                <CreateReceptionPage />
+              </PermissionRoute>
+            }
+          />
+          <Route
+            path="receptions/:id"
+            element={
+              <PermissionRoute module="receptions" action="read">
+                <ReceptionDetailPage />
               </PermissionRoute>
             }
           />
