@@ -89,48 +89,37 @@ export class SearchDosimetersForOrderUseCase {
       throw new Error('Error al buscar dosímetros para la orden');
     }
 
-    const results: SearchDosimeterResult[] = (data as any[] ?? []).map((row) => {
+    const results: SearchDosimeterResult[] = [];
+    for (const row of (data as any[] ?? [])) {
+      const statusCode = row.dosimeter_statuses?.code;
+      if (statusCode !== 'ASIGNADO') continue;
+
       const assignments = row.dosimeter_assignments ?? [];
       const activeAssignment = assignments.find(
-        (a: any) => a.status === 'activo' || !a.returned_at,
+        (a: any) =>
+          (a.status === 'activo' || !a.returned_at) &&
+          a.workers &&
+          a.workers.client_id === clientId,
       );
 
-      let origin: DosimeterOrigin = 'unassigned';
-      let assigned_worker: { id: string; full_name: string; document_number: string | null } | null = null;
+      if (!activeAssignment || !activeAssignment.workers) continue;
 
-      if (activeAssignment?.workers) {
-        assigned_worker = {
-          id: activeAssignment.workers.id,
-          full_name: activeAssignment.workers.full_name,
-          document_number: activeAssignment.workers.document_number,
-        };
-
-        if (activeAssignment.workers.client_id === clientId) {
-          origin = 'client';
-        } else {
-          origin = 'other_client';
-        }
-      } else if (
-        row.dosimeter_types?.code === 'TLD_AREA' ||
-        (row.internal_code && row.internal_code.startsWith('LAB-AREA'))
-      ) {
-        origin = 'laboratory';
-      } else {
-        origin = 'unassigned';
-      }
-
-      return {
+      results.push({
         id: row.id,
         serial_number: row.serial_number,
         internal_code: row.internal_code,
         model: row.model,
         manufacturer: row.manufacturer,
-        origin,
+        origin: 'client',
         dosimeter_type: row.dosimeter_types ?? null,
         status: row.dosimeter_statuses ?? null,
-        assigned_worker,
-      };
-    });
+        assigned_worker: {
+          id: activeAssignment.workers.id,
+          full_name: activeAssignment.workers.full_name,
+          document_number: activeAssignment.workers.document_number,
+        },
+      });
+    }
 
     return results;
   }

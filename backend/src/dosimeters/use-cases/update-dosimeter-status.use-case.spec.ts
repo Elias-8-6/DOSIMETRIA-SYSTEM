@@ -26,9 +26,13 @@ describe('UpdateDosimeterStatusUseCase', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('rejects setting status directly to ASIGNADO', async () => {
+  it('rejects setting status directly to ASIGNADO or EN_TRANSITO', async () => {
     await expect(
       useCase.execute('d-1', { status: 'ASIGNADO' }, 'org-lab', 'user-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    await expect(
+      useCase.execute('d-1', { status: 'EN_TRANSITO' }, 'org-lab', 'user-1'),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 

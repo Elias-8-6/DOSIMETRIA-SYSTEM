@@ -9,7 +9,8 @@ export type DosimeterStatusCode =
   | 'PROCESADO'
   | 'ENTREGADO'
   | 'BAJA'
-  | 'INCIDENTE';
+  | 'INCIDENTE'
+  | 'EN_TRANSITO';
 
 export interface DosimeterAssignment {
   id: string;

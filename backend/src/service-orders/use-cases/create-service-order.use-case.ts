@@ -39,17 +39,26 @@ export class CreateServiceOrderUseCase {
     }
 
     for (const item of dto.items) {
-      const owned = await this.orgScope.isDosimeterOwnedByClient(item.dosimeter_id, dto.client_id);
-      if (!owned) {
-        const allowed = this.orgScope.isDosimeterAvailableForClientOrder
-          ? await this.orgScope.isDosimeterAvailableForClientOrder(item.dosimeter_id, dto.client_id)
-          : false;
-        if (!allowed) {
-          throw new BadRequestException(
-            `El dosímetro ${item.dosimeter_id} no pertenece a este cliente`,
-          );
-        }
+      const allowed = await this.orgScope.isDosimeterAvailableForClientOrder(
+        item.dosimeter_id,
+        dto.client_id,
+      );
+      if (!allowed) {
+        throw new BadRequestException(
+          `El dosímetro ${item.dosimeter_id} no está disponible para este cliente o no se encuentra asignado en campo`,
+        );
       }
+    }
+
+    // Obtener ID del estado EN_TRANSITO
+    const { data: enTransitoStatus, error: statusErr } = await client
+      .from('dosimeter_statuses')
+      .select('id')
+      .eq('code', 'EN_TRANSITO')
+      .maybeSingle();
+
+    if (statusErr || !enTransitoStatus) {
+      throw new Error('No se pudo encontrar el estado EN_TRANSITO en dosimeter_statuses');
     }
 
     let order: Record<string, unknown> | null = null;
@@ -104,6 +113,18 @@ export class CreateServiceOrderUseCase {
       throw new Error('No se pudieron registrar los dosímetros de la orden');
     }
 
+    // Actualizar estado de los dosímetros a EN_TRANSITO
+    const dosimeterIds = dto.items.map((item) => item.dosimeter_id);
+    const { error: updateDosimetersError } = await client
+      .from('dosimeters')
+      .update({ status_id: enTransitoStatus.id })
+      .in('id', dosimeterIds);
+
+    if (updateDosimetersError) {
+      this.logger.error('Error al actualizar estado de dosímetros a EN_TRANSITO', updateDosimetersError);
+    }
+
+    // Registro de auditoría de la orden y de los dosímetros
     await this.audit.log({
       userId: requestingUserId,
       entityName: 'service_orders',
@@ -115,6 +136,17 @@ export class CreateServiceOrderUseCase {
         items_count: dto.items.length,
       },
     });
+
+    for (const dosId of dosimeterIds) {
+      await this.audit.log({
+        userId: requestingUserId,
+        entityName: 'dosimeters',
+        entityId: dosId,
+        action: 'STATUS_CHANGE',
+        oldValues: { status: 'ASIGNADO' },
+        newValues: { status: 'EN_TRANSITO', service_order_id: order.id },
+      });
+    }
 
     return { ...order, service_order_items: insertedItems ?? [] };
   }

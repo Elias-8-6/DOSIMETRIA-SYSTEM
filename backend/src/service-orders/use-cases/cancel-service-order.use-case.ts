@@ -43,7 +43,46 @@ export class CancelServiceOrderUseCase {
       .select('id, order_number, status')
       .single();
 
-    if (error) throw new Error('No se pudo cancelar la orden de servicio');
+    // Si los dosímetros estaban en EN_TRANSITO por esta orden, revertirlos a ASIGNADO
+    const { data: items } = await supabase
+      .from('service_order_items')
+      .select('dosimeter_id')
+      .eq('service_order_id', orderId);
+
+    const dosimeterIds = (items ?? []).map((i: any) => i.dosimeter_id).filter(Boolean);
+
+    if (dosimeterIds.length > 0) {
+      const { data: statuses } = await supabase
+        .from('dosimeter_statuses')
+        .select('id, code')
+        .in('code', ['ASIGNADO', 'EN_TRANSITO']);
+
+      const asignadoId = statuses?.find((s) => s.code === 'ASIGNADO')?.id;
+      const enTransitoId = statuses?.find((s) => s.code === 'EN_TRANSITO')?.id;
+
+      if (asignadoId && enTransitoId) {
+        await supabase
+          .from('dosimeters')
+          .update({ status_id: asignadoId })
+          .in('id', dosimeterIds)
+          .eq('status_id', enTransitoId);
+
+        for (const dosId of dosimeterIds) {
+          await this.audit.log({
+            userId: requestingUserId,
+            entityName: 'dosimeters',
+            entityId: dosId,
+            action: 'STATUS_CHANGE',
+            oldValues: { status: 'EN_TRANSITO' },
+            newValues: {
+              status: 'ASIGNADO',
+              reason: 'SERVICE_ORDER_CANCELLED',
+              service_order_id: orderId,
+            },
+          });
+        }
+      }
+    }
 
     await this.audit.log({
       userId: requestingUserId,

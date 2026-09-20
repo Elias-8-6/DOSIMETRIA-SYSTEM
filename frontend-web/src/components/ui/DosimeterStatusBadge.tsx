@@ -38,6 +38,10 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     label: 'Incidente',
     className: 'bg-red-100 text-red-700',
   },
+  EN_TRANSITO: {
+    label: 'En tránsito',
+    className: 'bg-amber-100 text-amber-800 border border-amber-200',
+  },
 };
 
 export function DosimeterStatusBadge({ code, name }: DosimeterStatusBadgeProps) {

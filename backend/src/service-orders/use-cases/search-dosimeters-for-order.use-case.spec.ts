@@ -21,7 +21,7 @@ describe('SearchDosimetersForOrderUseCase', () => {
     );
   });
 
-  it('correctly maps origins: client, other_client, laboratory, unassigned', async () => {
+  it('strictly filters only client dosimeters with active assignment and ASIGNADO status', async () => {
     orgScope.getOrganizationType.mockResolvedValue('laboratory');
 
     const fakeRows = [
@@ -66,8 +66,14 @@ describe('SearchDosimetersForOrderUseCase', () => {
         serial_number: 'SN-004',
         internal_code: null,
         dosimeter_types: { id: 't1', code: 'TLD', name: 'TLD Personal', technology: 'TLD' },
-        dosimeter_statuses: { id: 's2', code: 'DISPONIBLE', name: 'Disponible' },
-        dosimeter_assignments: [],
+        dosimeter_statuses: { id: 's3', code: 'EN_TRANSITO', name: 'En tránsito' },
+        dosimeter_assignments: [
+          {
+            id: 'a4',
+            status: 'activo',
+            workers: { id: 'w4', client_id: 'client-1', full_name: 'Luis Mendez', document_number: '789' },
+          },
+        ],
       },
     ];
 
@@ -85,14 +91,9 @@ describe('SearchDosimetersForOrderUseCase', () => {
 
     const results = await useCase.execute('client-1', 'org-lab', 'SN');
 
-    expect(results).toHaveLength(4);
+    expect(results).toHaveLength(1);
+    expect(results[0].id).toBe('d-1');
     expect(results[0].origin).toBe('client');
     expect(results[0].assigned_worker?.full_name).toBe('Ana Gomez');
-
-    expect(results[1].origin).toBe('other_client');
-    expect(results[1].assigned_worker?.full_name).toBe('Carlos Ruiz');
-
-    expect(results[2].origin).toBe('laboratory');
-    expect(results[3].origin).toBe('unassigned');
   });
 });

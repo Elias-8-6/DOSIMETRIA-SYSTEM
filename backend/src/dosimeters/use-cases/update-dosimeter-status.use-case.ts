@@ -29,9 +29,9 @@ export class UpdateDosimeterStatusUseCase {
       throw new ForbiddenException('Solo el laboratorio puede cambiar el estado de un dosímetro');
     }
 
-    if (dto.status === 'ASIGNADO') {
+    if (dto.status === 'ASIGNADO' || dto.status === 'EN_TRANSITO') {
       throw new BadRequestException(
-        'No se puede cambiar el estado a ASIGNADO manualmente. Asigne el dosímetro mediante la opción de asignación vinculándolo a un trabajador.',
+        `No se puede cambiar el estado a ${dto.status} manualmente. Este estado es gestionado automáticamente por el flujo de asignaciones y órdenes de servicio.`,
       );
     }
 

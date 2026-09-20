@@ -78,6 +78,12 @@ export class GetClientDosimetersUseCase {
 
     const unique = new Map<string, ClientDosimeterItem>();
     for (const row of (data as any[]) ?? []) {
+      const statusCode = row.dosimeters?.dosimeter_statuses?.code;
+      // Regla de negocio: Solo dosímetros físicos con estado ASIGNADO (en campo con el trabajador)
+      if (statusCode !== 'ASIGNADO') {
+        continue;
+      }
+
       if (!unique.has(row.dosimeter_id)) {
         unique.set(row.dosimeter_id, {
           dosimeter_id: row.dosimeter_id,

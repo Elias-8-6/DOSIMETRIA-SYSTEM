@@ -100,7 +100,7 @@ export default function CreateServiceOrderPage() {
     }
     setLoadingClientDosimeters(true);
     getClientDosimeters(clientId)
-      .then((dos) => setClientDosimeters(dos))
+      .then((dos) => setClientDosimeters((dos || []).filter((d) => d.status?.code === 'ASIGNADO')))
       .catch(() => setClientDosimeters([]))
       .finally(() => setLoadingClientDosimeters(false));
   }, [clientId]);
@@ -114,8 +114,8 @@ export default function CreateServiceOrderPage() {
     setSearchingDosimeters(true);
     searchDosimetersForOrder(clientId, debouncedSearch.trim())
       .then((res) => {
-        // Filtrar solo los 3 casos requeridos: cliente actual, sin asignar, laboratorio
-        const filtered = res.filter((r) => r.origin !== 'other_client');
+        // Filtrar solo dosímetros asignados a trabajadores de este cliente con estado físico ASIGNADO
+        const filtered = res.filter((r) => r.origin === 'client' && r.status?.code === 'ASIGNADO');
         setSearchResults(filtered);
       })
       .catch(() => setSearchResults([]))
@@ -584,8 +584,8 @@ export default function CreateServiceOrderPage() {
                   {loadingClientDosimeters ? (
                     <p className="text-xs text-gray-400 py-2">Consultando inventario del cliente...</p>
                   ) : clientDosimeters.length === 0 ? (
-                    <p className="text-xs text-gray-600 italic">
-                      Este cliente no tiene dosímetros actualmente asignados a sus trabajadores. Podés agregar dosímetros individualmente abajo.
+                    <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                      Este cliente no tiene dosímetros actualmente con estado <strong>ASIGNADO</strong> en campo. Para solicitar una orden de servicio, los dosímetros deben haber sido asignados previamente a sus trabajadores.
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pt-1">
@@ -633,7 +633,7 @@ export default function CreateServiceOrderPage() {
                         type="text"
                         value={dosimeterSearch}
                         onChange={(e) => setDosimeterSearch(e.target.value)}
-                        placeholder="Buscar por serie o código (cliente actual, sin asignar, laboratorio)..."
+                        placeholder="Buscar por serie o código (solo dosímetros asignados en campo)..."
                       />
                       {dosimeterSearch && (
                         <button
@@ -655,23 +655,15 @@ export default function CreateServiceOrderPage() {
                     {!searchingDosimeters && dosimeterSearch.trim().length > 0 && (
                       <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-xs space-y-2">
                         <div className="flex items-center justify-between text-xs text-gray-500 border-b border-gray-100 pb-1.5">
-                          <span>Resultados encontrados: {searchResults.length}</span>
-                          <div className="flex items-center gap-2 text-[10px]">
-                            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Cliente
-                            </span>
-                            <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
-                              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block"></span> Sin asignar
-                            </span>
-                            <span className="inline-flex items-center gap-1 text-purple-700 font-medium">
-                              <span className="w-2 h-2 rounded-full bg-purple-500 inline-block"></span> Laboratorio
-                            </span>
-                          </div>
+                          <span>Dosímetros en campo encontrados: {searchResults.length}</span>
+                          <span className="inline-flex items-center gap-1 text-emerald-700 font-medium text-[11px]">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Asignado a trabajador
+                          </span>
                         </div>
 
                         {searchResults.length === 0 ? (
                           <p className="text-xs text-gray-500 italic py-2 text-center">
-                            No se encontraron dosímetros para &quot;{dosimeterSearch}&quot;.
+                            No se encontraron dosímetros asignados para &quot;{dosimeterSearch}&quot;.
                           </p>
                         ) : (
                           <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
@@ -696,22 +688,9 @@ export default function CreateServiceOrderPage() {
                                       </span>
                                     )}
 
-                                    {/* Etiqueta de color según categoría de pertenencia */}
-                                    {res.origin === 'client' && (
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                        Cliente actual
-                                      </span>
-                                    )}
-                                    {res.origin === 'unassigned' && (
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
-                                        Sin asignar
-                                      </span>
-                                    )}
-                                    {res.origin === 'laboratory' && (
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
-                                        Laboratorio
-                                      </span>
-                                    )}
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                      En campo
+                                    </span>
 
                                     {/* Etiqueta de estado actual */}
                                     {res.status && (

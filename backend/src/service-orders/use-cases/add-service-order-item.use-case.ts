@@ -40,15 +40,21 @@ export class AddServiceOrderItemUseCase {
       throw new BadRequestException('Solo se pueden agregar ítems mientras la orden está PENDING');
     }
 
-    const owned = await this.orgScope.isDosimeterOwnedByClient(dto.dosimeter_id, order.client_id);
-    if (!owned) {
-      const allowed = this.orgScope.isDosimeterAvailableForClientOrder
-        ? await this.orgScope.isDosimeterAvailableForClientOrder(dto.dosimeter_id, order.client_id)
-        : false;
-      if (!allowed) {
-        throw new BadRequestException('El dosímetro no pertenece a este cliente ni está disponible');
-      }
+    const allowed = await this.orgScope.isDosimeterAvailableForClientOrder(
+      dto.dosimeter_id,
+      order.client_id,
+    );
+    if (!allowed) {
+      throw new BadRequestException(
+        'El dosímetro no está disponible para este cliente o no se encuentra asignado en campo',
+      );
     }
+
+    const { data: enTransitoStatus } = await supabase
+      .from('dosimeter_statuses')
+      .select('id')
+      .eq('code', 'EN_TRANSITO')
+      .maybeSingle();
 
     const { data: newItem, error } = await supabase
       .from('service_order_items')
@@ -69,12 +75,28 @@ export class AddServiceOrderItemUseCase {
       throw new Error('No se pudo agregar el ítem a la orden');
     }
 
+    if (enTransitoStatus) {
+      await supabase
+        .from('dosimeters')
+        .update({ status_id: enTransitoStatus.id })
+        .eq('id', dto.dosimeter_id);
+    }
+
     await this.audit.log({
       userId: requestingUserId,
       entityName: 'service_order_items',
       entityId: newItem.id,
       action: 'CREATE',
       newValues: { service_order_id: orderId, dosimeter_id: dto.dosimeter_id },
+    });
+
+    await this.audit.log({
+      userId: requestingUserId,
+      entityName: 'dosimeters',
+      entityId: dto.dosimeter_id,
+      action: 'STATUS_CHANGE',
+      oldValues: { status: 'ASIGNADO' },
+      newValues: { status: 'EN_TRANSITO', service_order_id: orderId },
     });
 
     return newItem;

@@ -36,7 +36,7 @@ export class RemoveServiceOrderItemUseCase {
 
     const { data: item } = await supabase
       .from('service_order_items')
-      .select('id')
+      .select('id, dosimeter_id')
       .eq('id', itemId)
       .eq('service_order_id', orderId)
       .maybeSingle();
@@ -55,12 +55,34 @@ export class RemoveServiceOrderItemUseCase {
     const { error } = await supabase.from('service_order_items').delete().eq('id', itemId);
     if (error) throw new Error('No se pudo quitar el ítem de la orden');
 
+    const { data: asignadoStatus } = await supabase
+      .from('dosimeter_statuses')
+      .select('id')
+      .eq('code', 'ASIGNADO')
+      .maybeSingle();
+
+    if (asignadoStatus && item.dosimeter_id) {
+      await supabase
+        .from('dosimeters')
+        .update({ status_id: asignadoStatus.id })
+        .eq('id', item.dosimeter_id);
+
+      await this.audit.log({
+        userId: requestingUserId,
+        entityName: 'dosimeters',
+        entityId: item.dosimeter_id,
+        action: 'STATUS_CHANGE',
+        oldValues: { status: 'EN_TRANSITO' },
+        newValues: { status: 'ASIGNADO', reason: 'ITEM_REMOVED_FROM_ORDER' },
+      });
+    }
+
     await this.audit.log({
       userId: requestingUserId,
       entityName: 'service_order_items',
       entityId: itemId,
       action: 'DELETE',
-      oldValues: { service_order_id: orderId },
+      oldValues: { service_order_id: orderId, dosimeter_id: item.dosimeter_id },
     });
 
     return { id: itemId, removed: true };

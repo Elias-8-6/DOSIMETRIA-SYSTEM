@@ -91,16 +91,19 @@ describe('RemoveServiceOrderItemUseCase', () => {
         if (table === 'service_order_items') {
           return {
             select: jest.fn((fields: string) => {
-              if (fields === 'id') {
-                // Both the "item belongs to order" lookup and the
-                // "remaining items" count share the same select('id') shape.
+              if (fields === 'id, dosimeter_id') {
                 return {
-                  eq: (col: string) => {
-                    if (col === 'id') {
-                      return { eq: () => ({ maybeSingle: () => Promise.resolve({ data: { id: 'item-1' } }) }) };
-                    }
-                    return Promise.resolve({ data: [{ id: 'item-1' }] });
-                  },
+                  eq: () => ({
+                    eq: () => ({
+                      maybeSingle: () =>
+                        Promise.resolve({ data: { id: 'item-1', dosimeter_id: 'd-1' } }),
+                    }),
+                  }),
+                };
+              }
+              if (fields === 'id') {
+                return {
+                  eq: () => Promise.resolve({ data: [{ id: 'item-1' }] }),
                 };
               }
               throw new Error(`unexpected fields ${fields}`);
@@ -118,6 +121,7 @@ describe('RemoveServiceOrderItemUseCase', () => {
 
   it('removes the item and logs the audit entry when more than one item remains', async () => {
     const deleteMock = jest.fn().mockReturnValue({ eq: () => Promise.resolve({ error: null }) });
+    const dosimeterUpdateEq = jest.fn().mockResolvedValue({ error: null });
 
     supabase.getClient.mockReturnValue({
       from: jest.fn((table: string) => {
@@ -131,17 +135,37 @@ describe('RemoveServiceOrderItemUseCase', () => {
             }),
           };
         }
+        if (table === 'dosimeter_statuses') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({ data: { id: 'st-asignado', code: 'ASIGNADO' }, error: null }),
+              }),
+            }),
+          };
+        }
         if (table === 'service_order_items') {
           return {
             select: jest.fn(() => ({
               eq: (col: string) => {
                 if (col === 'id') {
-                  return { eq: () => ({ maybeSingle: () => Promise.resolve({ data: { id: 'item-1' } }) }) };
+                  return {
+                    eq: () => ({
+                      maybeSingle: () =>
+                        Promise.resolve({ data: { id: 'item-1', dosimeter_id: 'd-1' } }),
+                    }),
+                  };
                 }
                 return Promise.resolve({ data: [{ id: 'item-1' }, { id: 'item-2' }] });
               },
             })),
             delete: deleteMock,
+          };
+        }
+        if (table === 'dosimeters') {
+          return {
+            update: () => ({ eq: dosimeterUpdateEq }),
           };
         }
         throw new Error(`unexpected table ${table}`);
@@ -152,8 +176,17 @@ describe('RemoveServiceOrderItemUseCase', () => {
 
     expect(result).toEqual({ id: 'item-1', removed: true });
     expect(deleteMock).toHaveBeenCalled();
+    expect(dosimeterUpdateEq).toHaveBeenCalledWith('id', 'd-1');
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'DELETE', entityName: 'service_order_items' }),
+    );
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'STATUS_CHANGE',
+        entityName: 'dosimeters',
+        entityId: 'd-1',
+        newValues: expect.objectContaining({ status: 'ASIGNADO' }),
+      }),
     );
   });
 });

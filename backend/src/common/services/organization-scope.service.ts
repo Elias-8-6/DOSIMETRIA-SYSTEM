@@ -106,21 +106,17 @@ export class OrganizationScopeService {
 
   /**
    * Verifica si un dosímetro está disponible para ser incluido en una orden de servicio:
-   * 1. Pertenece al cliente actual.
-   * 2. Es un dosímetro de control del laboratorio (TLD_AREA / LAB-AREA).
-   * 3. Está sin asignar (no tiene asignación activa a OTRO cliente).
+   * 1. Pertenece al cliente actual (asignado a un trabajador de dicho cliente).
+   * 2. Su estado físico actual es estrictamente 'ASIGNADO' (en campo).
+   * 3. No se encuentra en 'EN_TRANSITO', 'EN_LAB', 'INCIDENTE', 'BAJA', etc.
    */
   async isDosimeterAvailableForClientOrder(dosimeterId: string, clientId: string): Promise<boolean> {
-    const owned = await this.isDosimeterOwnedByClient(dosimeterId, clientId);
-    if (owned) return true;
-
     const { data: dosimeter, error } = await this.supabase
       .getClient()
       .from('dosimeters')
       .select(`
         id,
-        internal_code,
-        dosimeter_types(code),
+        dosimeter_statuses(code),
         dosimeter_assignments(
           id,
           status,
@@ -133,20 +129,17 @@ export class OrganizationScopeService {
 
     if (error || !dosimeter) return false;
 
-    const isLab =
-      (dosimeter.dosimeter_types as any)?.code === 'TLD_AREA' ||
-      (dosimeter.internal_code &&
-        (dosimeter.internal_code.startsWith('LAB-') || dosimeter.internal_code.startsWith('LAB-AREA')));
-    if (isLab) return true;
+    const statusCode = (dosimeter.dosimeter_statuses as any)?.code;
+    if (statusCode !== 'ASIGNADO') return false;
 
     const assignments = (dosimeter.dosimeter_assignments as any[]) ?? [];
-    const activeOnOtherClient = assignments.some(
+    const hasActiveAssignmentForClient = assignments.some(
       (a) =>
         (a.status === 'activo' || !a.returned_at) &&
         a.workers &&
-        a.workers.client_id !== clientId,
+        a.workers.client_id === clientId,
     );
 
-    return !activeOnOtherClient;
+    return hasActiveAssignmentForClient;
   }
 }

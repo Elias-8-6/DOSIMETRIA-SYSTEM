@@ -65,29 +65,71 @@ describe('CancelServiceOrderUseCase', () => {
     );
   });
 
-  it('cancels the order and logs the audit entry', async () => {
+  it('cancels the order, reverts dosimeters to ASIGNADO and logs the audit entry', async () => {
     const updateSingle = jest.fn().mockResolvedValue({
       data: { id: 'order-1', order_number: 'OS-2026-00001', status: 'CANCELLED' },
       error: null,
     });
+    const dosimetersUpdateMock = jest.fn().mockReturnValue({
+      in: () => ({ eq: () => Promise.resolve({ error: null }) }),
+    });
 
     supabase.getClient.mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            maybeSingle: () =>
-              Promise.resolve({ data: { id: 'order-1', client_id: 'client-1', status: 'PENDING' } }),
-          }),
-        }),
-        update: () => ({ eq: () => ({ select: () => ({ single: updateSingle }) }) }),
+      from: jest.fn((table: string) => {
+        if (table === 'service_orders') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({ data: { id: 'order-1', client_id: 'client-1', status: 'PENDING' } }),
+              }),
+            }),
+            update: () => ({ eq: () => ({ select: () => ({ single: updateSingle }) }) }),
+          };
+        }
+        if (table === 'service_order_items') {
+          return {
+            select: () => ({
+              eq: () => Promise.resolve({ data: [{ dosimeter_id: 'd-1' }] }),
+            }),
+          };
+        }
+        if (table === 'dosimeter_statuses') {
+          return {
+            select: () => ({
+              in: () =>
+                Promise.resolve({
+                  data: [
+                    { id: 'st-asig', code: 'ASIGNADO' },
+                    { id: 'st-trans', code: 'EN_TRANSITO' },
+                  ],
+                }),
+            }),
+          };
+        }
+        if (table === 'dosimeters') {
+          return {
+            update: dosimetersUpdateMock,
+          };
+        }
+        throw new Error(`unexpected table ${table}`);
       }),
     });
 
     const result = await useCase.execute('order-1', 'org-1', 'user-1');
 
-    expect(result.status).toBe('CANCELLED');
+    expect(result!.status).toBe('CANCELLED');
+    expect(dosimetersUpdateMock).toHaveBeenCalledWith({ status_id: 'st-asig' });
     expect(audit.log).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'STATUS_CHANGE', newValues: { status: 'CANCELLED' } }),
+      expect.objectContaining({ action: 'STATUS_CHANGE', entityName: 'service_orders', newValues: { status: 'CANCELLED' } }),
+    );
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'STATUS_CHANGE',
+        entityName: 'dosimeters',
+        entityId: 'd-1',
+        newValues: expect.objectContaining({ status: 'ASIGNADO' }),
+      }),
     );
   });
 });

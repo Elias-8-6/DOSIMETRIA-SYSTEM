@@ -227,6 +227,15 @@ export class CreateReceptionUseCase {
             .eq('id', orderItem.id);
         }
       }
+
+      await this.audit.log({
+        userId: requestingUserId,
+        entityName: 'dosimeters',
+        entityId: item.dosimeter_id,
+        action: 'STATUS_CHANGE',
+        oldValues: { status: 'EN_TRANSITO' },
+        newValues: { status: isIncident ? 'INCIDENTE' : 'EN_LAB' },
+      });
     }
 
     // 8. Actualizar orden de servicio a RECEIVED si estaba PENDING

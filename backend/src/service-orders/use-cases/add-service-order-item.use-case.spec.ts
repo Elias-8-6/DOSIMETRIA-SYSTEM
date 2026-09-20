@@ -8,6 +8,7 @@ describe('AddServiceOrderItemUseCase', () => {
     getOrganizationType: jest.Mock;
     getOwnClientIds: jest.Mock;
     isDosimeterOwnedByClient: jest.Mock;
+    isDosimeterAvailableForClientOrder: jest.Mock;
   };
   let useCase: AddServiceOrderItemUseCase;
 
@@ -20,6 +21,7 @@ describe('AddServiceOrderItemUseCase', () => {
       getOrganizationType: jest.fn().mockResolvedValue('laboratory'),
       getOwnClientIds: jest.fn(),
       isDosimeterOwnedByClient: jest.fn().mockResolvedValue(true),
+      isDosimeterAvailableForClientOrder: jest.fn().mockResolvedValue(true),
     };
     useCase = new AddServiceOrderItemUseCase(supabase as any, audit as any, orgScope as any);
   });
@@ -53,8 +55,8 @@ describe('AddServiceOrderItemUseCase', () => {
     );
   });
 
-  it('rejects a dosimeter that does not belong to the order client', async () => {
-    orgScope.isDosimeterOwnedByClient.mockResolvedValue(false);
+  it('rejects a dosimeter that does not belong to the order client or is not in field', async () => {
+    orgScope.isDosimeterAvailableForClientOrder.mockResolvedValue(false);
     supabase.getClient.mockReturnValue({
       from: jest.fn().mockReturnValue({
         select: () => ({
@@ -84,6 +86,16 @@ describe('AddServiceOrderItemUseCase', () => {
             }),
           };
         }
+        if (table === 'dosimeter_statuses') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({ data: { id: 'st-transito', code: 'EN_TRANSITO' }, error: null }),
+              }),
+            }),
+          };
+        }
         if (table === 'service_order_items') {
           return {
             insert: () => ({
@@ -102,7 +114,9 @@ describe('AddServiceOrderItemUseCase', () => {
     );
   });
 
-  it('adds the item and logs the audit entry', async () => {
+  it('adds the item, transitions dosimeter to EN_TRANSITO and logs audit entries', async () => {
+    const dosimeterUpdateEq = jest.fn().mockResolvedValue({ error: null });
+
     supabase.getClient.mockReturnValue({
       from: jest.fn((table: string) => {
         if (table === 'service_orders') {
@@ -111,6 +125,16 @@ describe('AddServiceOrderItemUseCase', () => {
               eq: () => ({
                 maybeSingle: () =>
                   Promise.resolve({ data: { id: 'order-1', client_id: 'client-1', status: 'PENDING' } }),
+              }),
+            }),
+          };
+        }
+        if (table === 'dosimeter_statuses') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({ data: { id: 'st-transito', code: 'EN_TRANSITO' }, error: null }),
               }),
             }),
           };
@@ -128,6 +152,11 @@ describe('AddServiceOrderItemUseCase', () => {
             }),
           };
         }
+        if (table === 'dosimeters') {
+          return {
+            update: () => ({ eq: dosimeterUpdateEq }),
+          };
+        }
         throw new Error(`unexpected table ${table}`);
       }),
     });
@@ -135,8 +164,17 @@ describe('AddServiceOrderItemUseCase', () => {
     const result = await useCase.execute('order-1', dto as any, 'org-1', 'user-1');
 
     expect(result.id).toBe('item-2');
+    expect(dosimeterUpdateEq).toHaveBeenCalledWith('id', 'd-2');
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'CREATE', entityName: 'service_order_items' }),
+    );
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'STATUS_CHANGE',
+        entityName: 'dosimeters',
+        entityId: 'd-2',
+        newValues: expect.objectContaining({ status: 'EN_TRANSITO' }),
+      }),
     );
   });
 });
