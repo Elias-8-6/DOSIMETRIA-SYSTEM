@@ -1,4 +1,5 @@
-import { IsIn, IsNumberString, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsNumberString, IsOptional, IsString } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class QueryServiceOrdersDto {
   @IsOptional()

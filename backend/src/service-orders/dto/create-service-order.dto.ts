@@ -7,10 +7,10 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 import { CreateServiceOrderItemDto } from './create-service-order-item.dto';
 
 export class CreateServiceOrderDto {

@@ -103,4 +103,50 @@ export class OrganizationScopeService {
     if (error) throw new Error('No se pudo verificar la pertenencia del dosímetro');
     return !!data;
   }
+
+  /**
+   * Verifica si un dosímetro está disponible para ser incluido en una orden de servicio:
+   * 1. Pertenece al cliente actual.
+   * 2. Es un dosímetro de control del laboratorio (TLD_AREA / LAB-AREA).
+   * 3. Está sin asignar (no tiene asignación activa a OTRO cliente).
+   */
+  async isDosimeterAvailableForClientOrder(dosimeterId: string, clientId: string): Promise<boolean> {
+    const owned = await this.isDosimeterOwnedByClient(dosimeterId, clientId);
+    if (owned) return true;
+
+    const { data: dosimeter, error } = await this.supabase
+      .getClient()
+      .from('dosimeters')
+      .select(`
+        id,
+        internal_code,
+        dosimeter_types(code),
+        dosimeter_assignments(
+          id,
+          status,
+          returned_at,
+          workers(client_id)
+        )
+      `)
+      .eq('id', dosimeterId)
+      .maybeSingle();
+
+    if (error || !dosimeter) return false;
+
+    const isLab =
+      (dosimeter.dosimeter_types as any)?.code === 'TLD_AREA' ||
+      (dosimeter.internal_code &&
+        (dosimeter.internal_code.startsWith('LAB-') || dosimeter.internal_code.startsWith('LAB-AREA')));
+    if (isLab) return true;
+
+    const assignments = (dosimeter.dosimeter_assignments as any[]) ?? [];
+    const activeOnOtherClient = assignments.some(
+      (a) =>
+        (a.status === 'activo' || !a.returned_at) &&
+        a.workers &&
+        a.workers.client_id !== clientId,
+    );
+
+    return !activeOnOtherClient;
+  }
 }

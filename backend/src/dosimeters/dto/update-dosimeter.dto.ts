@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsUUID, IsDateString, IsIn, IsBoolean, IsInt, Min, Max, MinLength, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDateString, IsIn, IsBoolean, IsInt, Min, Max, MinLength, MaxLength } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class UpdateDosimeterDto {
   @IsOptional()

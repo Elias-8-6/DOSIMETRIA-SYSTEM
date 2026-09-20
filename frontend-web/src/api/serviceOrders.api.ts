@@ -24,11 +24,43 @@ export interface ServiceOrder {
   items_count: number;
 }
 
+export interface ServiceOrderDosimeterWorker {
+  id: string;
+  full_name: string;
+  document_number: string | null;
+}
+
+export interface ServiceOrderDosimeterType {
+  id: string;
+  code: string;
+  name: string;
+  technology: string;
+}
+
+export interface ClientDosimeterItem {
+  dosimeter_id: string;
+  serial_number: string;
+  internal_code: string | null;
+  model: string | null;
+  manufacturer: string | null;
+  dosimeter_type: ServiceOrderDosimeterType | null;
+  status: { id: string; code: string; name: string } | null;
+  worker: ServiceOrderDosimeterWorker | null;
+}
+
 export interface ServiceOrderItem {
   id: string;
   requested_action: RequestedAction;
   status: string;
-  dosimeters: { id: string; serial_number: string; internal_code: string | null };
+  dosimeters: {
+    id: string;
+    serial_number: string;
+    internal_code: string | null;
+    model?: string | null;
+    manufacturer?: string | null;
+    dosimeter_types?: ServiceOrderDosimeterType | null;
+    assigned_worker?: ServiceOrderDosimeterWorker | null;
+  };
 }
 
 export interface ServiceOrderDetail {
@@ -42,14 +74,53 @@ export interface ServiceOrderDetail {
   observations: string | null;
   created_at: string;
   created_by: string | null;
+  document_data?: ServiceOrderDocumentData | null;
   clients: {
     id: string;
     code: string | null;
     name: string;
+    address?: string | null;
+    phone?: string | null;
     contact_name: string | null;
     contact_email: string | null;
   } | null;
   service_order_items: ServiceOrderItem[];
+}
+
+export interface Repdos01DocumentData {
+  company_signee?: string;
+  company_role?: string;
+  client_signee?: string;
+  client_role?: string;
+  period_label?: string;
+  lot_number?: string;
+  institution_number?: string;
+  observations?: string;
+  delayed_dosimeters_notes?: string;
+  background_rad?: string;
+  measured_contamination?: string;
+  consultation_phones?: string;
+}
+
+export interface DeliveryNoteDocumentData {
+  letter_city_date?: string;
+  legal_signee?: string;
+  legal_id?: string;
+  legal_role?: string;
+  catalog_code?: string;
+  catalog_description?: string;
+  brand_name?: string;
+  account_number?: string;
+  recipient_name?: string;
+  recipient_title?: string;
+  recipient_institution?: string;
+  recipient_address?: string;
+  closing_phrase?: string;
+}
+
+export interface ServiceOrderDocumentData {
+  repdos01?: Repdos01DocumentData;
+  delivery_note?: DeliveryNoteDocumentData;
 }
 
 export interface CreateServiceOrderItemPayload {
@@ -138,3 +209,46 @@ export const removeServiceOrderItem = async (
   const { data } = await api.delete(`/service-orders/${id}/items/${itemId}`);
   return data;
 };
+
+export const getClientDosimeters = async (clientId: string): Promise<ClientDosimeterItem[]> => {
+  const { data } = await api.get<ClientDosimeterItem[]>(`/service-orders/clients/${clientId}/dosimeters`);
+  return data;
+};
+
+export type DosimeterOrigin = 'client' | 'unassigned' | 'laboratory' | 'other_client';
+
+export interface SearchDosimeterResult {
+  id: string;
+  serial_number: string;
+  internal_code: string | null;
+  model: string | null;
+  manufacturer: string | null;
+  origin: DosimeterOrigin;
+  dosimeter_type: ServiceOrderDosimeterType | null;
+  status: { id: string; code: string; name: string } | null;
+  assigned_worker: ServiceOrderDosimeterWorker | null;
+}
+
+export const searchDosimetersForOrder = async (
+  clientId: string,
+  q?: string,
+): Promise<SearchDosimeterResult[]> => {
+  const { data } = await api.get<SearchDosimeterResult[]>(
+    `/service-orders/clients/${clientId}/search-dosimeters`,
+    { params: { q: q?.trim() || undefined } },
+  );
+  return data;
+};
+
+export const updateServiceOrderDocumentData = async (
+  id: string,
+  document_data: ServiceOrderDocumentData,
+): Promise<{ id: string; document_data: ServiceOrderDocumentData }> => {
+  const { data } = await api.patch<{ id: string; document_data: ServiceOrderDocumentData }>(
+    `/service-orders/${id}/document-data`,
+    { document_data },
+  );
+  return data;
+};
+
+

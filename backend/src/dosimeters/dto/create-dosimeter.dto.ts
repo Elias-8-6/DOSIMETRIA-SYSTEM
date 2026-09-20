@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsUUID, IsDateString, Min, Max, IsInt, IsIn, IsBoolean, MinLength, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDateString, Min, Max, IsInt, IsIn, IsBoolean, MinLength, MaxLength } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class CreateDosimeterDto {
   @IsNotEmpty({ message: 'El número de serie es obligatorio' })

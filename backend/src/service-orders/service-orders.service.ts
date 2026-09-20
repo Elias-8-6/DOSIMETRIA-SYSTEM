@@ -11,6 +11,10 @@ import { UpdateServiceOrderStatusUseCase } from './use-cases/update-service-orde
 import { CancelServiceOrderUseCase } from './use-cases/cancel-service-order.use-case';
 import { AddServiceOrderItemUseCase } from './use-cases/add-service-order-item.use-case';
 import { RemoveServiceOrderItemUseCase } from './use-cases/remove-service-order-item.use-case';
+import { GetClientDosimetersUseCase } from './use-cases/get-client-dosimeters.use-case';
+import { SearchDosimetersForOrderUseCase } from './use-cases/search-dosimeters-for-order.use-case';
+import { UpdateServiceOrderDocumentDataUseCase } from './use-cases/update-service-order-document-data.use-case';
+import { UpdateServiceOrderDocumentDataDto } from './dto/update-service-order-document-data.dto';
 
 @Injectable()
 export class ServiceOrdersService {
@@ -23,6 +27,9 @@ export class ServiceOrdersService {
     private readonly cancelServiceOrderUseCase: CancelServiceOrderUseCase,
     private readonly addServiceOrderItemUseCase: AddServiceOrderItemUseCase,
     private readonly removeServiceOrderItemUseCase: RemoveServiceOrderItemUseCase,
+    private readonly getClientDosimetersUseCase: GetClientDosimetersUseCase,
+    private readonly searchDosimetersForOrderUseCase: SearchDosimetersForOrderUseCase,
+    private readonly updateServiceOrderDocumentDataUseCase: UpdateServiceOrderDocumentDataUseCase,
   ) {}
 
   findAll(
@@ -100,6 +107,28 @@ export class ServiceOrdersService {
     return this.removeServiceOrderItemUseCase.execute(
       orderId,
       itemId,
+      organizationId,
+      requestingUserId,
+    );
+  }
+
+  getClientDosimeters(clientId: string, organizationId: string) {
+    return this.getClientDosimetersUseCase.execute(clientId, organizationId);
+  }
+
+  searchDosimetersForOrder(clientId: string, organizationId: string, search?: string) {
+    return this.searchDosimetersForOrderUseCase.execute(clientId, organizationId, search);
+  }
+
+  updateDocumentData(
+    orderId: string,
+    dto: UpdateServiceOrderDocumentDataDto,
+    organizationId: string,
+    requestingUserId: string,
+  ) {
+    return this.updateServiceOrderDocumentDataUseCase.execute(
+      orderId,
+      dto,
       organizationId,
       requestingUserId,
     );

@@ -1,4 +1,5 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, IsDateString, IsInt, Min, IsNumber, IsBoolean, IsNumberString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString, IsDateString, IsInt, Min, IsNumber, IsBoolean, IsNumberString } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class QueryDosimetersDto {
   @IsOptional()

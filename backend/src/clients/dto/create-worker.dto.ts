@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsOptional, IsUUID, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class CreateWorkerDto {
   @IsNotEmpty({ message: 'El Nombre completo es un campo es obligatorio' })

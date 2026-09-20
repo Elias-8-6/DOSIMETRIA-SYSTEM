@@ -42,7 +42,12 @@ export class AddServiceOrderItemUseCase {
 
     const owned = await this.orgScope.isDosimeterOwnedByClient(dto.dosimeter_id, order.client_id);
     if (!owned) {
-      throw new BadRequestException('El dosímetro no pertenece a este cliente');
+      const allowed = this.orgScope.isDosimeterAvailableForClientOrder
+        ? await this.orgScope.isDosimeterAvailableForClientOrder(dto.dosimeter_id, order.client_id)
+        : false;
+      if (!allowed) {
+        throw new BadRequestException('El dosímetro no pertenece a este cliente ni está disponible');
+      }
     }
 
     const { data: newItem, error } = await supabase

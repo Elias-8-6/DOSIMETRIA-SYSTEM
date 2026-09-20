@@ -22,6 +22,7 @@ const DosimetersPage = lazy(() => import('../pages/dosimeters/DosimetersPage'));
 const DosimeterDetailPage = lazy(() => import('../pages/dosimeters/DosimeterDetailPage'));
 const ServiceOrdersPage = lazy(() => import('../pages/service-orders/ServiceOrdersPage'));
 const ServiceOrderDetailPage = lazy(() => import('../pages/service-orders/ServiceOrderDetailPage'));
+const CreateServiceOrderPage = lazy(() => import('../pages/service-orders/CreateServiceOrderPage'));
 
 function LoadingScreen() {
   return (
@@ -148,6 +149,14 @@ export function AppRouter() {
             element={
               <PermissionRoute module="service_orders" action="read">
                 <ServiceOrdersPage />
+              </PermissionRoute>
+            }
+          />
+          <Route
+            path="service-orders/new"
+            element={
+              <PermissionRoute module="service_orders" action="create">
+                <CreateServiceOrderPage />
               </PermissionRoute>
             }
           />

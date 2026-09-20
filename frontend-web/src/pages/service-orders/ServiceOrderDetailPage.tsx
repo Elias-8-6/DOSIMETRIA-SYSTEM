@@ -21,6 +21,7 @@ import { useToast } from '../../hooks/useToast';
 import { Field } from '../../components/ui/Field';
 import { SectionHead } from '../../components/ui/SectionHead';
 import { ServiceOrderStatusBadge } from '../../components/service-orders/ServiceOrderStatusBadge';
+import { DocumentPreviewModal } from '../../components/service-orders/documents/DocumentPreviewModal';
 import {
   SERVICE_TYPE_LABELS,
   PRIORITY_LABELS,
@@ -49,6 +50,8 @@ export default function ServiceOrderDetailPage() {
   const [addItemModal, setAddItemModal] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<'repdos01' | 'deliveryNote'>('repdos01');
 
   const fetchOrder = useCallback(async () => {
     if (!id) return;
@@ -156,17 +159,39 @@ export default function ServiceOrderDetailPage() {
             <ServiceOrderStatusBadge status={order.status} />
           </div>
         </div>
-        {canManage && (
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
-              setEditKey((k) => k + 1);
-              setEditModal(true);
+              setSelectedDoc('repdos01');
+              setShowDocModal(true);
             }}
-            className="px-3 py-1.5 text-xs font-medium text-gray-600 border bg-gray-100 border-gray-300 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-blue-700 border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+            title="Formulario de Entrega y Recibo de Dosímetros (REPDOS-01)"
           >
-            Editar orden
+            <span>📄</span> Formulario REPDOS-01
           </button>
-        )}
+          <button
+            onClick={() => {
+              setSelectedDoc('deliveryNote');
+              setShowDocModal(true);
+            }}
+            className="px-3 py-1.5 text-xs font-semibold text-purple-700 border border-purple-200 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+            title="Nota de Entrega de Mercancía"
+          >
+            <span>📦</span> Nota de Entrega
+          </button>
+          {canManage && (
+            <button
+              onClick={() => {
+                setEditKey((k) => k + 1);
+                setEditModal(true);
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 border bg-gray-100 border-gray-300 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+            >
+              Editar orden
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -228,14 +253,28 @@ export default function ServiceOrderDetailPage() {
                 className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    {item.dosimeters.serial_number}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-gray-900 font-mono">
+                      {item.dosimeters.serial_number}
+                    </span>
                     {item.dosimeters.internal_code && (
-                      <span className="text-gray-400 font-normal"> ({item.dosimeters.internal_code})</span>
+                      <span className="text-xs text-gray-400">({item.dosimeters.internal_code})</span>
                     )}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {REQUESTED_ACTION_LABELS[item.requested_action] ?? item.requested_action} · {item.status}
+                    {item.dosimeters.assigned_worker ? (
+                      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium border border-blue-100">
+                        {item.dosimeters.assigned_worker.full_name}
+                        {item.dosimeters.assigned_worker.document_number && (
+                          <span className="text-blue-500 ml-1">· ID: {item.dosimeters.assigned_worker.document_number}</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                        Control / Sin usuario
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tipo: <span className="font-medium text-gray-700">{item.dosimeters.dosimeter_types?.code || item.dosimeters.model || '82-Standard-CH'}</span> · {REQUESTED_ACTION_LABELS[item.requested_action] ?? item.requested_action} · {item.status}
                   </p>
                 </div>
                 {isPending && hasPermission('service_orders', 'update') && (
@@ -278,6 +317,15 @@ export default function ServiceOrderDetailPage() {
           loading={statusLoading}
           onConfirm={handleCancel}
           onCancel={() => setCancelDialog(false)}
+        />
+      )}
+
+      {showDocModal && (
+        <DocumentPreviewModal
+          order={order}
+          initialDocument={selectedDoc}
+          onClose={() => setShowDocModal(false)}
+          onOrderUpdated={(updated) => setOrder(updated)}
         />
       )}
     </div>
