@@ -1,24 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ServiceOrderDetail } from '../../../api/serviceOrders.api';
 import { Repdos01Document } from './Repdos01Document';
 import { DeliveryNoteDocument } from './DeliveryNoteDocument';
+import { EditDocumentDataModal } from './EditDocumentDataModal';
 import { Button } from '../../ui/Button';
 
 interface Props {
   order: ServiceOrderDetail;
   initialDocument?: 'repdos01' | 'deliveryNote';
   onClose: () => void;
+  onOrderUpdated?: (order: ServiceOrderDetail) => void;
 }
 
 export function DocumentPreviewModal({
   order,
   initialDocument = 'repdos01',
   onClose,
+  onOrderUpdated,
 }: Props) {
+  const [currentOrder, setCurrentOrder] = useState<ServiceOrderDetail>(order);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [activeDoc, setActiveDoc] = useState<'repdos01' | 'deliveryNote'>(initialDocument);
   const [companySignee, setCompanySignee] = useState('Ruben Samudio');
   const [legalSignee, setLegalSignee] = useState('Guillermo Ungo');
   const [brandName, setBrandName] = useState('Radetco');
+
+  useEffect(() => {
+    setCurrentOrder(order);
+  }, [order]);
 
   const handlePrint = () => {
     window.print();
@@ -56,11 +65,18 @@ export function DocumentPreviewModal({
               </button>
             </div>
             <span className="text-xs text-gray-500 font-mono">
-              Orden: {order.order_number}
+              Orden: {currentOrder.order_number}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setShowEditModal(true)}
+              className="flex items-center gap-1.5"
+            >
+              <span>✏️</span> Editar datos
+            </Button>
             <Button variant="primary" onClick={handlePrint}>
               🖨️ Imprimir / Guardar PDF
             </Button>
@@ -90,7 +106,7 @@ export function DocumentPreviewModal({
               </label>
               <span className="text-gray-400">|</span>
               <span>
-                Total dosímetros en orden: <strong>{order.service_order_items?.length || 0}</strong>
+                Total dosímetros en orden: <strong>{currentOrder.service_order_items?.length || 0}</strong>
               </span>
             </div>
           ) : (
@@ -117,7 +133,7 @@ export function DocumentPreviewModal({
           )}
 
           <div className="text-[11px] text-gray-500 italic">
-            Formato fiel a la documentación física oficial
+            Formato fiel a la documentación física oficial (ISO/IEC 17025)
           </div>
         </div>
 
@@ -125,10 +141,10 @@ export function DocumentPreviewModal({
         <div className="flex-1 overflow-y-auto p-6 print:p-0 print:overflow-visible">
           <div className="printable-document">
             {activeDoc === 'repdos01' ? (
-              <Repdos01Document order={order} companySignee={companySignee} />
+              <Repdos01Document order={currentOrder} companySignee={companySignee} />
             ) : (
               <DeliveryNoteDocument
-                order={order}
+                order={currentOrder}
                 legalSignee={legalSignee}
                 brandName={brandName}
               />
@@ -136,6 +152,25 @@ export function DocumentPreviewModal({
           </div>
         </div>
       </div>
+
+      {/* Modal de edición de datos de documentos con auditoría ISO 17025 */}
+      {showEditModal && (
+        <EditDocumentDataModal
+          order={currentOrder}
+          initialTab={activeDoc}
+          onClose={() => setShowEditModal(false)}
+          onSaved={(newDocData) => {
+            const updated: ServiceOrderDetail = {
+              ...currentOrder,
+              document_data: newDocData,
+            };
+            setCurrentOrder(updated);
+            if (onOrderUpdated) {
+              onOrderUpdated(updated);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -11,13 +11,24 @@ interface Props {
 
 export function Repdos01Document({
   order,
-  companySignee = 'Ruben Samudio',
-  periodLabel = 'Actual',
-  lotNumber = 'LOT-2026',
+  companySignee: propCompanySignee,
+  periodLabel: propPeriodLabel,
+  lotNumber: propLotNumber,
 }: Props) {
+  const doc = order.document_data?.repdos01;
   const items = order.service_order_items || [];
   const client = order.clients;
   const orderDate = order.requested_date ? formatDate(order.requested_date) : formatDate(order.created_at);
+
+  const companySignee = doc?.company_signee || propCompanySignee || 'Ruben Samudio';
+  const clientSignee = doc?.client_signee || client?.contact_name || 'Guadalupe Gonzalez';
+  const periodLabel = doc?.period_label || propPeriodLabel || 'Actual';
+  const lotNumber = doc?.lot_number || propLotNumber || 'LOT-2026';
+  const institutionNumber = doc?.institution_number || client?.code || '153825';
+  const observationsText = doc?.observations || order.observations || 'Ninguna observación registrada.';
+  const backgroundRad = doc?.background_rad || '0.12 µSv/h';
+  const measuredContamination = doc?.measured_contamination || '< 0.05 Bq/cm²';
+  const consultationPhones = doc?.consultation_phones || '2076300, 2076370';
 
   return (
     <div className="bg-white text-black p-8 max-w-[850px] mx-auto border border-gray-300 shadow-sm print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none text-xs font-sans">
@@ -46,7 +57,7 @@ export function Repdos01Document({
             <span className="font-bold">Nombre de la Institución: </span>
             <span className="font-medium">{client?.name || 'Cliente sin asignar'}</span>
             <span className="ml-2 font-bold">No: </span>
-            <span>{client?.code || '153825'}</span>
+            <span>{institutionNumber}</span>
           </div>
         </div>
 
@@ -57,7 +68,7 @@ export function Repdos01Document({
           </div>
           <div>
             <span className="font-bold">Persona de Contacto: </span>
-            <span>{client?.contact_name || 'Personal Autorizado'}</span>
+            <span>{clientSignee}</span>
           </div>
         </div>
 
@@ -214,7 +225,7 @@ export function Repdos01Document({
         <div>
           <span className="font-bold">Observaciones: </span>
           <span className="text-gray-800">
-            {order.observations || 'Ninguna observación registrada.'}
+            {observationsText}
           </span>
         </div>
       </div>
@@ -226,9 +237,9 @@ export function Repdos01Document({
         </p>
         <div className="border border-gray-800 grid grid-cols-4 text-[10px] font-medium divide-x divide-gray-800">
           <div className="p-1 bg-gray-50 text-center font-bold">Rad. fondo</div>
-          <div className="p-1 text-center">0.12 µSv/h</div>
+          <div className="p-1 text-center">{backgroundRad}</div>
           <div className="p-1 bg-gray-50 text-center font-bold">Cont. medida</div>
-          <div className="p-1 text-center">&lt; 0.05 Bq/cm²</div>
+          <div className="p-1 text-center">{measuredContamination}</div>
         </div>
       </div>
 
@@ -238,7 +249,7 @@ export function Repdos01Document({
         <div className="border border-gray-800 p-2 space-y-1 text-[10px]">
           <div>
             <span className="font-bold">Nombre: </span>
-            <span>{client?.contact_name || 'Guadalupe Gonzalez'}</span>
+            <span>{clientSignee}</span>
           </div>
           <div className="h-6 flex items-end">
             <span className="font-bold mr-1">Firma: </span>
@@ -269,7 +280,7 @@ export function Repdos01Document({
 
       {/* Pie de página con teléfonos */}
       <div className="mt-3 text-center text-[10px] text-gray-700 space-y-0.5">
-        <p className="font-bold">Teléfonos para consultas: 2076300, 2076370.</p>
+        <p className="font-bold">Teléfonos para consultas: {consultationPhones}.</p>
         <p className="italic font-medium">• Devolver este formulario lleno con el paquete de dosímetros.</p>
       </div>
     </div>

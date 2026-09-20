@@ -13,6 +13,8 @@ import { AddServiceOrderItemUseCase } from './use-cases/add-service-order-item.u
 import { RemoveServiceOrderItemUseCase } from './use-cases/remove-service-order-item.use-case';
 import { GetClientDosimetersUseCase } from './use-cases/get-client-dosimeters.use-case';
 import { SearchDosimetersForOrderUseCase } from './use-cases/search-dosimeters-for-order.use-case';
+import { UpdateServiceOrderDocumentDataUseCase } from './use-cases/update-service-order-document-data.use-case';
+import { UpdateServiceOrderDocumentDataDto } from './dto/update-service-order-document-data.dto';
 
 @Injectable()
 export class ServiceOrdersService {
@@ -27,6 +29,7 @@ export class ServiceOrdersService {
     private readonly removeServiceOrderItemUseCase: RemoveServiceOrderItemUseCase,
     private readonly getClientDosimetersUseCase: GetClientDosimetersUseCase,
     private readonly searchDosimetersForOrderUseCase: SearchDosimetersForOrderUseCase,
+    private readonly updateServiceOrderDocumentDataUseCase: UpdateServiceOrderDocumentDataUseCase,
   ) {}
 
   findAll(
@@ -115,5 +118,19 @@ export class ServiceOrdersService {
 
   searchDosimetersForOrder(clientId: string, organizationId: string, search?: string) {
     return this.searchDosimetersForOrderUseCase.execute(clientId, organizationId, search);
+  }
+
+  updateDocumentData(
+    orderId: string,
+    dto: UpdateServiceOrderDocumentDataDto,
+    organizationId: string,
+    requestingUserId: string,
+  ) {
+    return this.updateServiceOrderDocumentDataUseCase.execute(
+      orderId,
+      dto,
+      organizationId,
+      requestingUserId,
+    );
   }
 }

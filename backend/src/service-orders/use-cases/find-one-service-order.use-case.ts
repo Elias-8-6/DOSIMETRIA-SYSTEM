@@ -16,7 +16,7 @@ export class FindOneServiceOrderUseCase {
       .select(
         `
         id, order_number, service_type, status, priority,
-        requested_date, due_date, observations, created_at, created_by,
+        requested_date, due_date, observations, document_data, created_at, created_by,
         clients(id, code, name, address, phone, contact_name, contact_email, organization_id),
         service_order_items(
           id, requested_action, status,

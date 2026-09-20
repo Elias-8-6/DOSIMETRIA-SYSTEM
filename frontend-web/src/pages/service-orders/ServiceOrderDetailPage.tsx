@@ -325,6 +325,7 @@ export default function ServiceOrderDetailPage() {
           order={order}
           initialDocument={selectedDoc}
           onClose={() => setShowDocModal(false)}
+          onOrderUpdated={(updated) => setOrder(updated)}
         />
       )}
     </div>

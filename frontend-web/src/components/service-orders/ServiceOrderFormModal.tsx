@@ -313,6 +313,7 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
             order={createdOrderDetail}
             initialDocument={previewDocType}
             onClose={() => setShowDocModal(false)}
+            onOrderUpdated={(updated) => setCreatedOrderDetail(updated)}
           />
         )}
       </>

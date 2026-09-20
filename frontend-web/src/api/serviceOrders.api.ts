@@ -74,6 +74,7 @@ export interface ServiceOrderDetail {
   observations: string | null;
   created_at: string;
   created_by: string | null;
+  document_data?: ServiceOrderDocumentData | null;
   clients: {
     id: string;
     code: string | null;
@@ -84,6 +85,42 @@ export interface ServiceOrderDetail {
     contact_email: string | null;
   } | null;
   service_order_items: ServiceOrderItem[];
+}
+
+export interface Repdos01DocumentData {
+  company_signee?: string;
+  company_role?: string;
+  client_signee?: string;
+  client_role?: string;
+  period_label?: string;
+  lot_number?: string;
+  institution_number?: string;
+  observations?: string;
+  delayed_dosimeters_notes?: string;
+  background_rad?: string;
+  measured_contamination?: string;
+  consultation_phones?: string;
+}
+
+export interface DeliveryNoteDocumentData {
+  letter_city_date?: string;
+  legal_signee?: string;
+  legal_id?: string;
+  legal_role?: string;
+  catalog_code?: string;
+  catalog_description?: string;
+  brand_name?: string;
+  account_number?: string;
+  recipient_name?: string;
+  recipient_title?: string;
+  recipient_institution?: string;
+  recipient_address?: string;
+  closing_phrase?: string;
+}
+
+export interface ServiceOrderDocumentData {
+  repdos01?: Repdos01DocumentData;
+  delivery_note?: DeliveryNoteDocumentData;
 }
 
 export interface CreateServiceOrderItemPayload {
@@ -202,4 +239,16 @@ export const searchDosimetersForOrder = async (
   );
   return data;
 };
+
+export const updateServiceOrderDocumentData = async (
+  id: string,
+  document_data: ServiceOrderDocumentData,
+): Promise<{ id: string; document_data: ServiceOrderDocumentData }> => {
+  const { data } = await api.patch<{ id: string; document_data: ServiceOrderDocumentData }>(
+    `/service-orders/${id}/document-data`,
+    { document_data },
+  );
+  return data;
+};
+
 

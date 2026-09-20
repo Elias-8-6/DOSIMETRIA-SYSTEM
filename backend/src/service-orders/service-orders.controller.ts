@@ -18,6 +18,7 @@ import { UpdateServiceOrderDto } from './dto/update-service-order.dto';
 import { UpdateServiceOrderStatusDto } from './dto/update-service-order-status.dto';
 import { CreateServiceOrderItemDto } from './dto/create-service-order-item.dto';
 import { QueryServiceOrdersDto } from './dto/query-service-orders.dto';
+import { UpdateServiceOrderDocumentDataDto } from './dto/update-service-order-document-data.dto';
 import { JwtGuard } from '@common/guards/jwt.guard';
 import { PermissionsGuard } from '@common/guards/permissions.guard';
 import { CheckPermission } from '@common/decorators/check-permission.decorator';
@@ -83,6 +84,17 @@ export class ServiceOrdersController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.serviceOrdersService.update(id, dto, user.organization_id, user.sub);
+  }
+
+  @Patch(':id/document-data')
+  @HttpCode(HttpStatus.OK)
+  @CheckPermission('service_orders', 'update')
+  updateDocumentData(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateServiceOrderDocumentDataDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.serviceOrdersService.updateDocumentData(id, dto, user.organization_id, user.sub);
   }
 
   @Patch(':id/status')

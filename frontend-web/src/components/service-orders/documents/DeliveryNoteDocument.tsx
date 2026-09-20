@@ -13,13 +13,14 @@ interface Props {
 
 export function DeliveryNoteDocument({
   order,
-  catalogCode = 'TLD-XBGN',
-  catalogDescription = 'DOSIMETRO DE CUERPO ENTERO',
-  brandName = 'Radetco',
-  legalSignee = 'Guillermo Ungo',
-  legalId = 'E-8-49486',
-  legalRole = 'Apoderado Legal',
+  catalogCode: propCatalogCode,
+  catalogDescription: propCatalogDescription,
+  brandName: propBrandName,
+  legalSignee: propLegalSignee,
+  legalId: propLegalId,
+  legalRole: propLegalRole,
 }: Props) {
+  const doc = order.document_data?.delivery_note;
   const items = order.service_order_items || [];
   const client = order.clients;
 
@@ -33,7 +34,21 @@ export function DeliveryNoteDocument({
   ];
   const month = monthNames[dateObj.getMonth()] || 'febrero';
   const year = dateObj.getFullYear() || 2026;
-  const formattedDate = `Panamá, ${day} de ${month} del ${year}`;
+  const defaultCityDate = `Panamá, ${day} de ${month} del ${year}`;
+
+  const formattedDate = doc?.letter_city_date || defaultCityDate;
+  const catalogCode = doc?.catalog_code || propCatalogCode || 'TLD-XBGN';
+  const catalogDescription = doc?.catalog_description || propCatalogDescription || 'DOSIMETRO DE CUERPO ENTERO';
+  const brandName = doc?.brand_name || propBrandName || 'Radetco';
+  const legalSignee = doc?.legal_signee || propLegalSignee || 'Guillermo Ungo';
+  const legalId = doc?.legal_id || propLegalId || 'E-8-49486';
+  const legalRole = doc?.legal_role || propLegalRole || 'Apoderado Legal';
+  const accountNumber = doc?.account_number || client?.code || '153825';
+  const recipientTitle = doc?.recipient_title || 'Estimado';
+  const recipientName = doc?.recipient_name || client?.contact_name || 'Dr. Alexander Esquivel';
+  const recipientInstitution = doc?.recipient_institution || client?.name || 'Universidad Tecnológica de Panamá';
+  const recipientAddress = doc?.recipient_address ?? client?.address ?? '';
+  const closingPhrase = doc?.closing_phrase || 'Sin más que agregar.';
 
   return (
     <div className="bg-white text-black p-10 max-w-[850px] mx-auto border border-gray-300 shadow-sm print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none text-sm font-sans flex flex-col justify-between min-h-[950px]">
@@ -59,10 +74,10 @@ export function DeliveryNoteDocument({
 
         {/* Destinatario */}
         <div className="mt-8 text-xs text-gray-900 space-y-0.5 leading-relaxed">
-          <p>Estimado</p>
-          <p className="font-bold">{client?.contact_name || 'Dr. Alexander Esquivel'}</p>
-          <p className="font-semibold">{client?.name || 'Universidad Tecnológica de Panamá'}</p>
-          {client?.address && <p className="text-gray-700">{client.address}</p>}
+          <p>{recipientTitle}</p>
+          <p className="font-bold">{recipientName}</p>
+          <p className="font-semibold">{recipientInstitution}</p>
+          {recipientAddress && <p className="text-gray-700">{recipientAddress}</p>}
           <p className="font-bold tracking-wider pt-0.5">E.S.D.</p>
         </div>
 
@@ -100,7 +115,7 @@ export function DeliveryNoteDocument({
                   {items.length}
                 </td>
                 <td className="py-2 px-3 font-mono">
-                  {client?.code || '153825'}
+                  {accountNumber}
                 </td>
               </tr>
             </tbody>
@@ -113,7 +128,7 @@ export function DeliveryNoteDocument({
             <span className="font-bold">Marca: </span>
             <span>{brandName}</span>
           </p>
-          <p className="pt-2">Sin más que agregar.</p>
+          <p className="pt-2">{closingPhrase}</p>
         </div>
 
         {/* Firma del Emisor y Recibido */}
