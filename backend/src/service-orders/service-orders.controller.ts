@@ -44,6 +44,15 @@ export class ServiceOrdersController {
     );
   }
 
+  @Get('clients/:clientId/dosimeters')
+  @CheckPermission('service_orders', 'read')
+  getClientDosimeters(
+    @Param('clientId', ParseUUIDPipe) clientId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.serviceOrdersService.getClientDosimeters(clientId, user.organization_id);
+  }
+
   @Get(':id')
   @CheckPermission('service_orders', 'read')
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {

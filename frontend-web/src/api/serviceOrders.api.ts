@@ -24,11 +24,43 @@ export interface ServiceOrder {
   items_count: number;
 }
 
+export interface ServiceOrderDosimeterWorker {
+  id: string;
+  full_name: string;
+  document_number: string | null;
+}
+
+export interface ServiceOrderDosimeterType {
+  id: string;
+  code: string;
+  name: string;
+  technology: string;
+}
+
+export interface ClientDosimeterItem {
+  dosimeter_id: string;
+  serial_number: string;
+  internal_code: string | null;
+  model: string | null;
+  manufacturer: string | null;
+  dosimeter_type: ServiceOrderDosimeterType | null;
+  status: { id: string; code: string; name: string } | null;
+  worker: ServiceOrderDosimeterWorker | null;
+}
+
 export interface ServiceOrderItem {
   id: string;
   requested_action: RequestedAction;
   status: string;
-  dosimeters: { id: string; serial_number: string; internal_code: string | null };
+  dosimeters: {
+    id: string;
+    serial_number: string;
+    internal_code: string | null;
+    model?: string | null;
+    manufacturer?: string | null;
+    dosimeter_types?: ServiceOrderDosimeterType | null;
+    assigned_worker?: ServiceOrderDosimeterWorker | null;
+  };
 }
 
 export interface ServiceOrderDetail {
@@ -46,6 +78,8 @@ export interface ServiceOrderDetail {
     id: string;
     code: string | null;
     name: string;
+    address?: string | null;
+    phone?: string | null;
     contact_name: string | null;
     contact_email: string | null;
   } | null;
@@ -136,5 +170,10 @@ export const removeServiceOrderItem = async (
   itemId: string,
 ): Promise<{ id: string; removed: boolean }> => {
   const { data } = await api.delete(`/service-orders/${id}/items/${itemId}`);
+  return data;
+};
+
+export const getClientDosimeters = async (clientId: string): Promise<ClientDosimeterItem[]> => {
+  const { data } = await api.get<ClientDosimeterItem[]>(`/service-orders/clients/${clientId}/dosimeters`);
   return data;
 };

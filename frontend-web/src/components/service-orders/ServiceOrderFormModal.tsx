@@ -9,8 +9,15 @@ import type {
   ServiceType,
   Priority,
   RequestedAction,
+  ClientDosimeterItem,
+  ServiceOrderDetail,
 } from '../../api/serviceOrders.api';
-import { createServiceOrder } from '../../api/serviceOrders.api';
+import {
+  createServiceOrder,
+  getClientDosimeters,
+  getServiceOrder,
+} from '../../api/serviceOrders.api';
+import { DocumentPreviewModal } from './documents/DocumentPreviewModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
@@ -55,6 +62,9 @@ const sectionHead = (label: string, color: string) => (
 interface DraftItem {
   dosimeter_id: string;
   serial_number: string;
+  worker_name?: string;
+  worker_id?: string;
+  type_code?: string;
   requested_action: RequestedAction;
 }
 
@@ -68,6 +78,9 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
   const [observations, setObservations] = useState('');
 
   const [items, setItems] = useState<DraftItem[]>([]);
+  const [clientDosimeters, setClientDosimeters] = useState<ClientDosimeterItem[]>([]);
+  const [loadingClientDosimeters, setLoadingClientDosimeters] = useState(false);
+
   const [dosimeterSearch, setDosimeterSearch] = useState('');
   const [dosimeterOptions, setDosimeterOptions] = useState<Dosimeter[]>([]);
   const [dosimeterId, setDosimeterId] = useState('');
@@ -76,6 +89,10 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [createdOrderDetail, setCreatedOrderDetail] = useState<ServiceOrderDetail | null>(null);
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [previewDocType, setPreviewDocType] = useState<'repdos01' | 'deliveryNote'>('repdos01');
+
   const debouncedSearch = useDebounce(dosimeterSearch, 300);
 
   useEffect(() => {
@@ -83,6 +100,18 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
       .then((res) => setClients(res.items))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!clientId) {
+      setClientDosimeters([]);
+      return;
+    }
+    setLoadingClientDosimeters(true);
+    getClientDosimeters(clientId)
+      .then((dos) => setClientDosimeters(dos))
+      .catch(() => setClientDosimeters([]))
+      .finally(() => setLoadingClientDosimeters(false));
+  }, [clientId]);
 
   useEffect(() => {
     getDosimeters({ search: debouncedSearch || undefined, limit: 20 })
@@ -102,11 +131,46 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
       {
         dosimeter_id: dosimeterId,
         serial_number: dosimeter?.serial_number ?? dosimeterId,
+        type_code: dosimeter?.dosimeter_types?.code,
         requested_action: requestedAction,
       },
     ]);
     setDosimeterId('');
     setDosimeterSearch('');
+    setError('');
+  };
+
+  const handleAddClientDosimeter = (cd: ClientDosimeterItem) => {
+    if (items.some((item) => item.dosimeter_id === cd.dosimeter_id)) return;
+    setItems((prev) => [
+      ...prev,
+      {
+        dosimeter_id: cd.dosimeter_id,
+        serial_number: cd.serial_number,
+        worker_name: cd.worker?.full_name,
+        worker_id: cd.worker?.document_number || undefined,
+        type_code: cd.dosimeter_type?.code || cd.model || undefined,
+        requested_action: requestedAction,
+      },
+    ]);
+    setError('');
+  };
+
+  const handleAddAllClientDosimeters = () => {
+    const newItems: DraftItem[] = [];
+    for (const cd of clientDosimeters) {
+      if (!items.some((item) => item.dosimeter_id === cd.dosimeter_id)) {
+        newItems.push({
+          dosimeter_id: cd.dosimeter_id,
+          serial_number: cd.serial_number,
+          worker_name: cd.worker?.full_name,
+          worker_id: cd.worker?.document_number || undefined,
+          type_code: cd.dosimeter_type?.code || cd.model || undefined,
+          requested_action: requestedAction,
+        });
+      }
+    }
+    setItems((prev) => [...prev, ...newItems]);
     setError('');
   };
 
@@ -157,8 +221,9 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
       if (dueDate) payload.due_date = dueDate;
       if (observations) payload.observations = observations;
 
-      await createServiceOrder(payload);
-      onClose();
+      const created = await createServiceOrder(payload);
+      const fullDetail = await getServiceOrder(created.id);
+      setCreatedOrderDetail(fullDetail);
       onSuccess();
     } catch (err) {
       setError(extractApiError(err, 'Error al crear la orden de servicio'));
@@ -166,6 +231,93 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
       setLoading(false);
     }
   };
+
+  if (createdOrderDetail) {
+    return (
+      <>
+        <Modal title="Orden de servicio creada" onClose={onClose} maxWidth="max-w-2xl">
+          <div className="p-6 space-y-6 text-center">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+              ✓
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                ¡Orden {createdOrderDetail.order_number} creada con éxito!
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Cliente: <strong>{createdOrderDetail.clients?.name}</strong> ·{' '}
+                {createdOrderDetail.service_order_items?.length} dosímetro(s) incluidos.
+              </p>
+            </div>
+
+            <div className="bg-blue-50/60 border border-blue-200 rounded-xl p-5 text-left space-y-3">
+              <h3 className="text-xs font-bold text-blue-900 uppercase tracking-wider">
+                Documentación física oficial generada
+              </h3>
+              <p className="text-xs text-blue-700">
+                Podés ver e imprimir de inmediato los documentos generados con los datos de esta orden:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewDocType('repdos01');
+                    setShowDocModal(true);
+                  }}
+                  className="p-3 rounded-lg border border-blue-300 bg-white hover:bg-blue-50 text-left transition-all shadow-xs cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📄</span>
+                    <span className="text-xs font-bold text-gray-900 group-hover:text-blue-700">
+                      Formulario REPDOS-01
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    Entrega y recibo de dosímetros por usuario y PIN (REPDOS-01).
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewDocType('deliveryNote');
+                    setShowDocModal(true);
+                  }}
+                  className="p-3 rounded-lg border border-purple-300 bg-white hover:bg-purple-50 text-left transition-all shadow-xs cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📦</span>
+                    <span className="text-xs font-bold text-gray-900 group-hover:text-purple-700">
+                      Nota de Entrega
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    Carta membretada formal de entrega de mercancía.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+              <Button variant="secondary" onClick={onClose}>
+                Finalizar y cerrar
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {showDocModal && (
+          <DocumentPreviewModal
+            order={createdOrderDetail}
+            initialDocument={previewDocType}
+            onClose={() => setShowDocModal(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <Modal title="Nueva orden de servicio" onClose={onClose} maxWidth="max-w-3xl">
@@ -230,6 +382,7 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
                 onChange={(e) => setObservations(e.target.value)}
                 maxLength={500}
                 rows={2}
+                placeholder="Notas de entrega, período o instrucciones especiales..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -239,14 +392,71 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
         <div>
           {sectionHead('Dosímetros solicitados', 'bg-violet-400')}
 
+          {/* Dosímetros asignados al cliente (si existen) */}
+          {clientId && (
+            <div className="mb-4 p-3 bg-blue-50/60 border border-blue-200 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-blue-900">
+                  Dosímetros activos asignados al cliente ({clientDosimeters.length})
+                </span>
+                {clientDosimeters.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleAddAllClientDosimeters}
+                    className="text-xs text-blue-700 font-semibold hover:text-blue-900 underline cursor-pointer"
+                  >
+                    + Agregar todos ({clientDosimeters.length})
+                  </button>
+                )}
+              </div>
+
+              {loadingClientDosimeters ? (
+                <p className="text-xs text-gray-400 py-1">Cargando dosímetros del cliente...</p>
+              ) : clientDosimeters.length === 0 ? (
+                <p className="text-xs text-gray-500 italic">
+                  Este cliente no tiene dosímetros actualmente asignados. Podés agregar dosímetros individualmente abajo.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pt-1">
+                  {clientDosimeters.map((cd) => {
+                    const isAdded = items.some((i) => i.dosimeter_id === cd.dosimeter_id);
+                    return (
+                      <button
+                        key={cd.dosimeter_id}
+                        type="button"
+                        disabled={isAdded}
+                        onClick={() => handleAddClientDosimeter(cd)}
+                        className={`px-2.5 py-1 text-xs rounded-lg border text-left transition-colors cursor-pointer flex items-center gap-1.5 ${
+                          isAdded
+                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                            : 'bg-white text-gray-800 border-blue-200 hover:border-blue-400 hover:bg-blue-50'
+                        }`}
+                        title={cd.worker?.full_name ? `Usuario: ${cd.worker.full_name}` : 'Sin usuario asignado'}
+                      >
+                        <span className="font-mono font-medium">{cd.serial_number}</span>
+                        {cd.worker?.full_name && (
+                          <span className="text-gray-500 font-normal">
+                            ({cd.worker.full_name.split(' ')[0]})
+                          </span>
+                        )}
+                        {isAdded && <span className="text-green-600 font-bold">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Búsqueda manual de dosímetros */}
           <div className="flex gap-2 items-end mb-3">
             <div className="flex-1">
               <Input
-                label="Buscar dosímetro"
+                label="Buscar otro dosímetro"
                 type="text"
                 value={dosimeterSearch}
                 onChange={(e) => setDosimeterSearch(e.target.value)}
-                placeholder="Serie o código interno..."
+                placeholder="Serie o código interno (ej. Control de Área)..."
               />
             </div>
             <div className="flex-1">
@@ -277,25 +487,38 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
             </Button>
           </div>
 
+          {/* Lista de dosímetros en la orden */}
           {items.length === 0 ? (
-            <p className="text-sm text-gray-400">Sin dosímetros agregados</p>
+            <p className="text-sm text-gray-400 py-3 text-center border border-dashed border-gray-200 rounded-lg">
+              Sin dosímetros agregados a esta orden
+            </p>
           ) : (
-            <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
+            <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-56 overflow-y-auto">
               {items.map((item) => (
                 <div
                   key={item.dosimeter_id}
-                  className="flex items-center justify-between px-3 py-2 text-sm"
+                  className="flex items-center justify-between px-3.5 py-2.5 text-xs hover:bg-gray-50/50"
                 >
-                  <span className="text-gray-800">
-                    {item.serial_number}{' '}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-bold text-gray-900">{item.serial_number}</span>
+                    {item.worker_name ? (
+                      <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium border border-blue-100">
+                        {item.worker_name}
+                        {item.worker_id && <span className="text-blue-500 ml-1">· ID: {item.worker_id}</span>}
+                      </span>
+                    ) : (
+                      <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                        Control / Sin usuario
+                      </span>
+                    )}
                     <span className="text-gray-400">
                       — {REQUESTED_ACTIONS.find((a) => a.value === item.requested_action)?.label}
                     </span>
-                  </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveItem(item.dosimeter_id)}
-                    className="text-red-600 hover:text-red-700 cursor-pointer text-xs"
+                    className="text-red-600 hover:text-red-700 cursor-pointer text-xs font-medium ml-2"
                   >
                     Quitar
                   </button>
@@ -311,13 +534,18 @@ export function ServiceOrderFormModal({ onClose, onSuccess }: Props) {
           </div>
         )}
 
-        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-          <Button variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Creando...' : 'Crear orden'}
-          </Button>
+        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+          <span className="text-xs text-gray-500">
+            Total dosímetros: <strong>{items.length}</strong>
+          </span>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Creando orden...' : 'Crear orden y generar documentos'}
+            </Button>
+          </div>
         </div>
       </form>
     </Modal>

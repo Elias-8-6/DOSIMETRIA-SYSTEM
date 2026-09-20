@@ -2,9 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ServiceOrder } from '../../api/serviceOrders.api';
 import { getServiceOrders } from '../../api/serviceOrders.api';
-import { ServiceOrderFormModal } from '../../components/service-orders/ServiceOrderFormModal';
 import { useDebounce } from '../../hooks/useDebounce';
-import { useToast } from '../../hooks/useToast';
 import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
 import { Button } from '../../components/ui/Button';
@@ -22,7 +20,6 @@ const PAGE_SIZE = 10;
 
 export default function ServiceOrdersPage() {
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const { hasPermission } = useAuth();
 
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
@@ -34,8 +31,6 @@ export default function ServiceOrdersPage() {
   const [priorityFilter, setPriorityFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [modalKey, setModalKey] = useState(0);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -68,11 +63,6 @@ export default function ServiceOrdersPage() {
     setPage(1);
   }, [debouncedSearch, statusFilter, serviceTypeFilter, priorityFilter]);
 
-  const handleFormSuccess = useCallback(() => {
-    showToast('Orden de servicio creada correctamente');
-    fetchOrders();
-  }, [fetchOrders, showToast]);
-
   return (
     <div className="p-6">
       <PageHeader
@@ -80,12 +70,7 @@ export default function ServiceOrdersPage() {
         subtitle="Solicitudes de procesamiento de dosímetros"
         action={
           hasPermission('service_orders', 'create') && (
-            <Button
-              onClick={() => {
-                setModalKey((k) => k + 1);
-                setFormModalOpen(true);
-              }}
-            >
+            <Button onClick={() => navigate('/service-orders/new')}>
               Nueva orden
             </Button>
           )
@@ -196,13 +181,6 @@ export default function ServiceOrdersPage() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </DataTable>
 
-      {formModalOpen && (
-        <ServiceOrderFormModal
-          key={modalKey}
-          onClose={() => setFormModalOpen(false)}
-          onSuccess={handleFormSuccess}
-        />
-      )}
     </div>
   );
 }
