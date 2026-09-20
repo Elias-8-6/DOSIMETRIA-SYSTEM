@@ -10,6 +10,7 @@ import { CancelServiceOrderUseCase } from './use-cases/cancel-service-order.use-
 import { AddServiceOrderItemUseCase } from './use-cases/add-service-order-item.use-case';
 import { RemoveServiceOrderItemUseCase } from './use-cases/remove-service-order-item.use-case';
 import { GetClientDosimetersUseCase } from './use-cases/get-client-dosimeters.use-case';
+import { SearchDosimetersForOrderUseCase } from './use-cases/search-dosimeters-for-order.use-case';
 
 @Module({
   controllers: [ServiceOrdersController],
@@ -24,6 +25,7 @@ import { GetClientDosimetersUseCase } from './use-cases/get-client-dosimeters.us
     AddServiceOrderItemUseCase,
     RemoveServiceOrderItemUseCase,
     GetClientDosimetersUseCase,
+    SearchDosimetersForOrderUseCase,
   ],
 })
 export class ServiceOrdersModule {}

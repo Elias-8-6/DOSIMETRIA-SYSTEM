@@ -41,9 +41,14 @@ export class CreateServiceOrderUseCase {
     for (const item of dto.items) {
       const owned = await this.orgScope.isDosimeterOwnedByClient(item.dosimeter_id, dto.client_id);
       if (!owned) {
-        throw new BadRequestException(
-          `El dosímetro ${item.dosimeter_id} no pertenece a este cliente`,
-        );
+        const allowed = this.orgScope.isDosimeterAvailableForClientOrder
+          ? await this.orgScope.isDosimeterAvailableForClientOrder(item.dosimeter_id, dto.client_id)
+          : false;
+        if (!allowed) {
+          throw new BadRequestException(
+            `El dosímetro ${item.dosimeter_id} no pertenece a este cliente`,
+          );
+        }
       }
     }
 

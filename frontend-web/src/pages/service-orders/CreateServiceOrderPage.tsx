@@ -3,19 +3,19 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Client } from '../../api/clients.api';
 import { getClients } from '../../api/clients.api';
-import type { Dosimeter } from '../../api/dosimeters.api';
-import { getDosimeters } from '../../api/dosimeters.api';
 import type {
   CreateServiceOrderPayload,
   ServiceType,
   Priority,
   RequestedAction,
   ClientDosimeterItem,
+  SearchDosimeterResult,
   ServiceOrderDetail,
 } from '../../api/serviceOrders.api';
 import {
   createServiceOrder,
   getClientDosimeters,
+  searchDosimetersForOrder,
   getServiceOrder,
 } from '../../api/serviceOrders.api';
 import { DocumentPreviewModal } from '../../components/service-orders/documents/DocumentPreviewModal';
@@ -73,7 +73,8 @@ export default function CreateServiceOrderPage() {
   const [loadingClientDosimeters, setLoadingClientDosimeters] = useState(false);
 
   const [dosimeterSearch, setDosimeterSearch] = useState('');
-  const [dosimeterOptions, setDosimeterOptions] = useState<Dosimeter[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchDosimeterResult[]>([]);
+  const [searchingDosimeters, setSearchingDosimeters] = useState(false);
   const [dosimeterId, setDosimeterId] = useState('');
   const [requestedAction, setRequestedAction] = useState<RequestedAction>('lectura');
 
@@ -105,29 +106,58 @@ export default function CreateServiceOrderPage() {
   }, [clientId]);
 
   useEffect(() => {
-    getDosimeters({ search: debouncedSearch || undefined, limit: 20 })
-      .then((res) => setDosimeterOptions(res.items))
-      .catch(() => setDosimeterOptions([]));
-  }, [debouncedSearch]);
+    if (!clientId || !debouncedSearch.trim()) {
+      setSearchResults([]);
+      setSearchingDosimeters(false);
+      return;
+    }
+    setSearchingDosimeters(true);
+    searchDosimetersForOrder(clientId, debouncedSearch.trim())
+      .then((res) => {
+        // Filtrar solo los 3 casos requeridos: cliente actual, sin asignar, laboratorio
+        const filtered = res.filter((r) => r.origin !== 'other_client');
+        setSearchResults(filtered);
+      })
+      .catch(() => setSearchResults([]))
+      .finally(() => setSearchingDosimeters(false));
+  }, [clientId, debouncedSearch]);
 
-  const handleAddItem = () => {
+  const handleAddDropdownDosimeter = () => {
     if (!dosimeterId) return;
     if (items.some((item) => item.dosimeter_id === dosimeterId)) {
       setError('Este dosímetro ya está en la orden');
       return;
     }
-    const dosimeter = dosimeterOptions.find((d) => d.id === dosimeterId);
+    const cd = clientDosimeters.find((d) => d.dosimeter_id === dosimeterId);
+    if (!cd) return;
     setItems((prev) => [
       ...prev,
       {
-        dosimeter_id: dosimeterId,
-        serial_number: dosimeter?.serial_number ?? dosimeterId,
-        type_code: dosimeter?.dosimeter_types?.code,
+        dosimeter_id: cd.dosimeter_id,
+        serial_number: cd.serial_number,
+        worker_name: cd.worker?.full_name,
+        worker_id: cd.worker?.document_number || undefined,
+        type_code: cd.dosimeter_type?.code || cd.model || undefined,
         requested_action: requestedAction,
       },
     ]);
     setDosimeterId('');
-    setDosimeterSearch('');
+    setError('');
+  };
+
+  const handleAddSearchResult = (result: SearchDosimeterResult) => {
+    if (items.some((item) => item.dosimeter_id === result.id)) return;
+    setItems((prev) => [
+      ...prev,
+      {
+        dosimeter_id: result.id,
+        serial_number: result.serial_number,
+        worker_name: result.assigned_worker?.full_name,
+        worker_id: result.assigned_worker?.document_number || undefined,
+        type_code: result.dosimeter_type?.code || result.model || undefined,
+        requested_action: requestedAction,
+      },
+    ]);
     setError('');
   };
 
@@ -391,7 +421,15 @@ export default function CreateServiceOrderPage() {
             <Select
               label="Cliente / Institución"
               value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+              onChange={(e) => {
+                const newId = e.target.value;
+                setClientId(newId);
+                setItems([]);
+                setDosimeterId('');
+                setDosimeterSearch('');
+                setSearchResults([]);
+                setError('');
+              }}
               required
             >
               <option value="">Seleccionar institución cliente</option>
@@ -493,133 +531,275 @@ export default function CreateServiceOrderPage() {
           <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <SectionHead label="Dosímetros solicitados" />
-              <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
-                {items.length} seleccionado(s)
-              </span>
+              {clientId ? (
+                <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+                  {items.length} seleccionado(s)
+                </span>
+              ) : (
+                <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+                  Bloqueado
+                </span>
+              )}
             </div>
 
-            {/* Dosímetros asignados al cliente (si existen) */}
-            {clientId && (
-              <div className="p-4 bg-blue-50/60 border border-blue-200 rounded-xl space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <span className="text-xs font-bold text-blue-950 uppercase tracking-wide">
-                      Dosímetros activos del cliente
-                    </span>
-                    <span className="ml-2 text-xs text-blue-700 font-medium">
-                      ({clientDosimeters.length} disponibles)
-                    </span>
+            {!clientId ? (
+              <div className="py-14 px-6 border-2 border-dashed border-amber-200 bg-amber-50/40 rounded-xl text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold shadow-2xs">
+                  ⚠️
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-gray-900">
+                    Sección no disponible
+                  </h3>
+                  <p className="text-xs text-gray-600 max-w-md mx-auto">
+                    Debes seleccionar primero un <strong>Cliente / Institución</strong> en los datos generales de la orden para poder buscar y gestionar dosímetros.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Dosímetros asignados al cliente (si existen) */}
+                <div className="p-4 bg-blue-50/60 border border-blue-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-blue-950 uppercase tracking-wide">
+                        Dosímetros activos del cliente
+                      </span>
+                      <span className="ml-2 text-xs text-blue-700 font-medium">
+                        ({clientDosimeters.length} disponibles)
+                      </span>
+                    </div>
+                    {clientDosimeters.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleAddAllClientDosimeters}
+                        className="text-xs bg-blue-600 text-white hover:bg-blue-700 px-3 py-1 rounded-md font-semibold cursor-pointer shadow-xs transition-colors"
+                      >
+                        + Agregar todos ({clientDosimeters.length})
+                      </button>
+                    )}
                   </div>
-                  {clientDosimeters.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleAddAllClientDosimeters}
-                      className="text-xs bg-blue-600 text-white hover:bg-blue-700 px-3 py-1 rounded-md font-semibold cursor-pointer shadow-xs transition-colors"
-                    >
-                      + Agregar todos ({clientDosimeters.length})
-                    </button>
+
+                  {loadingClientDosimeters ? (
+                    <p className="text-xs text-gray-400 py-2">Consultando inventario del cliente...</p>
+                  ) : clientDosimeters.length === 0 ? (
+                    <p className="text-xs text-gray-600 italic">
+                      Este cliente no tiene dosímetros actualmente asignados a sus trabajadores. Podés agregar dosímetros individualmente abajo.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pt-1">
+                      {clientDosimeters.map((cd) => {
+                        const isAdded = items.some((i) => i.dosimeter_id === cd.dosimeter_id);
+                        return (
+                          <button
+                            key={cd.dosimeter_id}
+                            type="button"
+                            disabled={isAdded}
+                            onClick={() => handleAddClientDosimeter(cd)}
+                            className={`p-2 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between text-xs ${
+                              isAdded
+                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'bg-white text-gray-800 border-blue-200 hover:border-blue-400 hover:bg-blue-50 shadow-2xs'
+                            }`}
+                          >
+                            <div className="truncate pr-1">
+                              <p className="font-mono font-bold text-gray-900">
+                                {cd.serial_number}
+                              </p>
+                              <p className="text-[11px] text-gray-500 truncate">
+                                {cd.worker?.full_name || 'Sin usuario asignado'}
+                              </p>
+                            </div>
+                            {isAdded ? (
+                              <span className="text-green-600 font-bold text-xs">Agregado</span>
+                            ) : (
+                              <span className="text-blue-600 font-bold text-base">+</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
 
-                {loadingClientDosimeters ? (
-                  <p className="text-xs text-gray-400 py-2">Consultando inventario del cliente...</p>
-                ) : clientDosimeters.length === 0 ? (
-                  <p className="text-xs text-gray-600 italic">
-                    Este cliente no tiene dosímetros actualmente asignados a sus trabajadores. Podés agregar dosímetros individualmente abajo.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pt-1">
-                    {clientDosimeters.map((cd) => {
-                      const isAdded = items.some((i) => i.dosimeter_id === cd.dosimeter_id);
-                      return (
+                {/* Búsqueda por serie y desplegable de dosímetros */}
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-4">
+                  {/* Barra de búsqueda por serie */}
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Input
+                        label="Buscar por serie"
+                        type="text"
+                        value={dosimeterSearch}
+                        onChange={(e) => setDosimeterSearch(e.target.value)}
+                        placeholder="Buscar por serie o código (cliente actual, sin asignar, laboratorio)..."
+                      />
+                      {dosimeterSearch && (
                         <button
-                          key={cd.dosimeter_id}
                           type="button"
-                          disabled={isAdded}
-                          onClick={() => handleAddClientDosimeter(cd)}
-                          className={`p-2 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between text-xs ${
-                            isAdded
-                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                              : 'bg-white text-gray-800 border-blue-200 hover:border-blue-400 hover:bg-blue-50 shadow-2xs'
-                          }`}
+                          onClick={() => setDosimeterSearch('')}
+                          className="absolute right-3 top-8 text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
                         >
-                          <div className="truncate pr-1">
-                            <p className="font-mono font-bold text-gray-900">
-                              {cd.serial_number}
-                            </p>
-                            <p className="text-[11px] text-gray-500 truncate">
-                              {cd.worker?.full_name || 'Sin usuario asignado'}
-                            </p>
-                          </div>
-                          {isAdded ? (
-                            <span className="text-green-600 font-bold text-xs">Agregado</span>
-                          ) : (
-                            <span className="text-blue-600 font-bold text-base">+</span>
-                          )}
+                          ✕ Limpiar
                         </button>
-                      );
-                    })}
+                      )}
+                    </div>
+
+                    {/* Indicador de carga */}
+                    {searchingDosimeters && (
+                      <p className="text-xs text-blue-600 italic py-1">Buscando dosímetros...</p>
+                    )}
+
+                    {/* Resultados de búsqueda con etiquetas de color */}
+                    {!searchingDosimeters && dosimeterSearch.trim().length > 0 && (
+                      <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-xs space-y-2">
+                        <div className="flex items-center justify-between text-xs text-gray-500 border-b border-gray-100 pb-1.5">
+                          <span>Resultados encontrados: {searchResults.length}</span>
+                          <div className="flex items-center gap-2 text-[10px]">
+                            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Cliente
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
+                              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block"></span> Sin asignar
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-purple-700 font-medium">
+                              <span className="w-2 h-2 rounded-full bg-purple-500 inline-block"></span> Laboratorio
+                            </span>
+                          </div>
+                        </div>
+
+                        {searchResults.length === 0 ? (
+                          <p className="text-xs text-gray-500 italic py-2 text-center">
+                            No se encontraron dosímetros para &quot;{dosimeterSearch}&quot;.
+                          </p>
+                        ) : (
+                          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                            {searchResults.map((res) => {
+                              const isAdded = items.some((i) => i.dosimeter_id === res.id);
+                              return (
+                                <div
+                                  key={res.id}
+                                  className={`p-2.5 rounded-lg border flex items-center justify-between gap-3 text-xs transition-colors ${
+                                    isAdded
+                                      ? 'bg-gray-50 border-gray-200 opacity-65'
+                                      : 'bg-white border-gray-200 hover:border-blue-300'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 truncate flex-wrap">
+                                    <span className="font-mono font-bold text-gray-900">
+                                      {res.serial_number}
+                                    </span>
+                                    {res.internal_code && (
+                                      <span className="text-[11px] text-gray-500 font-mono">
+                                        ({res.internal_code})
+                                      </span>
+                                    )}
+
+                                    {/* Etiqueta de color según categoría de pertenencia */}
+                                    {res.origin === 'client' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        Cliente actual
+                                      </span>
+                                    )}
+                                    {res.origin === 'unassigned' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                                        Sin asignar
+                                      </span>
+                                    )}
+                                    {res.origin === 'laboratory' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                                        Laboratorio
+                                      </span>
+                                    )}
+
+                                    {/* Etiqueta de estado actual */}
+                                    {res.status && (
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                                        [{res.status.name || res.status.code}]
+                                      </span>
+                                    )}
+
+                                    {res.assigned_worker && (
+                                      <span className="text-[11px] text-gray-600 truncate max-w-[150px]">
+                                        • {res.assigned_worker.full_name}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div>
+                                    {isAdded ? (
+                                      <span className="text-green-600 font-bold text-xs px-2 py-1">
+                                        Agregado
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddSearchResult(res)}
+                                        className="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded-md font-semibold text-xs transition-colors cursor-pointer border border-blue-200 shadow-2xs"
+                                      >
+                                        + Agregar
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  {/* Barra desplegable: SOLO dosímetros del cliente con etiqueta de estado */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end pt-2 border-t border-gray-200">
+                    <div className="sm:col-span-6">
+                      <Select
+                        label="Dosímetro del cliente (desplegable)"
+                        value={dosimeterId}
+                        onChange={(e) => setDosimeterId(e.target.value)}
+                      >
+                        <option value="">
+                          Seleccionar dosímetro del cliente ({clientDosimeters.length} disponibles)
+                        </option>
+                        {clientDosimeters.map((cd) => {
+                          const statusLabel = cd.status?.name || cd.status?.code || 'ASIGNADO';
+                          const workerText = cd.worker?.full_name ? ` (${cd.worker.full_name})` : '';
+                          return (
+                            <option key={cd.dosimeter_id} value={cd.dosimeter_id}>
+                              {cd.serial_number}{workerText} [{statusLabel}]
+                            </option>
+                          );
+                        })}
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-3">
+                      <Select
+                        label="Acción"
+                        value={requestedAction}
+                        onChange={(e) => setRequestedAction(e.target.value as RequestedAction)}
+                      >
+                        {REQUESTED_ACTIONS.map((a) => (
+                          <option key={a.value} value={a.value}>
+                            {a.label}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-3 flex gap-2 items-end">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleAddDropdownDosimeter}
+                        disabled={!dosimeterId}
+                        className="w-full"
+                      >
+                        + Agregar a orden
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
-
-            {/* Búsqueda manual de otro dosímetro */}
-            <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
-              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                Búsqueda manual (dosímetros adicionales o controles)
-              </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                <div className="sm:col-span-4">
-                  <Input
-                    label="Buscar por serie"
-                    type="text"
-                    value={dosimeterSearch}
-                    onChange={(e) => setDosimeterSearch(e.target.value)}
-                    placeholder="Serie o código interno..."
-                  />
-                </div>
-                <div className="sm:col-span-4">
-                  <Select
-                    label="Dosímetro"
-                    value={dosimeterId}
-                    onChange={(e) => setDosimeterId(e.target.value)}
-                  >
-                    <option value="">Seleccionar</option>
-                    {dosimeterOptions.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.serial_number} {d.internal_code ? `(${d.internal_code})` : ''}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="sm:col-span-2">
-                  <Select
-                    label="Acción"
-                    value={requestedAction}
-                    onChange={(e) => setRequestedAction(e.target.value as RequestedAction)}
-                  >
-                    {REQUESTED_ACTIONS.map((a) => (
-                      <option key={a.value} value={a.value}>
-                        {a.label}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="sm:col-span-2 flex gap-2 items-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleAddItem}
-                    disabled={!dosimeterId}
-                    className="w-full"
-                  >
-                    Agregar
-                  </Button>
-                </div>
-              </div>
-            </div>
 
             {/* Tabla Principal de Ítems en la Orden */}
             <div>

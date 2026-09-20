@@ -177,3 +177,29 @@ export const getClientDosimeters = async (clientId: string): Promise<ClientDosim
   const { data } = await api.get<ClientDosimeterItem[]>(`/service-orders/clients/${clientId}/dosimeters`);
   return data;
 };
+
+export type DosimeterOrigin = 'client' | 'unassigned' | 'laboratory' | 'other_client';
+
+export interface SearchDosimeterResult {
+  id: string;
+  serial_number: string;
+  internal_code: string | null;
+  model: string | null;
+  manufacturer: string | null;
+  origin: DosimeterOrigin;
+  dosimeter_type: ServiceOrderDosimeterType | null;
+  status: { id: string; code: string; name: string } | null;
+  assigned_worker: ServiceOrderDosimeterWorker | null;
+}
+
+export const searchDosimetersForOrder = async (
+  clientId: string,
+  q?: string,
+): Promise<SearchDosimeterResult[]> => {
+  const { data } = await api.get<SearchDosimeterResult[]>(
+    `/service-orders/clients/${clientId}/search-dosimeters`,
+    { params: { q: q?.trim() || undefined } },
+  );
+  return data;
+};
+

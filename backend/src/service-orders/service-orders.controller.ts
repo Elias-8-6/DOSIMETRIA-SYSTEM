@@ -53,6 +53,16 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.getClientDosimeters(clientId, user.organization_id);
   }
 
+  @Get('clients/:clientId/search-dosimeters')
+  @CheckPermission('service_orders', 'read')
+  searchDosimetersForOrder(
+    @Param('clientId', ParseUUIDPipe) clientId: string,
+    @Query('q') q: string | undefined,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.serviceOrdersService.searchDosimetersForOrder(clientId, user.organization_id, q);
+  }
+
   @Get(':id')
   @CheckPermission('service_orders', 'read')
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
