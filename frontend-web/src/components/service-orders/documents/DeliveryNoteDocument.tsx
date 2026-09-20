@@ -164,7 +164,7 @@ export function DeliveryNoteDocument({
           <div className="w-5 h-5 rounded-full border border-gray-400 flex items-center justify-center font-bold text-[8px] text-gray-600">
             SGS
           </div>
-          <span>Sistema de Gestión de Calidad Certificado ISO 17025</span>
+          <span>Sistema de Gestión de Calidad Certificado</span>
         </div>
         <div className="text-right">
           <span>@lacasadelmedico · www.lacasadelmedico.com</span>

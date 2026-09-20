@@ -107,21 +107,6 @@ export function EditDocumentDataModal({
       maxWidth="max-w-3xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Banner de Trazabilidad ISO 17025 */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-start gap-3">
-          <span className="text-xl">🛡️</span>
-          <div className="text-xs space-y-0.5 text-blue-900">
-            <p className="font-bold uppercase tracking-wide">
-              Trazabilidad ISO/IEC 17025
-            </p>
-            <p className="text-blue-800">
-              Cualquier cambio en los datos de los documentos oficiales (firmas, cargos, lotes o metadatos)
-              quedará registrado de forma inmutable en la bitácora de auditoría (audit_logs), asociando el usuario,
-              la fecha y la diferencia de valores.
-            </p>
-          </div>
-        </div>
-
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">
             {error}
@@ -347,7 +332,7 @@ export function EditDocumentDataModal({
             Cancelar
           </Button>
           <Button type="submit" disabled={saving}>
-            {saving ? 'Guardando...' : '💾 Guardar cambios (ISO 17025)'}
+            {saving ? 'Guardando...' : '💾 Guardar cambios'}
           </Button>
         </div>
       </form>

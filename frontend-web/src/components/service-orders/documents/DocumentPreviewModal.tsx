@@ -131,10 +131,6 @@ export function DocumentPreviewModal({
               </label>
             </div>
           )}
-
-          <div className="text-[11px] text-gray-500 italic">
-            Formato fiel a la documentación física oficial (ISO/IEC 17025)
-          </div>
         </div>
 
         {/* Document Content View */}
@@ -153,7 +149,7 @@ export function DocumentPreviewModal({
         </div>
       </div>
 
-      {/* Modal de edición de datos de documentos con auditoría ISO 17025 */}
+      {/* Modal de edición de datos de documentos */}
       {showEditModal && (
         <EditDocumentDataModal
           order={currentOrder}
