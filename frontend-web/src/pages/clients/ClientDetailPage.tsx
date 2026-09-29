@@ -4,13 +4,17 @@ import type { Client, ClientLocation, ClientStatus } from '../../api/clients.api
 import { getClient, updateClientStatus, updateClientLocationStatus } from '../../api/clients.api';
 import { ClientFormModal } from '../../components/clients/ClientFormModal';
 import { LocationFormModal } from '../../components/clients/LocationFormModal';
+import { WorkerFormModal } from '../../components/workers/WorkerFormModal';
 import WorkersPage from '../workers/WorkersPage';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Button } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
 import { SectionHead } from '../../components/ui/SectionHead';
 import { CLIENT_TYPE_LABELS } from '../../constants/clients';
 import { formatDate } from '../../utils/date';
+import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../hooks/useToast';
 
 const RADIATION_LABELS: Record<string, string> = {
   rayos_x: 'Rayos X',
@@ -30,6 +34,8 @@ const RISK_BADGES: Record<string, string> = {
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const { showToast } = useToast();
 
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +55,12 @@ export default function ClientDetailPage() {
     open: boolean;
     location: ClientLocation | null;
   }>({ open: false, location: null });
+
+  // Modal trabajador
+  const [workerModalOpen, setWorkerModalOpen] = useState(false);
+  const [workerModalKey, setWorkerModalKey] = useState(0);
+  const [workerLocationId, setWorkerLocationId] = useState<string | undefined>(undefined);
+  const [workersRefreshKey, setWorkersRefreshKey] = useState(0);
 
   const fetchClient = useCallback(async () => {
     if (!id) return;
@@ -111,6 +123,23 @@ export default function ClientDetailPage() {
     setExpandedLocs((prev) => ({ ...prev, [locId]: !prev[locId] }));
   };
 
+  const handleOpenAddWorker = (locationId?: string) => {
+    if (!client) return;
+    if (client.client_locations.length === 0) {
+      showToast('Primero debe registrar al menos un departamento para este cliente', 'error');
+      return;
+    }
+    setWorkerLocationId(locationId);
+    setWorkerModalKey((k) => k + 1);
+    setWorkerModalOpen(true);
+  };
+
+  const handleWorkerCreated = () => {
+    showToast('Trabajador creado correctamente');
+    setWorkerModalOpen(false);
+    setWorkersRefreshKey((k) => k + 1);
+  };
+
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center py-20 text-gray-400 text-sm">
@@ -150,6 +179,14 @@ export default function ClientDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {hasPermission('workers', 'create') && (
+            <Button
+              accent="emerald"
+              onClick={() => handleOpenAddWorker()}
+            >
+              + Agregar trabajador
+            </Button>
+          )}
           <button
             onClick={() => {
               setEditClientKey((k) => k + 1);
@@ -280,6 +317,15 @@ export default function ClientDetailPage() {
                     </div>
                   </button>
                   <div className="flex items-center gap-2 ml-3 shrink-0">
+                    {hasPermission('workers', 'create') && (
+                      <button
+                        onClick={() => handleOpenAddWorker(loc.id)}
+                        className="text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer"
+                        title="Agregar trabajador a este departamento"
+                      >
+                        + Trabajador
+                      </button>
+                    )}
                     <button
                       onClick={() => setLocationModal({ open: true, location: loc })}
                       className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -307,7 +353,12 @@ export default function ClientDetailPage() {
                 {/* Workers del departamento — expandible */}
                 {expandedLocs[loc.id] && (
                   <div className="bg-gray-50 px-5 py-4 border-t border-gray-100">
-                    <WorkersPage clientId={client.id} clientLocationId={loc.id} embedded />
+                    <WorkersPage
+                      key={`${loc.id}-${workersRefreshKey}`}
+                      clientId={client.id}
+                      clientLocationId={loc.id}
+                      embedded
+                    />
                   </div>
                 )}
               </div>
@@ -335,6 +386,17 @@ export default function ClientDetailPage() {
           location={locationModal.location}
           onClose={() => setLocationModal({ open: false, location: null })}
           onSuccess={handleLocationSuccess}
+        />
+      )}
+
+      {/* Modal agregar trabajador */}
+      {workerModalOpen && (
+        <WorkerFormModal
+          key={workerModalKey}
+          clientId={client.id}
+          clientLocationId={workerLocationId}
+          onClose={() => setWorkerModalOpen(false)}
+          onSuccess={handleWorkerCreated}
         />
       )}
 

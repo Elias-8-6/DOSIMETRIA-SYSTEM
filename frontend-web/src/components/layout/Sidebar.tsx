@@ -28,7 +28,6 @@ export function Sidebar() {
         {/* Logo */}
         <div className="px-5 py-5 border-b border-gray-200">
           <h1 className="text-base font-bold text-gray-900">Dosimetría</h1>
-          <p className="text-xs text-gray-400 mt-0.5">ISO 17025</p>
         </div>
 
         {/* Navegación */}
@@ -44,12 +43,32 @@ export function Sidebar() {
           )}
 
           {hasPermission('clients', 'read') && (
-            <NavLink to="/clients" className={navClass}>
-              <span>Clientes</span>
-            </NavLink>
+            <div className="space-y-1">
+              <NavLink to="/clients" className={navClass}>
+                <span>Clientes</span>
+              </NavLink>
+
+              {hasPermission('workers', 'read') && (
+                <div className="ml-4 pl-2 border-l border-gray-200">
+                  <NavLink
+                    to="/workers"
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors duration-150 ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-700 font-medium'
+                          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    <span className="text-gray-400 text-xs">↳</span>
+                    <span>Trabajadores</span>
+                  </NavLink>
+                </div>
+              )}
+            </div>
           )}
 
-          {hasPermission('workers', 'read') && (
+          {!hasPermission('clients', 'read') && hasPermission('workers', 'read') && (
             <NavLink to="/workers" className={navClass}>
               <span>Trabajadores</span>
             </NavLink>
