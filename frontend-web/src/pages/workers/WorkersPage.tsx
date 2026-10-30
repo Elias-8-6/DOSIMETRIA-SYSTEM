@@ -119,7 +119,7 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
                 setFormModal({ open: true, worker: null });
               }}
             >
-              Nuevo trabajador
+              Nuevo Personal POE
             </Button>
           }
         />
@@ -155,7 +155,7 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
             }}
             className="px-3 py-2 text-xs font-medium text-emerald-600 border border-emerald-300 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer whitespace-nowrap"
           >
-            + Trabajador
+            + Registrar POE
           </button>
         )}
       </div>

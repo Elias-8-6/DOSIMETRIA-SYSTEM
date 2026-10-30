@@ -100,7 +100,7 @@ export function DosimeterAssemblyView() {
           ← Volver a Dosímetros
         </button>
         <h1 className="text-2xl font-bold text-gray-900">
-          Ensamblaje Físico 1:1 (Portadosímetro vs. Tarjeta TLD)
+          Ensamblaje Físico (Portadosímetro vs. Tarjeta TLD)
         </h1>
         <p className="text-xs text-gray-500 mt-1">
           Modelo modular: Portadosímetro plástico con código de barras USB acoplado a Tarjeta TLD de cristales termosensibles.
@@ -240,7 +240,7 @@ export function DosimeterAssemblyView() {
             disabled={loading || holders.length === 0 || cards.length === 0}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg text-sm transition-colors cursor-pointer disabled:opacity-50"
           >
-            {loading ? 'Ensamblando...' : 'Ensamblar Dosímetro Modular (1:1)'}
+            {loading ? 'Ensamblando...' : 'Ensamblar Dosímetro Modular'}
           </button>
         </form>
       </div>

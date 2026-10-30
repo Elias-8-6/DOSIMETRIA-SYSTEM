@@ -51,7 +51,7 @@ export default function ReceptionDetailPage() {
           {error || 'Recepción no encontrada'}
         </div>
         <Button variant="secondary" onClick={() => navigate('/receptions')}>
-          Volver a Recepciones
+          Volver a Triaje
         </Button>
       </div>
     );
@@ -60,12 +60,20 @@ export default function ReceptionDetailPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <PageHeader
-        title={`Recepción ${reception.reception_code}`}
-        subtitle="Constancia y verificación física de ingreso de dosímetros (ISO 17025)"
+        title={`Triaje ${reception.reception_code}`}
+        subtitle="Constancia y verificación física de ingreso y triaje de dosímetros (ISO 17025)"
         action={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => navigate('/receptions')}>
+            <Button
+              variant="secondary"
+              onClick={() => navigate('/receptions')}
+            >
               ← Volver al listado
+            </Button>
+            <Button
+              onClick={() => navigate(`/receptions/${reception.id}/triage`)}
+            >
+              Triaje Radiológico
             </Button>
           </div>
         }

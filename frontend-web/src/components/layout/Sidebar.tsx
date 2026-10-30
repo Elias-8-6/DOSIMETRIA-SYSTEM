@@ -92,7 +92,7 @@ export function Sidebar() {
                   }
                 >
                   <span className="text-gray-400 text-xs">↳</span>
-                  <span>Ensamblaje 1:1</span>
+                  <span>Ensamblaje</span>
                 </NavLink>
 
                 <NavLink
@@ -120,7 +120,7 @@ export function Sidebar() {
 
           {hasPermission('receptions', 'read') && (
             <NavLink to="/receptions" className={navClass}>
-              <span>Recepciones</span>
+              <span>Triaje</span>
             </NavLink>
           )}
 

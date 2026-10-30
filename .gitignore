@@ -41,5 +41,11 @@ supabase/.temp
 *.local
 .turbo
 
+# Playwright
+test-results/
+playwright-report/
+playwright/
+.auth/
+
 # Claude Code personal overrides
 .claude/settings.local.json

@@ -58,12 +58,12 @@ export default function ReceptionsPage() {
   return (
     <div className="p-6">
       <PageHeader
-        title="Recepciones de Laboratorio"
-        subtitle="Registro de ingreso físico y verificación de bultos dosimétricos (ISO 17025)"
+        title="Triaje de Laboratorio"
+        subtitle="Registro de ingreso físico, triaje y verificación de bultos dosimétricos (ISO 17025)"
         action={
           hasPermission('receptions', 'create') && (
             <Button onClick={() => navigate('/receptions/new')}>
-              + Nueva Recepción
+              + Nuevo Triaje
             </Button>
           )
         }
@@ -73,7 +73,7 @@ export default function ReceptionsPage() {
       <div className="flex gap-3 mb-4 flex-wrap">
         <input
           type="text"
-          placeholder="Buscar por código de recepción, orden u observaciones..."
+          placeholder="Buscar por código de triaje, orden u observaciones..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-80
@@ -103,7 +103,7 @@ export default function ReceptionsPage() {
       <DataTable>
         <thead>
           <tr>
-            <th className={TH_CLASS}>Código Recepción</th>
+            <th className={TH_CLASS}>Código Triaje</th>
             <th className={TH_CLASS}>Orden de Servicio</th>
             <th className={TH_CLASS}>Cliente</th>
             <th className={TH_CLASS}>Fecha de Ingreso</th>

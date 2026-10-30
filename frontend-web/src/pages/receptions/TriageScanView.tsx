@@ -125,7 +125,7 @@ export function TriageScanView() {
             onClick={() => navigate('/receptions')}
             className="text-xs text-blue-600 hover:underline mb-1 cursor-pointer"
           >
-            ← Volver a Recepciones
+            ← Volver a Triaje
           </button>
           <h1 className="text-2xl font-bold text-gray-900">Triaje de Contaminación Superficial (ISO 17025)</h1>
           <p className="text-xs text-gray-500">

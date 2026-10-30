@@ -165,8 +165,8 @@ export default function CreateReceptionPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <PageHeader
-        title="Nueva Recepción Física en Laboratorio"
-        subtitle="Verificación de paquetes entrantes e inspección individual de dosímetros (ISO 17025)"
+        title="Nuevo Triaje e Inspección en Laboratorio"
+        subtitle="Verificación de paquetes entrantes, triaje e inspección individual de dosímetros (ISO 17025)"
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -502,7 +502,7 @@ export default function CreateReceptionPage() {
             type="submit"
             disabled={submitting || !selectedOrderId || inspections.filter((i) => i.included).length === 0}
           >
-            {submitting ? 'Registrando recepción...' : 'Guardar y Confirmar Recepción'}
+            {submitting ? 'Registrando triaje...' : 'Guardar y Confirmar Triaje'}
           </Button>
         </div>
       </form>
