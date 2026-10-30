@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -33,20 +34,58 @@ export class AssignDosimeterUseCase {
 
     const supabase = this.supabase.getClient();
 
+    // 1. Validar dosímetro y su tipología normativa
     const { data: dosimeter } = await supabase
       .from('dosimeters')
-      .select('id')
+      .select('id, serial_number, dosimeter_types(code, name)')
       .eq('id', dosimeterId)
       .maybeSingle();
+
     if (!dosimeter) throw new NotFoundException('Dosímetro no encontrado');
 
+    const typeCode = (dosimeter.dosimeter_types as any)?.code;
+
+    // Regla de Negocio: CONTROL_ENVIO_VIAJERO no se asigna a trabajadores (es control ambiental)
+    if (typeCode === 'CONTROL_ENVIO_VIAJERO') {
+      throw new BadRequestException(
+        'Un dosímetro de tipo CONTROL_ENVIO_VIAJERO no puede asignarse a un trabajador. Su función es control de fondo en lote.',
+      );
+    }
+
+    // Regla de Negocio: CONTROL_CALIBRACION es de uso exclusivo en laboratorio (UCR/CICAM)
+    if (typeCode === 'CONTROL_CALIBRACION') {
+      throw new BadRequestException(
+        'Un dosímetro de tipo CONTROL_CALIBRACION no puede asignarse a un trabajador. Su uso es exclusivo de calibración.',
+      );
+    }
+
+    // 2. Validar trabajador y su aptitud médica Minsa
     const { data: worker } = await supabase
       .from('workers')
-      .select('id')
+      .select('id, full_name, medical_status, minsa_exam_expiry_date')
       .eq('id', dto.worker_id)
       .maybeSingle();
+
     if (!worker) throw new NotFoundException('Trabajador no encontrado');
 
+    if (worker.medical_status === 'vencido' || worker.medical_status === 'no_apto') {
+      throw new ConflictException(
+        `El trabajador '${worker.full_name}' no puede recibir dosímetros: examen médico Minsa ${worker.medical_status.toUpperCase()}.`,
+      );
+    }
+
+    if (worker.minsa_exam_expiry_date) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const expiry = new Date(worker.minsa_exam_expiry_date);
+      if (expiry.getTime() < today.getTime()) {
+        throw new ConflictException(
+          `El trabajador '${worker.full_name}' tiene el examen médico Minsa vencido desde ${worker.minsa_exam_expiry_date}. Asignación bloqueada por regulación.`,
+        );
+      }
+    }
+
+    // 3. Validar asignación abierta previa
     const { data: openAssignment } = await supabase
       .from('dosimeter_assignments')
       .select('id')
