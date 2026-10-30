@@ -12,6 +12,11 @@ import { RemoveServiceOrderItemUseCase } from './use-cases/remove-service-order-
 import { GetClientDosimetersUseCase } from './use-cases/get-client-dosimeters.use-case';
 import { SearchDosimetersForOrderUseCase } from './use-cases/search-dosimeters-for-order.use-case';
 import { UpdateServiceOrderDocumentDataUseCase } from './use-cases/update-service-order-document-data.use-case';
+import { CreateDispatchGuideUseCase } from './use-cases/create-dispatch-guide.use-case';
+import { ConfirmDispatchDeliveryUseCase } from './use-cases/confirm-dispatch-delivery.use-case';
+import { CreateReturnGuideUseCase } from './use-cases/create-return-guide.use-case';
+import { FindGuidesByOrderUseCase } from './use-cases/find-guides-by-order.use-case';
+import { RolesGuard } from '@common/guards/roles.guard';
 
 @Module({
   controllers: [ServiceOrdersController],
@@ -28,6 +33,12 @@ import { UpdateServiceOrderDocumentDataUseCase } from './use-cases/update-servic
     GetClientDosimetersUseCase,
     SearchDosimetersForOrderUseCase,
     UpdateServiceOrderDocumentDataUseCase,
+    CreateDispatchGuideUseCase,
+    ConfirmDispatchDeliveryUseCase,
+    CreateReturnGuideUseCase,
+    FindGuidesByOrderUseCase,
+    RolesGuard,
   ],
+  exports: [ServiceOrdersService],
 })
 export class ServiceOrdersModule {}

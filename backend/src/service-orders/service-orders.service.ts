@@ -3,6 +3,9 @@ import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateServiceOrderDto } from './dto/update-service-order.dto';
 import { UpdateServiceOrderStatusDto } from './dto/update-service-order-status.dto';
 import { CreateServiceOrderItemDto } from './dto/create-service-order-item.dto';
+import { CreateDispatchGuideDto } from './dto/create-dispatch-guide.dto';
+import { ConfirmDispatchDeliveryDto } from './dto/confirm-dispatch-delivery.dto';
+import { CreateReturnGuideDto } from './dto/create-return-guide.dto';
 import { FindAllServiceOrdersUseCase } from './use-cases/find-all-service-orders.use-case';
 import { FindOneServiceOrderUseCase } from './use-cases/find-one-service-order.use-case';
 import { CreateServiceOrderUseCase } from './use-cases/create-service-order.use-case';
@@ -15,6 +18,10 @@ import { GetClientDosimetersUseCase } from './use-cases/get-client-dosimeters.us
 import { SearchDosimetersForOrderUseCase } from './use-cases/search-dosimeters-for-order.use-case';
 import { UpdateServiceOrderDocumentDataUseCase } from './use-cases/update-service-order-document-data.use-case';
 import { UpdateServiceOrderDocumentDataDto } from './dto/update-service-order-document-data.dto';
+import { CreateDispatchGuideUseCase } from './use-cases/create-dispatch-guide.use-case';
+import { ConfirmDispatchDeliveryUseCase } from './use-cases/confirm-dispatch-delivery.use-case';
+import { CreateReturnGuideUseCase } from './use-cases/create-return-guide.use-case';
+import { FindGuidesByOrderUseCase } from './use-cases/find-guides-by-order.use-case';
 
 @Injectable()
 export class ServiceOrdersService {
@@ -30,6 +37,10 @@ export class ServiceOrdersService {
     private readonly getClientDosimetersUseCase: GetClientDosimetersUseCase,
     private readonly searchDosimetersForOrderUseCase: SearchDosimetersForOrderUseCase,
     private readonly updateServiceOrderDocumentDataUseCase: UpdateServiceOrderDocumentDataUseCase,
+    private readonly createDispatchGuideUseCase: CreateDispatchGuideUseCase,
+    private readonly confirmDispatchDeliveryUseCase: ConfirmDispatchDeliveryUseCase,
+    private readonly createReturnGuideUseCase: CreateReturnGuideUseCase,
+    private readonly findGuidesByOrderUseCase: FindGuidesByOrderUseCase,
   ) {}
 
   findAll(
@@ -116,8 +127,8 @@ export class ServiceOrdersService {
     return this.getClientDosimetersUseCase.execute(clientId, organizationId);
   }
 
-  searchDosimetersForOrder(clientId: string, organizationId: string, search?: string) {
-    return this.searchDosimetersForOrderUseCase.execute(clientId, organizationId, search);
+  searchDosimeters(clientId: string, term: string, organizationId: string) {
+    return this.searchDosimetersForOrderUseCase.execute(clientId, term, organizationId);
   }
 
   updateDocumentData(
@@ -132,5 +143,30 @@ export class ServiceOrdersService {
       organizationId,
       requestingUserId,
     );
+  }
+
+  // Métodos de Logística Desacoplada (Hojas de Entrega y Devolución)
+  createDispatchGuide(orderId: string, dto: CreateDispatchGuideDto, requestingUserId: string) {
+    return this.createDispatchGuideUseCase.execute(orderId, dto, requestingUserId);
+  }
+
+  confirmDispatchDelivery(guideId: string, dto: ConfirmDispatchDeliveryDto, requestingUserId: string) {
+    return this.confirmDispatchDeliveryUseCase.execute(guideId, dto, requestingUserId);
+  }
+
+  createReturnGuide(orderId: string, dto: CreateReturnGuideDto, requestingUserId: string) {
+    return this.createReturnGuideUseCase.execute(orderId, dto, requestingUserId);
+  }
+
+  getDispatchGuide(orderId: string) {
+    return this.findGuidesByOrderUseCase.getDispatchGuide(orderId);
+  }
+
+  getReturnGuide(orderId: string) {
+    return this.findGuidesByOrderUseCase.getReturnGuide(orderId);
+  }
+
+  getLogisticsSummary(orderId: string) {
+    return this.findGuidesByOrderUseCase.getLogisticsSummary(orderId);
   }
 }

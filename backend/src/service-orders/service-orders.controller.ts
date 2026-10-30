@@ -19,14 +19,20 @@ import { UpdateServiceOrderStatusDto } from './dto/update-service-order-status.d
 import { CreateServiceOrderItemDto } from './dto/create-service-order-item.dto';
 import { QueryServiceOrdersDto } from './dto/query-service-orders.dto';
 import { UpdateServiceOrderDocumentDataDto } from './dto/update-service-order-document-data.dto';
+import { CreateDispatchGuideDto } from './dto/create-dispatch-guide.dto';
+import { ConfirmDispatchDeliveryDto } from './dto/confirm-dispatch-delivery.dto';
+import { CreateReturnGuideDto } from './dto/create-return-guide.dto';
 import { JwtGuard } from '@common/guards/jwt.guard';
 import { PermissionsGuard } from '@common/guards/permissions.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
 import { CheckPermission } from '@common/decorators/check-permission.decorator';
+import { Roles } from '@common/decorators/roles.decorator';
+import { Role } from '@common/interfaces/jwt-payload.interface';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
 
 @Controller('service-orders')
-@UseGuards(JwtGuard, PermissionsGuard)
+@UseGuards(JwtGuard, PermissionsGuard, RolesGuard)
 export class ServiceOrdersController {
   constructor(private readonly serviceOrdersService: ServiceOrdersService) {}
 
@@ -56,14 +62,68 @@ export class ServiceOrdersController {
 
   @Get('clients/:clientId/search-dosimeters')
   @CheckPermission('service_orders', 'read')
-  searchDosimetersForOrder(
+  searchDosimeters(
     @Param('clientId', ParseUUIDPipe) clientId: string,
-    @Query('q') q: string | undefined,
+    @Query('q') term: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.serviceOrdersService.searchDosimetersForOrder(clientId, user.organization_id, q);
+    return this.serviceOrdersService.searchDosimeters(clientId, term, user.organization_id);
   }
 
+  // ------------------------------------------------------------
+  // Endpoints de Logística Desacoplada (Guías de Entrega y Devolución)
+  // ------------------------------------------------------------
+  @Post(':id/dispatch-guide')
+  @CheckPermission('service_orders', 'create')
+  createDispatchGuide(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateDispatchGuideDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.serviceOrdersService.createDispatchGuide(id, dto, user.sub);
+  }
+
+  @Get(':id/dispatch-guide')
+  @CheckPermission('service_orders', 'read')
+  getDispatchGuide(@Param('id', ParseUUIDPipe) id: string) {
+    return this.serviceOrdersService.getDispatchGuide(id);
+  }
+
+  @Patch('dispatch-guides/:guideId/confirm')
+  @CheckPermission('service_orders', 'update')
+  confirmDispatchDelivery(
+    @Param('guideId', ParseUUIDPipe) guideId: string,
+    @Body() dto: ConfirmDispatchDeliveryDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.serviceOrdersService.confirmDispatchDelivery(guideId, dto, user.sub);
+  }
+
+  @Post(':id/return-guide')
+  @CheckPermission('service_orders', 'create')
+  createReturnGuide(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateReturnGuideDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.serviceOrdersService.createReturnGuide(id, dto, user.sub);
+  }
+
+  @Get(':id/return-guide')
+  @CheckPermission('service_orders', 'read')
+  getReturnGuide(@Param('id', ParseUUIDPipe) id: string) {
+    return this.serviceOrdersService.getReturnGuide(id);
+  }
+
+  @Get(':id/logistics-summary')
+  @CheckPermission('service_orders', 'read')
+  getLogisticsSummary(@Param('id', ParseUUIDPipe) id: string) {
+    return this.serviceOrdersService.getLogisticsSummary(id);
+  }
+
+  // ------------------------------------------------------------
+  // Operaciones de Orden de Servicio
+  // ------------------------------------------------------------
   @Get(':id')
   @CheckPermission('service_orders', 'read')
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
@@ -87,7 +147,6 @@ export class ServiceOrdersController {
   }
 
   @Patch(':id/document-data')
-  @HttpCode(HttpStatus.OK)
   @CheckPermission('service_orders', 'update')
   updateDocumentData(
     @Param('id', ParseUUIDPipe) id: string,
@@ -110,7 +169,7 @@ export class ServiceOrdersController {
 
   @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
-  @CheckPermission('service_orders', 'delete')
+  @CheckPermission('service_orders', 'update')
   cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
     return this.serviceOrdersService.cancel(id, user.organization_id, user.sub);
   }
@@ -126,6 +185,7 @@ export class ServiceOrdersController {
   }
 
   @Delete(':id/items/:itemId')
+  @HttpCode(HttpStatus.OK)
   @CheckPermission('service_orders', 'update')
   removeItem(
     @Param('id', ParseUUIDPipe) id: string,

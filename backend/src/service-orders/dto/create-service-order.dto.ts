@@ -4,10 +4,13 @@ import {
   IsArray,
   IsDateString,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { IsUUID } from '@common/validators/is-uuid.validator';
@@ -39,10 +42,27 @@ export class CreateServiceOrderDto {
   @IsIn(['normal', 'urgente', 'critica'])
   priority?: string;
 
+  // Nuevos campos técnicos normativos UTP / Minsa
+  @IsOptional()
+  @IsIn(['radiodiagnostico', 'aceleradores_lineales', 'medicina_nuclear', 'otro'], {
+    message: 'radiological_practice debe ser: radiodiagnostico, aceleradores_lineales, medicina_nuclear u otro',
+  })
+  radiological_practice?: string;
+
+  @IsOptional()
+  @IsInt({ message: 'cycle_period_month debe ser un entero entre 1 y 12' })
+  @Min(1)
+  @Max(12)
+  cycle_period_month?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'cycle_period_year debe ser un año válido' })
+  @Min(2025)
+  cycle_period_year?: number;
+
   @IsArray({ message: 'La orden debe incluir al menos un dosímetro' })
   @ArrayMinSize(1, { message: 'La orden debe incluir al menos un dosímetro' })
   @ValidateNested({ each: true })
   @Type(() => CreateServiceOrderItemDto)
   items!: CreateServiceOrderItemDto[];
 }
-
