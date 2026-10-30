@@ -1,5 +1,4 @@
 import {
-  IsUUID,
   IsInt,
   Min,
   Max,
@@ -7,6 +6,7 @@ import {
   IsString,
   IsObject,
 } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class GenerateMonthlyReportDto {
   @IsUUID()

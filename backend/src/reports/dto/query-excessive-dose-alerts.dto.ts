@@ -1,4 +1,5 @@
-import { IsOptional, IsUUID, IsString, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class QueryExcessiveDoseAlertsDto {
   @IsOptional()

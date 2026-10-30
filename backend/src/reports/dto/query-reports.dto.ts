@@ -1,5 +1,6 @@
-import { IsOptional, IsUUID, IsString, IsIn, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsIn, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class QueryReportsDto {
   @IsOptional()
@@ -7,7 +8,7 @@ export class QueryReportsDto {
   client_id?: string;
 
   @IsOptional()
-  @IsIn(['MENSUAL_CLIENTE', 'CONSOLIDADO_ANUAL', 'HISTORIAL_POE', 'URGENTE_DOSIS_EXCESIVA'])
+  @IsIn(['MENSUAL_MINSA', 'URGENTE_DOSIS_EXCESIVA', 'HISTORIAL_POE_MINSA', 'TRIAJE_RECEPCION'])
   report_type?: string;
 
   @IsOptional()
@@ -25,18 +26,19 @@ export class QueryReportsDto {
   month?: number;
 
   @IsOptional()
-  @IsIn(['EMITIDO', 'ANULADO'])
+  @IsString()
   status?: string;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  limit?: number = 50;
+  @Max(100)
+  limit?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  offset?: number = 0;
+  offset?: number;
 }

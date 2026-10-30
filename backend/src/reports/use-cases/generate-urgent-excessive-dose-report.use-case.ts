@@ -22,7 +22,7 @@ export class GenerateUrgentExcessiveDoseReportUseCase {
     // 1. Obtener la lectura crítica
     const { data: reading, error: readingErr } = await client
       .from('dosimeter_readings')
-      .select('*, dosimeters(id, serial_number, client_id)')
+      .select('*, dosimeters(id, serial_number)')
       .eq('id', dto.reading_id)
       .single();
 
@@ -43,10 +43,9 @@ export class GenerateUrgentExcessiveDoseReportUseCase {
       .from('dosimeter_assignments')
       .select('*, workers(*, clients(*))')
       .eq('dosimeter_id', dosimeterId)
-      .lte('assigned_at', reading.read_at)
       .order('assigned_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const worker = assignment?.workers;
     const clientData = worker?.clients;

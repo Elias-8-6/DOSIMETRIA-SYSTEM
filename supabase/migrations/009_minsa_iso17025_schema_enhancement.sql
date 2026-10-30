@@ -245,6 +245,7 @@ COMMENT ON COLUMN radiation_survey_meters.calibration_expiry_date IS 'Fecha lím
 
 -- Enriquecimiento de recepción física para triaje y emulación USB
 ALTER TABLE reception_items
+  ALTER COLUMN dosimeter_id DROP NOT NULL,
   ADD COLUMN IF NOT EXISTS scanned_barcode text,
   ADD COLUMN IF NOT EXISTS holder_id uuid REFERENCES holder_dosimeters (id),
   ADD COLUMN IF NOT EXISTS contamination_value numeric(10, 4),

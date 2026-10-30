@@ -1,4 +1,5 @@
-import { IsUUID, IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class GenerateExcessiveDoseReportDto {
   @IsUUID()

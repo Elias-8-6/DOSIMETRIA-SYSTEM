@@ -20,16 +20,16 @@ export class IngestReadingsUseCase {
     const supabase = this.supabase.getClient();
 
     // 1. CONTROL DE IDEMPOTENCIA: Verificar si el archivo ya fue procesado mediante su hash SHA-256
-    const { data: existingAudit } = await supabase
-      .from('audit_logs')
-      .select('id, created_at')
-      .eq('entity_name', 'dosimeter_readings_batch')
-      .eq('entity_id', dto.source_file_sha256)
+    const { data: existingReading } = await supabase
+      .from('dosimeter_readings')
+      .select('id, read_at')
+      .contains('raw_data', { file_sha256: dto.source_file_sha256 })
+      .limit(1)
       .maybeSingle();
 
-    if (existingAudit) {
+    if (existingReading) {
       this.logger.warn(
-        `Lote con SHA-256 '${dto.source_file_sha256}' ya fue ingerido previamente en ${existingAudit.created_at}. Respuesta idempotente.`,
+        `Lote con SHA-256 '${dto.source_file_sha256}' ya fue ingerido previamente en ${existingReading.read_at}. Respuesta idempotente.`,
       );
       return {
         message: 'El archivo ya fue procesado previamente. No se duplicaron mediciones (Idempotencia).',
@@ -142,7 +142,7 @@ export class IngestReadingsUseCase {
     await this.audit.log({
       userId: requestingUserId,
       entityName: 'dosimeter_readings_batch',
-      entityId: dto.source_file_sha256,
+      entityId: null,
       action: 'CREATE',
       newValues: {
         file_name: dto.source_file_name,
