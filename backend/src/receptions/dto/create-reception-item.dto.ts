@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
 import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export const RECEPTION_ITEM_CONDITIONS = [
@@ -12,8 +12,17 @@ export const RECEPTION_ITEM_CONDITIONS = [
 export type ReceptionItemCondition = (typeof RECEPTION_ITEM_CONDITIONS)[number];
 
 export class CreateReceptionItemDto {
+  @IsOptional()
   @IsUUID()
-  dosimeter_id: string;
+  dosimeter_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  holder_id?: string;
+
+  @IsOptional()
+  @IsString()
+  scanned_barcode?: string;
 
   @IsIn(RECEPTION_ITEM_CONDITIONS, {
     message: `received_condition debe ser uno de: ${RECEPTION_ITEM_CONDITIONS.join(', ')}`,
@@ -27,6 +36,22 @@ export class CreateReceptionItemDto {
   @IsBoolean()
   @IsOptional()
   contaminated?: boolean = false;
+
+  @IsOptional()
+  @IsNumber()
+  contamination_value?: number;
+
+  @IsOptional()
+  @IsString()
+  contamination_unit?: string;
+
+  @IsOptional()
+  @IsUUID()
+  survey_meter_id?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  is_quarantined?: boolean;
 
   @IsString()
   @IsOptional()

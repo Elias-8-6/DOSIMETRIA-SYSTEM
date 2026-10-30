@@ -69,14 +69,18 @@ export class CreateReceptionUseCase {
     // 3. Validar ítems del DTO
     const seenDosimeters = new Set<string>();
     for (const item of dto.items) {
-      if (seenDosimeters.has(item.dosimeter_id)) {
+      const targetId = item.dosimeter_id ?? item.holder_id;
+      if (!targetId) {
+        throw new BadRequestException('Cada ítem de recepción debe incluir dosimeter_id o holder_id');
+      }
+      if (seenDosimeters.has(targetId)) {
         throw new BadRequestException(
-          `El dosímetro ${item.dosimeter_id} está duplicado en la recepción`,
+          `El dosímetro/portadosímetro ${targetId} está duplicado en la recepción`,
         );
       }
-      seenDosimeters.add(item.dosimeter_id);
+      seenDosimeters.add(targetId);
 
-      if (!orderDosimeterIds.has(item.dosimeter_id)) {
+      if (item.dosimeter_id && !orderDosimeterIds.has(item.dosimeter_id)) {
         throw new BadRequestException(
           `El dosímetro ${item.dosimeter_id} no pertenece a la orden de servicio ${order.order_number}`,
         );
