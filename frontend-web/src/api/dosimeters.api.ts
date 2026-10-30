@@ -204,3 +204,60 @@ export const uploadDosimeterPhoto = async (
   });
   return data;
 };
+
+
+// ==========================================
+// Extensiones Minsa / ISO 17025 (Paso 3)
+// ==========================================
+
+export interface HolderDosimeter {
+  id: string;
+  barcode: string;
+  serial_number: string;
+  color: string | null;
+  clip_type: string | null;
+  status: string;
+  is_active: boolean;
+}
+
+export interface TldCard {
+  id: string;
+  serial_number: string;
+  card_type: string;
+  pellet_count: number;
+  sensitivity_factor: number;
+  status: string;
+  is_active: boolean;
+}
+
+export const getHolders = async (params?: { barcode?: string; status?: string }): Promise<HolderDosimeter[]> => {
+  const { data } = await api.get('/dosimeters/holders', { params });
+  return data;
+};
+
+export const getTldCards = async (params?: { serial_number?: string; status?: string }): Promise<TldCard[]> => {
+  const { data } = await api.get('/dosimeters/tld-cards', { params });
+  return data;
+};
+
+export const assembleDosimeter = async (payload: {
+  holder_id: string;
+  tld_card_id: string;
+  notes?: string;
+}) => {
+  const { data } = await api.post('/dosimeters/assemble', payload);
+  return data;
+};
+
+export const disassembleDosimeter = async (payload: {
+  assembly_id: string;
+  reason?: string;
+}) => {
+  const { data } = await api.post('/dosimeters/disassemble', payload);
+  return data;
+};
+
+export const findHolderByBarcode = async (barcode: string): Promise<HolderDosimeter> => {
+  const { data } = await api.get('/dosimeters/holders/barcode/' + barcode);
+  return data;
+};

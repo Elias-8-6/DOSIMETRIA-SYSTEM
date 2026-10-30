@@ -20,12 +20,16 @@ const ClientsPage = lazy(() => import('../pages/clients/ClientPage'));
 const ClientDetailPage = lazy(() => import('../pages/clients/ClientDetailPage'));
 const DosimetersPage = lazy(() => import('../pages/dosimeters/DosimetersPage'));
 const DosimeterDetailPage = lazy(() => import('../pages/dosimeters/DosimeterDetailPage'));
+const DosimeterAssemblyView = lazy(() => import('../pages/dosimeters/DosimeterAssemblyView'));
 const ServiceOrdersPage = lazy(() => import('../pages/service-orders/ServiceOrdersPage'));
 const ServiceOrderDetailPage = lazy(() => import('../pages/service-orders/ServiceOrderDetailPage'));
 const CreateServiceOrderPage = lazy(() => import('../pages/service-orders/CreateServiceOrderPage'));
+const LogisticsView = lazy(() => import('../pages/service-orders/LogisticsView'));
 const ReceptionsPage = lazy(() => import('../pages/receptions/ReceptionsPage'));
 const CreateReceptionPage = lazy(() => import('../pages/receptions/CreateReceptionPage'));
 const ReceptionDetailPage = lazy(() => import('../pages/receptions/ReceptionDetailPage'));
+const TriageScanView = lazy(() => import('../pages/receptions/TriageScanView'));
+const ReportsPage = lazy(() => import('../pages/reports/ReportsPage'));
 
 function LoadingScreen() {
   return (
@@ -140,6 +144,14 @@ export function AppRouter() {
             }
           />
           <Route
+            path="dosimeters/assembly"
+            element={
+              <PermissionRoute module="dosimeters" action="read">
+                <DosimeterAssemblyView />
+              </PermissionRoute>
+            }
+          />
+          <Route
             path="dosimeters/:id"
             element={
               <PermissionRoute module="dosimeters" action="read">
@@ -172,6 +184,14 @@ export function AppRouter() {
             }
           />
           <Route
+            path="service-orders/:id/logistics"
+            element={
+              <PermissionRoute module="service_orders" action="read">
+                <LogisticsView />
+              </PermissionRoute>
+            }
+          />
+          <Route
             path="receptions"
             element={
               <PermissionRoute module="receptions" action="read">
@@ -195,6 +215,15 @@ export function AppRouter() {
               </PermissionRoute>
             }
           />
+          <Route
+            path="receptions/:id/triage"
+            element={
+              <PermissionRoute module="receptions" action="read">
+                <TriageScanView />
+              </PermissionRoute>
+            }
+          />
+          <Route path="reports" element={<ReportsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -202,3 +231,4 @@ export function AppRouter() {
     </Suspense>
   );
 }
+export default AppRouter;

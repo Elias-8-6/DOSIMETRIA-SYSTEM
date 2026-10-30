@@ -28,6 +28,10 @@ export interface Worker {
   email: string | null;
   occupation: string | null;
   start_date: string | null;
+  minsa_exam_date?: string | null;
+  minsa_exam_expiry_date?: string | null;
+  minsa_certificate_code?: string | null;
+  medical_status?: string;
   status: WorkerStatus;
   clients: { id: string; name: string; code: string | null };
   client_locations: { id: string; name: string } | null;

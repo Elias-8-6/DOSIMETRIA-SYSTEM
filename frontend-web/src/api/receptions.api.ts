@@ -181,3 +181,56 @@ export const uploadReceptionPhoto = async (file: File): Promise<{ url: string }>
   });
   return data;
 };
+
+
+// ==========================================
+// Triaje Radiológico y Cuarentena (Paso 5)
+// ==========================================
+
+export interface SurveyMeter {
+  id: string;
+  name: string;
+  model: string;
+  serial_number: string;
+  last_calibration_date: string;
+  next_calibration_due: string;
+  is_active: boolean;
+}
+
+export const getSurveyMeters = async (): Promise<SurveyMeter[]> => {
+  const { data } = await api.get('/receptions/survey-meters');
+  return data;
+};
+
+export const createSurveyMeter = async (payload: {
+  name: string;
+  model: string;
+  serial_number: string;
+  last_calibration_date: string;
+  probe_type?: string;
+  background_reading?: number;
+}) => {
+  const { data } = await api.post('/receptions/survey-meters', payload);
+  return data;
+};
+
+export const processTriageScan = async (receptionId: string, payload: {
+  barcode: string;
+  survey_meter_id: string;
+  measured_dose_rate_uSv_h: number;
+  technician_id?: string;
+  observations?: string;
+}) => {
+  const { data } = await api.post('/receptions/' + receptionId + '/triage/scan', payload);
+  return data;
+};
+
+export const getQuarantineItems = async () => {
+  const { data } = await api.get('/receptions/triage/quarantine');
+  return data;
+};
+
+export const releaseQuarantineItem = async (itemId: string, observations?: string) => {
+  const { data } = await api.patch('/receptions/triage/quarantine/' + itemId + '/release', { observations });
+  return data;
+};

@@ -19,6 +19,9 @@ export interface ServiceOrder {
   priority: Priority;
   requested_date: string | null;
   due_date: string | null;
+  radiological_practice?: string | null;
+  service_month?: number | null;
+  service_year?: number | null;
   created_at: string;
   clients: { id: string; code: string | null; name: string };
   items_count: number;
@@ -71,6 +74,9 @@ export interface ServiceOrderDetail {
   priority: Priority;
   requested_date: string | null;
   due_date: string | null;
+  radiological_practice?: string | null;
+  service_month?: number | null;
+  service_year?: number | null;
   observations: string | null;
   created_at: string;
   created_by: string | null;
@@ -252,3 +258,51 @@ export const updateServiceOrderDocumentData = async (
 };
 
 
+
+
+// ==========================================
+// Logística Desacoplada Minsa / ISO 17025 (Paso 4)
+// ==========================================
+
+export const createDispatchGuide = async (orderId: string, payload: {
+  guide_number?: string;
+  carrier_name?: string;
+  carrier_tracking_code?: string;
+  recipient_facility_address?: string;
+  dispatched_at?: string;
+  notes?: string;
+}) => {
+  const { data } = await api.post('/service-orders/' + orderId + '/dispatch-guide', payload);
+  return data;
+};
+
+export const confirmDispatchDelivery = async (orderId: string, guideId: string, payload: {
+  received_by_name: string;
+  received_by_document?: string;
+  delivered_at?: string;
+  notes?: string;
+}) => {
+  const { data } = await api.patch('/service-orders/' + orderId + '/dispatch-guides/' + guideId + '/confirm', payload);
+  return data;
+};
+
+export const createReturnGuide = async (orderId: string, payload: {
+  return_guide_number?: string;
+  returned_at?: string;
+  carrier_name?: string;
+  notes?: string;
+  items: Array<{
+    dosimeter_id: string;
+    worker_id?: string;
+    returned_condition: string;
+    notes?: string;
+  }>;
+}) => {
+  const { data } = await api.post('/service-orders/' + orderId + '/return-guide', payload);
+  return data;
+};
+
+export const getLogisticsSummary = async (orderId: string) => {
+  const { data } = await api.get('/service-orders/' + orderId + '/logistics-summary');
+  return data;
+};
