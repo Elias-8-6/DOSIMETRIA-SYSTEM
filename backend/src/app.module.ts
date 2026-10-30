@@ -15,6 +15,7 @@ import { CatalogsModule } from './catalogs/catalogs.module';
 import { DosimetersModule } from '@dosimeters/dosimeters.module';
 import { ServiceOrdersModule } from '@service-orders/service-orders.module';
 import { ReceptionsModule } from './receptions/receptions.module';
+import { ReadingsModule } from './readings/readings.module';
 
 /**
  * AppModule — módulo raíz.
@@ -49,6 +50,7 @@ import { ReceptionsModule } from './receptions/receptions.module';
     // - paginación con normalizePagination() y sanitizeSearchTerm()
     ServiceOrdersModule,
     ReceptionsModule,
+    ReadingsModule,
     // LabProcessModule,
     // ReportsModule,
   ],

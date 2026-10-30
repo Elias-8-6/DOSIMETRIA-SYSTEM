@@ -1,0 +1,12 @@
+# ==============================================================================
+# Archivo de salida simulado de WinREMC / WinRETR (Laboratorio de Dosimetría)
+# Formato: SERIAL_TLD, CARGA_POS1_nC, CARGA_POS2_nC, TIMESTAMP
+# ==============================================================================
+# Tarjeta 1: Normal (Dosis de rutina ~0.15 mSv)
+TLD-CARD-001, 4.250, 4.110, 2026-10-30 09:15:00
+
+# Tarjeta 2: ALERTA CRÍTICA (>2.0 mSv - Medicina Nuclear / Incidente)
+TLD-CARD-002, 62.450, 61.890, 2026-10-30 09:18:22
+
+# Tarjeta 3: Cristalino / Manos (4 elementos)
+TLD-CARD-003, 8.120, 7.950, 8.040, 7.890, 2026-10-30 09:21:40
