@@ -16,6 +16,7 @@ import { DosimetersModule } from '@dosimeters/dosimeters.module';
 import { ServiceOrdersModule } from '@service-orders/service-orders.module';
 import { ReceptionsModule } from './receptions/receptions.module';
 import { ReadingsModule } from './readings/readings.module';
+import { ReportsModule } from './reports/reports.module';
 
 /**
  * AppModule — módulo raíz.
@@ -52,7 +53,7 @@ import { ReadingsModule } from './readings/readings.module';
     ReceptionsModule,
     ReadingsModule,
     // LabProcessModule,
-    // ReportsModule,
+    ReportsModule,
   ],
   providers: [
     {
