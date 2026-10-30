@@ -21,7 +21,7 @@ export class UpdateWorkerUseCase {
     // Verificar que el worker pertenece a la organización
     const { data: existing } = await supabase
       .from('workers')
-      .select('id, full_name, clients!inner(organization_id)')
+      .select('id, full_name, medical_status, clients!inner(organization_id)')
       .eq('id', workerId)
       .eq('clients.organization_id', organizationId)
       .maybeSingle();
@@ -41,9 +41,12 @@ export class UpdateWorkerUseCase {
         ...(dto.email !== undefined && { email: dto.email }),
         ...(dto.occupation !== undefined && { occupation: dto.occupation }),
         ...(dto.start_date !== undefined && { start_date: dto.start_date }),
+        ...(dto.minsa_exam_date !== undefined && { minsa_exam_date: dto.minsa_exam_date }),
+        ...(dto.minsa_certificate_code !== undefined && { minsa_certificate_code: dto.minsa_certificate_code }),
+        ...(dto.medical_status !== undefined && { medical_status: dto.medical_status }),
       })
       .eq('id', workerId)
-      .select('id, full_name, document_number, status')
+      .select('id, full_name, document_number, minsa_exam_date, minsa_exam_expiry_date, medical_status, status')
       .single();
 
     if (error) throw new Error(error.message);
@@ -53,7 +56,10 @@ export class UpdateWorkerUseCase {
       entityName: 'workers',
       entityId: workerId,
       action: 'UPDATE',
-      oldValues: { full_name: existing.full_name },
+      oldValues: {
+        full_name: existing.full_name,
+        medical_status: existing.medical_status,
+      },
       newValues: dto as unknown as Record<string, unknown>,
     });
 

@@ -16,14 +16,18 @@ import { CreateWorkerDto } from './dto/create-worker.dto';
 import { UpdateWorkerDto } from './dto/update-worker.dto';
 import { UpdateWorkerStatusDto } from './dto/update-worker-status.dto';
 import { QueryWorkersDto } from './dto/query-workers.dto';
+import { MedicalAlertQueryDto } from './dto/medical-alert-query.dto';
 import { JwtGuard } from '@common/guards/jwt.guard';
 import { PermissionsGuard } from '@common/guards/permissions.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
 import { CheckPermission } from '@common/decorators/check-permission.decorator';
+import { Roles } from '@common/decorators/roles.decorator';
+import { Role } from '@common/interfaces/jwt-payload.interface';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
 
 @Controller('workers')
-@UseGuards(JwtGuard, PermissionsGuard)
+@UseGuards(JwtGuard, PermissionsGuard, RolesGuard)
 export class WorkersController {
   constructor(private readonly workersService: WorkersService) {}
 
@@ -34,11 +38,25 @@ export class WorkersController {
       user.organization_id,
       query.search,
       query.status,
+      query.medical_status,
       query.client_id,
       query.client_location_id,
       query.page ? Number(query.page) : 1,
       query.limit ? Number(query.limit) : 10,
     );
+  }
+
+  @Get('alerts/medical')
+  @CheckPermission('workers', 'read')
+  @Roles(
+    Role.ADMIN_LAB,
+    Role.TECNICO_LAB,
+    Role.OFICIAL_PROTECCION_RADIOLOGICA,
+    Role.ENCARGADO_PROTECCION_RADIOLOGICA,
+  )
+  getMedicalAlerts(@CurrentUser() user: JwtPayload, @Query() query: MedicalAlertQueryDto) {
+    const threshold = query.threshold_days ? Number(query.threshold_days) : 60;
+    return this.workersService.getMedicalAlerts(user.organization_id, threshold, query.client_id);
   }
 
   @Get(':id')
@@ -64,8 +82,8 @@ export class WorkersController {
   }
 
   @Patch(':id/status')
-  @HttpCode(HttpStatus.OK)
   @CheckPermission('workers', 'update')
+  @HttpCode(HttpStatus.OK)
   updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateWorkerStatusDto,

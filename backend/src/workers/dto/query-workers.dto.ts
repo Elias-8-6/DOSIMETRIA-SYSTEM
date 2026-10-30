@@ -13,6 +13,10 @@ export class QueryWorkersDto {
   status?: string;
 
   @IsOptional()
+  @IsIn(['apto', 'no_apto', 'observado', 'vencido'])
+  medical_status?: string;
+
+  @IsOptional()
   @Matches(UUID_REGEX, { message: 'client_id must be a UUID' })
   client_id?: string;
 

@@ -56,13 +56,16 @@ export class CreateWorkerUseCase {
         email: dto.email ?? null,
         occupation: dto.occupation ?? null,
         start_date: dto.start_date ?? null,
+        minsa_exam_date: dto.minsa_exam_date ?? null,
+        minsa_certificate_code: dto.minsa_certificate_code ?? null,
+        medical_status: dto.medical_status ?? 'apto',
         status: 'active',
       })
-      .select('id, full_name, document_number, status')
+      .select('id, full_name, document_number, minsa_exam_date, minsa_exam_expiry_date, medical_status, status')
       .single();
 
     if (error || !newWorker) {
-      this.logger.error('Error al crear trabajador:', error);
+      this.logger.error('Error al crear trabajador (POE):', error);
       throw new Error('No se pudo crear el trabajador');
     }
 
@@ -74,6 +77,7 @@ export class CreateWorkerUseCase {
       newValues: {
         full_name: newWorker.full_name,
         document_number: newWorker.document_number,
+        medical_status: newWorker.medical_status,
         status: newWorker.status,
       },
     });

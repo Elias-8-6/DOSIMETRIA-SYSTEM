@@ -1,6 +1,7 @@
 import {
   IsDateString,
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -14,7 +15,7 @@ import { UUID_REGEX } from './query-workers.dto';
 const PHONE_REGEX = /^\+?[\d\s\-(). ]{7,20}$/;
 
 export class CreateWorkerDto {
-  //campos requeridos
+  // Campos requeridos
   @IsNotEmpty({ message: 'El nombre es un campo requerido' })
   @IsString({ message: 'El nombre debe ser palabras' })
   @MinLength(3, { message: 'El nombre debe tener al menos 3 caracteres' })
@@ -49,7 +50,7 @@ export class CreateWorkerDto {
   @IsDateString()
   start_date!: string;
 
-  //campos opcionales
+  // Campos opcionales de perfil
   @IsOptional()
   @IsString()
   @MaxLength(20, { message: 'El código de empleado no puede superar 20 caracteres' })
@@ -67,4 +68,20 @@ export class CreateWorkerDto {
   @IsString()
   @MaxLength(100, { message: 'La ocupación no puede superar 100 caracteres' })
   occupation?: string;
+
+  // Campos médicos y de certificación Minsa (Requerimiento POE)
+  @IsOptional()
+  @IsDateString({}, { message: 'La fecha del examen médico Minsa debe tener formato YYYY-MM-DD' })
+  minsa_exam_date?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50, { message: 'El código de certificado Minsa no puede superar 50 caracteres' })
+  minsa_certificate_code?: string;
+
+  @IsOptional()
+  @IsIn(['apto', 'no_apto', 'observado', 'vencido'], {
+    message: 'medical_status debe ser: apto, no_apto, observado o vencido',
+  })
+  medical_status?: string;
 }

@@ -6,6 +6,8 @@ import { FindOneWorkerUseCase } from './use-case/find-one-worker.use-case';
 import { CreateWorkerUseCase } from './use-case/create-worker.use-case';
 import { UpdateWorkerUseCase } from './use-case/update-worker.use-case';
 import { UpdateWorkerStatusUseCase } from './use-case/update-worker-status.use-case';
+import { GetPoeMedicalAlertsUseCase } from './use-case/get-poe-medical-alerts.use-case';
+import { RolesGuard } from '@common/guards/roles.guard';
 
 @Module({
   controllers: [WorkersController],
@@ -16,6 +18,8 @@ import { UpdateWorkerStatusUseCase } from './use-case/update-worker-status.use-c
     CreateWorkerUseCase,
     UpdateWorkerUseCase,
     UpdateWorkerStatusUseCase,
+    GetPoeMedicalAlertsUseCase,
+    RolesGuard,
   ],
 })
 export class WorkersModule {}

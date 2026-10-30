@@ -14,6 +14,7 @@ export class FindOneWorkerUseCase {
       id, employee_code, full_name, document_number,
       date_of_birth, gender, phone, email,
       occupation, start_date, status,
+      minsa_exam_date, minsa_exam_expiry_date, minsa_certificate_code, medical_status,
       clients!inner(id, name, code, organization_id),
       client_locations(id, name, address),
       dosimeter_assignments(
@@ -34,6 +35,26 @@ export class FindOneWorkerUseCase {
     if (error) throw new Error('Error al obtener el trabajador');
     if (!data) throw new NotFoundException('Trabajador no encontrado');
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let daysUntilMedicalExpiry: number | null = null;
+    let medicalAlertLevel: 'valido' | 'proximo_a_vencer' | 'vencido' | 'sin_registro' = 'sin_registro';
+
+    if (data.minsa_exam_expiry_date) {
+      const expiry = new Date(data.minsa_exam_expiry_date);
+      const diffTime = expiry.getTime() - today.getTime();
+      daysUntilMedicalExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (daysUntilMedicalExpiry < 0) {
+        medicalAlertLevel = 'vencido';
+      } else if (daysUntilMedicalExpiry <= 60) {
+        medicalAlertLevel = 'proximo_a_vencer';
+      } else {
+        medicalAlertLevel = 'valido';
+      }
+    }
+
     const sortedAssignments = (data.dosimeter_assignments ?? []).sort((a: any, b: any) => {
       const aIsActive = a.status === 'activo' || !a.returned_at;
       const bIsActive = b.status === 'activo' || !b.returned_at;
@@ -53,6 +74,11 @@ export class FindOneWorkerUseCase {
       return 0;
     });
 
-    return { ...data, dosimeter_assignments: sortedAssignments };
+    return {
+      ...data,
+      days_until_medical_expiry: daysUntilMedicalExpiry,
+      medical_alert_level: medicalAlertLevel,
+      dosimeter_assignments: sortedAssignments,
+    };
   }
 }

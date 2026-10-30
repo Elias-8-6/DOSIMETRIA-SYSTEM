@@ -7,6 +7,7 @@ import { FindOneWorkerUseCase } from './use-case/find-one-worker.use-case';
 import { CreateWorkerUseCase } from './use-case/create-worker.use-case';
 import { UpdateWorkerUseCase } from './use-case/update-worker.use-case';
 import { UpdateWorkerStatusUseCase } from './use-case/update-worker-status.use-case';
+import { GetPoeMedicalAlertsUseCase } from './use-case/get-poe-medical-alerts.use-case';
 
 @Injectable()
 export class WorkersService {
@@ -16,12 +17,14 @@ export class WorkersService {
     private readonly createWorkerUseCase: CreateWorkerUseCase,
     private readonly updateWorkerUseCase: UpdateWorkerUseCase,
     private readonly updateWorkerStatusUseCase: UpdateWorkerStatusUseCase,
+    private readonly getPoeMedicalAlertsUseCase: GetPoeMedicalAlertsUseCase,
   ) {}
 
   findAll(
     organizationId: string,
     search?: string,
     status?: string,
+    medicalStatus?: string,
     clientId?: string,
     clientLocationId?: string,
     page: number = 1,
@@ -31,6 +34,7 @@ export class WorkersService {
       organizationId,
       search,
       status,
+      medicalStatus,
       clientId,
       clientLocationId,
       page,
@@ -57,5 +61,9 @@ export class WorkersService {
     requestingUserId: string,
   ) {
     return this.updateWorkerStatusUseCase.execute(workerId, dto, organizationId, requestingUserId);
+  }
+
+  getMedicalAlerts(organizationId: string, thresholdDays?: number, clientId?: string) {
+    return this.getPoeMedicalAlertsUseCase.execute(organizationId, thresholdDays, clientId);
   }
 }

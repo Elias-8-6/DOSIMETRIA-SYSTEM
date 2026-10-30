@@ -1,4 +1,13 @@
-import { IsDateString, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { UUID_REGEX } from './query-workers.dto';
 
 /** Acepta digitos, +, espacios, guiones y parentesis; neto 7-15 digitos. */
@@ -56,4 +65,20 @@ export class UpdateWorkerDto {
   @IsString()
   @MaxLength(100, { message: 'La ocupación no puede superar 100 caracteres' })
   occupation?: string;
+
+  // Campos médicos y de certificación Minsa (Requerimiento POE)
+  @IsOptional()
+  @IsDateString({}, { message: 'La fecha del examen médico Minsa debe tener formato YYYY-MM-DD' })
+  minsa_exam_date?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50, { message: 'El código de certificado Minsa no puede superar 50 caracteres' })
+  minsa_certificate_code?: string;
+
+  @IsOptional()
+  @IsIn(['apto', 'no_apto', 'observado', 'vencido'], {
+    message: 'medical_status debe ser: apto, no_apto, observado o vencido',
+  })
+  medical_status?: string;
 }

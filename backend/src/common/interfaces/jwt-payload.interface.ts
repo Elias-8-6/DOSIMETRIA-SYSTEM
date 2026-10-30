@@ -27,6 +27,11 @@ export enum Role {
   TECNICO_LAB = 'tecnico_lab',
   COORDINADOR_CLIENTE = 'coordinador_cliente',
   AUDITOR = 'auditor',
+  // Roles normativos Minsa / ISO 17025
+  OFICIAL_PROTECCION_RADIOLOGICA = 'oficial_proteccion_radiologica',
+  ENCARGADO_PROTECCION_RADIOLOGICA = 'encargado_proteccion_radiologica',
+  POE = 'poe',
+  PERSONAL_LOGISTICO = 'personal_logistico',
 }
 
 /**
