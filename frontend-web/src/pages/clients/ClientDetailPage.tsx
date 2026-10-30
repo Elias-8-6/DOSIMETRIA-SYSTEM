@@ -135,7 +135,7 @@ export default function ClientDetailPage() {
   };
 
   const handleWorkerCreated = () => {
-    showToast('Trabajador creado correctamente');
+    showToast('Personal POE registrado correctamente');
     setWorkerModalOpen(false);
     setWorkersRefreshKey((k) => k + 1);
   };
@@ -184,7 +184,7 @@ export default function ClientDetailPage() {
               accent="emerald"
               onClick={() => handleOpenAddWorker()}
             >
-              + Agregar trabajador
+              + Registrar POE
             </Button>
           )}
           <button
@@ -215,7 +215,7 @@ export default function ClientDetailPage() {
           title={client.status === 'active' ? 'Desactivar cliente' : 'Activar cliente'}
           message={
             client.status === 'active'
-              ? `¿Seguro que querés desactivar a ${client.name}? Sus departamentos y trabajadores seguirán existiendo, pero el cliente quedará marcado como inactivo.`
+              ? `¿Seguro que querés desactivar a ${client.name}? Sus departamentos y personal POE seguirán existiendo, pero el cliente quedará marcado como inactivo.`
               : `¿Reactivar a ${client.name}?`
           }
           confirmLabel={client.status === 'active' ? 'Desactivar' : 'Activar'}
@@ -323,7 +323,7 @@ export default function ClientDetailPage() {
                         className="text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer"
                         title="Agregar trabajador a este departamento"
                       >
-                        + Trabajador
+                        + POE
                       </button>
                     )}
                     <button

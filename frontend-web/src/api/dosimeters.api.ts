@@ -232,12 +232,12 @@ export interface TldCard {
 
 export const getHolders = async (params?: { barcode?: string; status?: string }): Promise<HolderDosimeter[]> => {
   const { data } = await api.get('/dosimeters/holders', { params });
-  return data;
+  return Array.isArray(data) ? data : data?.items || [];
 };
 
 export const getTldCards = async (params?: { serial_number?: string; status?: string }): Promise<TldCard[]> => {
   const { data } = await api.get('/dosimeters/tld-cards', { params });
-  return data;
+  return Array.isArray(data) ? data : data?.items || [];
 };
 
 export const assembleDosimeter = async (payload: {

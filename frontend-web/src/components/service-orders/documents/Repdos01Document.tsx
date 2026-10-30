@@ -97,7 +97,7 @@ export function Repdos01Document({
             </tr>
             <tr className="border-b border-gray-800 bg-gray-50 text-center font-semibold text-[10px]">
               <th className="border-r border-gray-800 py-1 px-1 w-20 text-left">PIN</th>
-              <th className="border-r border-gray-800 py-1 px-1.5 text-left">Usuario</th>
+              <th className="border-r border-gray-800 py-1 px-1.5 text-left">Personal POE</th>
               <th className="border-r border-gray-800 py-1 px-1 w-24 text-left">ID</th>
               <th className="border-r border-gray-800 py-1 px-1 w-24 text-left">Tipo D.</th>
 
@@ -178,7 +178,7 @@ export function Repdos01Document({
           <thead>
             <tr className="bg-gray-100 border-b border-gray-800 font-bold text-center">
               <th className="border-r border-gray-800 py-1 px-2 w-24 text-left">Pin</th>
-              <th className="border-r border-gray-800 py-1 px-2 text-left">Usuario</th>
+              <th className="border-r border-gray-800 py-1 px-2 text-left">Personal POE</th>
               <th className="border-r border-gray-800 py-1 px-2 text-left">Periodo de uso</th>
               <th colSpan={2} className="py-1 px-2 w-28">Buen Estado (✓)</th>
             </tr>

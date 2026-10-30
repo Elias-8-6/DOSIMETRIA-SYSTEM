@@ -40,7 +40,7 @@ export function UserDetailPage() {
 
   const loadData = useCallback(async () => {
     if (!id) {
-      setError('Usuario no encontrado');
+      setError('Personal de laboratorio no encontrado');
       setLoading(false);
       return;
     }
@@ -53,7 +53,7 @@ export function UserDetailPage() {
       setUser(userData);
       setPermissions(permissionData);
     } catch {
-      setError('No se pudo cargar el detalle del usuario');
+      setError('No se pudo cargar el detalle del personal de laboratorio');
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export function UserDetailPage() {
       await updateUserStatus(user.id, nextStatus);
       setUser({ ...user, status: nextStatus });
     } catch {
-      setError('No se pudo actualizar el estado del usuario');
+      setError('No se pudo actualizar el estado del personal');
     } finally {
       setIsSaving(false);
       setConfirmingStatusChange(false);
@@ -99,14 +99,14 @@ export function UserDetailPage() {
 
       await loadData();
     } catch {
-      setError('No se pudieron actualizar los permisos del usuario');
+      setError('No se pudieron actualizar los permisos del personal');
     } finally {
       setIsSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">Cargando detalle del usuario...</div>;
+    return <div className="p-6 text-sm text-gray-500">Cargando detalle del personal...</div>;
   }
 
   if (error && !user) {
@@ -124,7 +124,7 @@ export function UserDetailPage() {
   }
 
   if (!user) {
-    return <div className="p-6 text-sm text-gray-500">Usuario no encontrado.</div>;
+    return <div className="p-6 text-sm text-gray-500">Personal de laboratorio no encontrado.</div>;
   }
 
   return (
@@ -132,7 +132,7 @@ export function UserDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <Link to="/users" className="text-sm text-blue-600 hover:text-blue-800">
-            Volver a usuarios
+            Volver a Personal de Laboratorio
           </Link>
           <h1 className="mt-2 text-2xl font-bold text-gray-900">{user.full_name}</h1>
           <p className="text-sm text-gray-500">{user.email}</p>
@@ -148,14 +148,14 @@ export function UserDetailPage() {
                 : 'bg-green-600 hover:bg-green-700'
             }`}
           >
-            {user.status === 'active' ? 'Desactivar usuario' : 'Activar usuario'}
+            {user.status === 'active' ? 'Desactivar personal' : 'Activar personal'}
           </button>
         )}
       </div>
 
       {confirmingStatusChange && (
         <ConfirmDialog
-          title={user.status === 'active' ? 'Desactivar usuario' : 'Activar usuario'}
+          title={user.status === 'active' ? 'Desactivar personal' : 'Activar personal'}
           message={
             user.status === 'active'
               ? `¿Seguro que querés desactivar a ${user.full_name}? No podrá iniciar sesión mientras esté inactivo.`

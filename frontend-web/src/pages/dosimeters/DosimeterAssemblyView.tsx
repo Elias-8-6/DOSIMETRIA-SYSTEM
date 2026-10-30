@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getHolders,
@@ -37,13 +37,17 @@ export function DosimeterAssemblyView() {
         getTldCards({ status: 'disponible' }),
         getWorkers({ limit: 100 }),
       ]);
-      setHolders(hList);
-      setCards(cList);
-      setWorkers(wList.items);
+      const holdersArr: HolderDosimeter[] = Array.isArray(hList) ? hList : (hList as any)?.items || [];
+      const cardsArr: TldCard[] = Array.isArray(cList) ? cList : (cList as any)?.items || [];
+      const workersArr: Worker[] = Array.isArray(wList?.items) ? wList.items : Array.isArray(wList) ? wList : [];
 
-      if (hList.length > 0) setSelectedHolderId(hList[0].id);
-      if (cList.length > 0) setSelectedCardId(cList[0].id);
-      if (wList.items.length > 0) setSelectedWorkerId(wList.items[0].id);
+      setHolders(holdersArr);
+      setCards(cardsArr);
+      setWorkers(workersArr);
+
+      if (holdersArr.length > 0) setSelectedHolderId(holdersArr[0].id);
+      if (cardsArr.length > 0) setSelectedCardId(cardsArr[0].id);
+      if (workersArr.length > 0) setSelectedWorkerId(workersArr[0].id);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Error al cargar catálogos de ensamblaje.');
     } finally {
@@ -51,7 +55,7 @@ export function DosimeterAssemblyView() {
     }
   };
 
-  const selectedWorker = workers.find((w) => w.id === selectedWorkerId);
+  const selectedWorker = (workers || []).find((w) => w.id === selectedWorkerId);
 
   const isWorkerMedicalExpired = (w?: Worker) => {
     if (!w || !w.minsa_exam_expiry_date) return true;
@@ -63,7 +67,7 @@ export function DosimeterAssemblyView() {
     if (!selectedHolderId || !selectedCardId) return;
 
     if (selectedWorker && (isWorkerMedicalExpired(selectedWorker) || selectedWorker.medical_status !== 'apto')) {
-      setError('Bloqueo Minsa: No se puede asignar un dosímetro a un trabajador con examen médico vencido o no apto.');
+      setError('Bloqueo Minsa: No se puede asignar un dosímetro a un personal POE con examen médico vencido o no apto.');
       return;
     }
 
@@ -76,8 +80,7 @@ export function DosimeterAssemblyView() {
         tld_card_id: selectedCardId,
         notes: assemblyNotes,
       });
-
-      setSuccessMsg(`Dosímetro ensamblado exitosamente: S/N ${res.assembly?.dosimeter?.serial_number || 'OK'}`);
+      setSuccessMsg(`Dosímetro modular ensamblado exitosamente: S/N ${res.assembly?.dosimeter?.serial_number || 'OK'}`);
       loadData();
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Error al ensamblar dosímetro.');
@@ -134,11 +137,15 @@ export function DosimeterAssemblyView() {
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
                   required
                 >
-                  {holders.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.barcode} — Color: {h.color || 'Azul'} ({h.clip_type || 'Clip Cocodrilo'})
-                    </option>
-                  ))}
+                  {holders.length === 0 ? (
+                    <option value="">No hay holders disponibles</option>
+                  ) : (
+                    holders.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.barcode} — Serie: {h.serial_number} ({h.clip_type || 'Clip Cocodrilo'})
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
             </div>
@@ -158,34 +165,44 @@ export function DosimeterAssemblyView() {
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
                   required
                 >
-                  {cards.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      S/N: {c.serial_number} — Tipo: {c.card_type} ({c.pellet_count} pastillas, Sens: {c.sensitivity_factor})
-                    </option>
-                  ))}
+                  {cards.length === 0 ? (
+                    <option value="">No hay tarjetas TLD disponibles</option>
+                  ) : (
+                    cards.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        S/N: {c.serial_number} — Tipo: {c.card_type} ({c.pellet_count} pastillas)
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
             </div>
           </div>
 
-          {/* POE Asignado y Aptitud Médica Minsa */}
+          {/* Personal POE Asignado y Aptitud Médica Minsa */}
           <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg space-y-3">
             <h3 className="text-sm font-bold text-gray-800 uppercase">
               3. Validación de Aptitud Médica del POE (Normativa Minsa)
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Trabajador Ocupacionalmente Expuesto</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Personal Ocupacionalmente Expuesto (POE)
+                </label>
                 <select
                   value={selectedWorkerId}
                   onChange={(e) => setSelectedWorkerId(e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
                 >
-                  {workers.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.full_name} — DNI: {w.document_number || 'S/D'} ({w.occupation || 'POE'})
-                    </option>
-                  ))}
+                  {workers.length === 0 ? (
+                    <option value="">No hay personal POE registrado</option>
+                  ) : (
+                    workers.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.full_name} — DNI: {w.document_number || 'S/D'} ({w.occupation || 'POE'})
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -194,8 +211,8 @@ export function DosimeterAssemblyView() {
                   <span className="font-semibold text-gray-700">Estado del Examen Médico Bianual:</span>
                   <div className={`p-2 rounded font-bold flex items-center justify-between border ${
                     isWorkerMedicalExpired(selectedWorker) || selectedWorker.medical_status !== 'apto'
-                      ? 'bg-red-100 text-red-800 border-red-300'
-                      : 'bg-green-100 text-green-800 border-green-300'
+                      ? 'bg-red-100 border-red-300 text-red-700'
+                      : 'bg-green-100 border-green-300 text-green-800'
                   }`}>
                     <span>Condición: {(selectedWorker.medical_status || 'desconocido').toUpperCase()}</span>
                     <span>

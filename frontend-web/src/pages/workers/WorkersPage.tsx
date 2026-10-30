@@ -58,7 +58,7 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
       setWorkers(data.items);
       setTotalPages(Math.ceil(data.total / PAGE_SIZE));
     } catch {
-      setError('No se pudo cargar el listado de trabajadores');
+      setError('No se pudo cargar el listado de personal POE');
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
 
   const handleFormSuccess = useCallback(() => {
     showToast(
-      formModal.worker ? 'Trabajador actualizado correctamente' : 'Trabajador creado correctamente',
+      formModal.worker ? 'Personal POE actualizado correctamente' : 'Personal POE registrado correctamente',
     );
     fetchWorkers();
   }, [fetchWorkers, showToast, formModal.worker]);
@@ -85,7 +85,7 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
       const detail = await getWorker(worker.id);
       setDetailModal({ open: true, worker: detail });
     } catch {
-      setDetailError('No se pudo cargar el detalle del trabajador');
+      setDetailError('No se pudo cargar la ficha técnica del POE');
     }
   };
 
@@ -109,8 +109,8 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
       {/* Header — se oculta cuando es embebido */}
       {!embedded && (
         <PageHeader
-          title="Trabajadores"
-          subtitle="Gestión de trabajadores dosimetrados"
+          title="Personal Ocupacionalmente Expuesto (POE)"
+          subtitle="Control regulatorio Minsa de personal expuesto a radiaciones ionizantes"
           action={
             <Button
               accent="emerald"
@@ -129,7 +129,7 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
       <div className={`flex gap-3 flex-wrap ${embedded ? 'mb-3' : 'mb-4'}`}>
         <input
           type="text"
-          placeholder="Buscar por nombre, documento o código..."
+          placeholder="Buscar POE por nombre, DNI o código..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 min-w-[180px] px-3 py-2 border border-gray-300 rounded-lg text-sm
@@ -188,7 +188,7 @@ export default function WorkersPage({ clientId, clientLocationId, embedded }: Pr
                 <span className="text-red-600">{error}</span>
               </TableStatusRow>
             ) : workers.length === 0 ? (
-              <TableStatusRow colSpan={colSpan}>No se encontraron trabajadores</TableStatusRow>
+              <TableStatusRow colSpan={colSpan}>No se encontró personal POE registrado</TableStatusRow>
             ) : (
               workers.map((worker) => (
                 <tr

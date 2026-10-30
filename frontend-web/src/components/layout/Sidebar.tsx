@@ -38,7 +38,7 @@ export function Sidebar() {
 
           {hasPermission('users', 'read') && (
             <NavLink to="/users" className={navClass}>
-              <span>Usuarios</span>
+              <span>Personal de Laboratorio</span>
             </NavLink>
           )}
 
@@ -61,7 +61,7 @@ export function Sidebar() {
                     }
                   >
                     <span className="text-gray-400 text-xs">↳</span>
-                    <span>Trabajadores</span>
+                    <span>Personal POE</span>
                   </NavLink>
                 </div>
               )}
@@ -70,7 +70,7 @@ export function Sidebar() {
 
           {!hasPermission('clients', 'read') && hasPermission('workers', 'read') && (
             <NavLink to="/workers" className={navClass}>
-              <span>Trabajadores</span>
+              <span>Personal POE</span>
             </NavLink>
           )}
 
@@ -80,7 +80,7 @@ export function Sidebar() {
                 <span>Dosímetros</span>
               </NavLink>
 
-              <div className="ml-4 pl-2 border-l border-gray-200">
+              <div className="ml-4 pl-2 border-l border-gray-200 space-y-1">
                 <NavLink
                   to="/dosimeters/assembly"
                   className={({ isActive }) =>
@@ -93,6 +93,20 @@ export function Sidebar() {
                 >
                   <span className="text-gray-400 text-xs">↳</span>
                   <span>Ensamblaje 1:1</span>
+                </NavLink>
+
+                <NavLink
+                  to="/integration"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors duration-150 ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700 font-medium'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                    }`
+                  }
+                >
+                  <span className="text-gray-400 text-xs">↳</span>
+                  <span>Integración TLD</span>
                 </NavLink>
               </div>
             </div>

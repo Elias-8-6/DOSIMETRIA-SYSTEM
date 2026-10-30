@@ -41,7 +41,7 @@ export function AssignDosimeterModal({ dosimeterId, onClose, onSuccess }: Props)
     e.preventDefault();
     setError('');
     if (!workerId) {
-      setError('Seleccioná un trabajador');
+      setError('Seleccioná un personal POE');
       return;
     }
     if (!isDateNotFuture(assignedAt)) {
@@ -68,19 +68,19 @@ export function AssignDosimeterModal({ dosimeterId, onClose, onSuccess }: Props)
     <Modal title="Asignar dosímetro" onClose={onClose} maxWidth="max-w-md">
       <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
         <Input
-          label="Buscar trabajador"
+          label="Buscar POE"
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Nombre o documento..."
         />
         <Select
-          label="Trabajador"
+          label="Personal Ocupacionalmente Expuesto (POE)"
           value={workerId}
           onChange={(e) => setWorkerId(e.target.value)}
           required
         >
-          <option value="">Seleccionar trabajador</option>
+          <option value="">Seleccionar POE</option>
           {workers.map((w) => (
             <option key={w.id} value={w.id}>
               {w.full_name} — {w.clients?.name ?? 'Sin institución'}

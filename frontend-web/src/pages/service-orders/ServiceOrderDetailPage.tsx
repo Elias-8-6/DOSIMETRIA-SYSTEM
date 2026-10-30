@@ -269,7 +269,7 @@ export default function ServiceOrderDetailPage() {
                       </span>
                     ) : (
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                        Control / Sin usuario
+                        Control / Sin POE asignado
                       </span>
                     )}
                   </div>

@@ -82,7 +82,7 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
         return;
       }
       if (!hasMinimumAge(dateOfBirth, 18)) {
-        setError('El usuario debe ser mayor de 18 años');
+        setError('El personal debe ser mayor de 18 años');
         return;
       }
     }
@@ -133,14 +133,14 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
       onSuccess();
       onClose();
     } catch (err) {
-      setError(extractApiError(err, 'Error al guardar el usuario'));
+      setError(extractApiError(err, 'Error al guardar el personal de laboratorio'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal title={isEditing ? 'Editar usuario' : 'Nuevo usuario'} onClose={onClose}>
+    <Modal title={isEditing ? 'Editar Personal de Laboratorio' : 'Nuevo Personal / Analista'} onClose={onClose}>
       <form autoComplete="off" onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
         {/* ── Sección: Datos básicos ────────────────────────────── */}
         <div>
@@ -288,7 +288,7 @@ export function UserFormModal({ user, onClose, onSuccess }: Props) {
                 : 'Creando...'
               : isEditing
                 ? 'Guardar cambios'
-                : 'Crear usuario'}
+                : 'Registrar personal'}
           </Button>
         </div>
       </form>

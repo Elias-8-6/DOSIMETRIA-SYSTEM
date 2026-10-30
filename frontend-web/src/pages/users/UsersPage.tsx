@@ -84,18 +84,18 @@ export function UsersPage() {
   // Al guardar exitosamente, recarga la lista completa desde el backend.
   // Esto garantiza que los datos (incluyendo roles[]) estén siempre frescos.
   const handleSuccess = useCallback(() => {
-    showToast(editingUser ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
+    showToast(editingUser ? 'Personal de laboratorio actualizado correctamente' : 'Personal de laboratorio registrado correctamente');
     fetchUsers();
   }, [fetchUsers, showToast, editingUser]);
 
   return (
     <div>
       <PageHeader
-        title="Usuarios"
-        subtitle="Gestión de usuarios del sistema"
+        title="Personal de Laboratorio"
+        subtitle="Gestión de analistas y personal técnico del laboratorio (ISO 17025)"
         action={
           hasPermission('users', 'create') && (
-            <Button onClick={handleOpenCreate}>Nuevo usuario</Button>
+            <Button onClick={handleOpenCreate}>+ Nuevo Personal / Analista</Button>
           )
         }
       />
@@ -136,13 +136,13 @@ export function UsersPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <TableStatusRow colSpan={5}>Cargando usuarios...</TableStatusRow>
+              <TableStatusRow colSpan={5}>Cargando personal de laboratorio...</TableStatusRow>
             ) : error ? (
               <TableStatusRow colSpan={5}>
                 <span className="text-red-600">{error}</span>
               </TableStatusRow>
             ) : users.length === 0 ? (
-              <TableStatusRow colSpan={5}>No se encontraron usuarios</TableStatusRow>
+              <TableStatusRow colSpan={5}>No se encontró personal de laboratorio</TableStatusRow>
             ) : (
               users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">

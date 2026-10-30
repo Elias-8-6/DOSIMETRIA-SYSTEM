@@ -118,7 +118,7 @@ export function ReportsPage() {
       const res = await reportsApi.getWorkerHistory(selectedWorkerId);
       setWorkerHistory(res);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Error al obtener historial del trabajador.');
+      setError(err?.response?.data?.message || 'Error al obtener historial del POE.');
     } finally {
       setLoading(false);
     }
@@ -238,7 +238,7 @@ export function ReportsPage() {
       {activeTab === 'alerts' && (
         <div className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg text-sm text-amber-900">
-            <strong>Criterio Normativo Minsa:</strong> Toda dosis mensual superior a <strong>2.0 mSv</strong> representa más del 10% del límite anual (20 mSv/año) y exige el retiro preventivo del trabajador y la apertura obligatoria de investigación técnica del OPR.
+            <strong>Criterio Normativo Minsa:</strong> Toda dosis mensual superior a <strong>2.0 mSv</strong> representa más del 10% del límite anual (20 mSv/año) y exige el retiro preventivo del POE y la apertura obligatoria de investigación técnica del OPR.
           </div>
 
           {alerts.length === 0 ? (
@@ -252,7 +252,7 @@ export function ReportsPage() {
                   <tr>
                     <th className="px-4 py-3 text-left">Fecha</th>
                     <th className="px-4 py-3 text-left">Dosis Hp(10)</th>
-                    <th className="px-4 py-3 text-left">Trabajador POE</th>
+                    <th className="px-4 py-3 text-left">Personal POE</th>
                     <th className="px-4 py-3 text-left">Cliente / Empresa</th>
                     <th className="px-4 py-3 text-left">Dosímetro</th>
                     <th className="px-4 py-3 text-left">Incidente</th>
@@ -380,7 +380,7 @@ export function ReportsPage() {
         <div className="space-y-6">
           <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col sm:flex-row gap-4 items-end shadow-sm">
             <div className="flex-1 w-full">
-              <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Seleccionar Trabajador POE</label>
+              <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Seleccionar Personal POE</label>
               <select
                 value={selectedWorkerId}
                 onChange={(e) => setSelectedWorkerId(e.target.value)}

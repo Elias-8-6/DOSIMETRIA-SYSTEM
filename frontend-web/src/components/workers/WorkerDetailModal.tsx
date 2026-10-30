@@ -184,7 +184,7 @@ export function WorkerDetailModal({ worker, onClose, onUpdate, onEdit }: Props) 
 
       {confirmingStatus && (
         <ConfirmDialog
-          title={localWorker.status === 'active' ? 'Desactivar trabajador' : 'Activar trabajador'}
+          title={localWorker.status === 'active' ? 'Desactivar POE' : 'Activar POE'}
           message={
             localWorker.status === 'active'
               ? `¿Seguro que querés desactivar a ${localWorker.full_name}? Su historial de dosimetría se conserva, pero no podrá recibir nuevas asignaciones mientras esté inactivo.`

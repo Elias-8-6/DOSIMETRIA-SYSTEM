@@ -30,6 +30,7 @@ const CreateReceptionPage = lazy(() => import('../pages/receptions/CreateRecepti
 const ReceptionDetailPage = lazy(() => import('../pages/receptions/ReceptionDetailPage'));
 const TriageScanView = lazy(() => import('../pages/receptions/TriageScanView'));
 const ReportsPage = lazy(() => import('../pages/reports/ReportsPage'));
+const TldIntegrationView = lazy(() => import('../pages/readings/TldIntegrationView'));
 
 function LoadingScreen() {
   return (
@@ -224,6 +225,9 @@ export function AppRouter() {
             }
           />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="integration" element={<TldIntegrationView />} />
+          <Route path="integracion" element={<TldIntegrationView />} />
+          <Route path="readings/integration" element={<TldIntegrationView />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

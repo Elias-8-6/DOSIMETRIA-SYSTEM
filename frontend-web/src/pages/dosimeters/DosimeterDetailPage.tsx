@@ -264,7 +264,7 @@ export default function DosimeterDetailPage() {
             {openAssignment ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-y-3 gap-x-6">
-                  <Field label="Trabajador" value={openAssignment.workers.full_name} />
+                  <Field label="Personal POE" value={openAssignment.workers.full_name} />
                   <Field label="Institución" value={openAssignment.workers.clients.name} />
                   <Field label="Sede / Ubicación" value={openAssignment.workers.client_locations?.name} />
                   <Field label="Asignado" value={formatDate(openAssignment.assigned_at)} />

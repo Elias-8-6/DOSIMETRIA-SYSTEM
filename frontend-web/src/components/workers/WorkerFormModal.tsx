@@ -158,7 +158,7 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
       onSuccess();
     } catch (err) {
       const e = err as { response?: { data?: { message?: string | string[] } } };
-      const msg = e?.response?.data?.message ?? 'Error al guardar el trabajador';
+      const msg = e?.response?.data?.message ?? 'Error al guardar el personal POE';
       setError(Array.isArray(msg) ? msg.join(', ') : msg);
     } finally {
       setLoading(false);
@@ -166,7 +166,7 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
   };
 
   return (
-    <Modal title={isEditing ? 'Editar trabajador' : 'Nuevo trabajador'} onClose={onClose}>
+    <Modal title={isEditing ? 'Editar Personal POE' : 'Nuevo Personal Ocupacionalmente Expuesto (POE)'} onClose={onClose}>
       <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
         {/* Identificación */}
         <div>
@@ -249,7 +249,7 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required={!isEditing}
-              placeholder="trabajador@institucion.com"
+              placeholder="poe@institucion.com"
               accent="emerald"
             />
           </div>
@@ -330,7 +330,7 @@ export function WorkerFormModal({ worker, clientId, clientLocationId, onClose, o
             Cancelar
           </Button>
           <Button type="submit" accent="emerald" disabled={loading}>
-            {loading ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear trabajador'}
+            {loading ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Registrar POE'}
           </Button>
         </div>
       </form>

@@ -114,7 +114,7 @@ export default function CreateServiceOrderPage() {
     setSearchingDosimeters(true);
     searchDosimetersForOrder(clientId, debouncedSearch.trim())
       .then((res) => {
-        // Filtrar solo dosímetros asignados a trabajadores de este cliente con estado físico ASIGNADO
+        // Filtrar solo dosímetros asignados a personal POE de este cliente con estado físico ASIGNADO
         const filtered = res.filter((r) => r.origin === 'client' && r.status?.code === 'ASIGNADO');
         setSearchResults(filtered);
       })
@@ -303,7 +303,7 @@ export default function CreateServiceOrderPage() {
                     </h4>
                   </div>
                   <p className="text-xs text-gray-600 mt-2">
-                    Formulario oficial de entrega y recibo de dosímetros (clientes). Contiene la lista detallada con PIN, Usuario asignado, Cédula/ID, tipo de dosímetro y casillas de verificación.
+                    Formulario oficial de entrega y recibo de dosímetros (clientes). Contiene la lista detallada con PIN, Personal POE asignado, Cédula/ID, tipo de dosímetro y casillas de verificación.
                   </p>
                 </div>
                 <Button
@@ -585,7 +585,7 @@ export default function CreateServiceOrderPage() {
                     <p className="text-xs text-gray-400 py-2">Consultando inventario del cliente...</p>
                   ) : clientDosimeters.length === 0 ? (
                     <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
-                      Este cliente no tiene dosímetros actualmente con estado <strong>ASIGNADO</strong> en campo. Para solicitar una orden de servicio, los dosímetros deben haber sido asignados previamente a sus trabajadores.
+                      Este cliente no tiene dosímetros actualmente con estado <strong>ASIGNADO</strong> en campo. Para solicitar una orden de servicio, los dosímetros deben haber sido asignados previamente a su personal POE.
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pt-1">
@@ -608,7 +608,7 @@ export default function CreateServiceOrderPage() {
                                 {cd.serial_number}
                               </p>
                               <p className="text-[11px] text-gray-500 truncate">
-                                {cd.worker?.full_name || 'Sin usuario asignado'}
+                                {cd.worker?.full_name || 'Sin POE asignado'}
                               </p>
                             </div>
                             {isAdded ? (
@@ -657,7 +657,7 @@ export default function CreateServiceOrderPage() {
                         <div className="flex items-center justify-between text-xs text-gray-500 border-b border-gray-100 pb-1.5">
                           <span>Dosímetros en campo encontrados: {searchResults.length}</span>
                           <span className="inline-flex items-center gap-1 text-emerald-700 font-medium text-[11px]">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Asignado a trabajador
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Asignado a personal POE
                           </span>
                         </div>
 
@@ -802,7 +802,7 @@ export default function CreateServiceOrderPage() {
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200 font-semibold text-gray-600">
                         <th className="py-2.5 px-3">PIN / Serie</th>
-                        <th className="py-2.5 px-3">Usuario asignado</th>
+                        <th className="py-2.5 px-3">Personal POE asignado</th>
                         <th className="py-2.5 px-3">ID / Cédula</th>
                         <th className="py-2.5 px-3">Tipo D.</th>
                         <th className="py-2.5 px-3">Acción</th>
