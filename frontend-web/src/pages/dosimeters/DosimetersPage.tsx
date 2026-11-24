@@ -5,6 +5,7 @@ import { getDosimeters } from '../../api/dosimeters.api';
 import type { DosimeterType, DosimeterStatus } from '../../api/catalogs.api';
 import { getDosimeterTypes, getDosimeterStatuses } from '../../api/catalogs.api';
 import { DosimeterFormModal } from '../../components/dosimeters/DosimeterFormModal';
+import { QuickBarcodeAssignModal } from '../../components/dosimeters/QuickBarcodeAssignModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useToast } from '../../hooks/useToast';
 import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
@@ -34,6 +35,7 @@ export default function DosimetersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [formModalOpen, setFormModalOpen] = useState(false);
+  const [quickAssignModalOpen, setQuickAssignModalOpen] = useState(false);
   const [modalKey, setModalKey] = useState(0);
 
   const debouncedSearch = useDebounce(search, 300);
@@ -87,16 +89,27 @@ export default function DosimetersPage() {
         title="Dosímetros"
         subtitle="Inventario y asignación de dosímetros"
         action={
-          hasPermission('dosimeters', 'create') && (
-            <Button
-              onClick={() => {
-                setModalKey((k) => k + 1);
-                setFormModalOpen(true);
-              }}
-            >
-              Nuevo dosímetro
-            </Button>
-          )
+          <div className="flex gap-2.5">
+            {hasPermission('assignments', 'create') && (
+              <Button
+                variant="secondary"
+                onClick={() => setQuickAssignModalOpen(true)}
+                className="flex items-center gap-1.5 border border-slate-300"
+              >
+                <span>⚡</span> Asignación Rápida con Escáner
+              </Button>
+            )}
+            {hasPermission('dosimeters', 'create') && (
+              <Button
+                onClick={() => {
+                  setModalKey((k) => k + 1);
+                  setFormModalOpen(true);
+                }}
+              >
+                Nuevo dosímetro
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -221,6 +234,16 @@ export default function DosimetersPage() {
           types={types}
           onClose={() => setFormModalOpen(false)}
           onSuccess={handleFormSuccess}
+        />
+      )}
+
+      {quickAssignModalOpen && (
+        <QuickBarcodeAssignModal
+          onClose={() => setQuickAssignModalOpen(false)}
+          onSuccess={(msg) => {
+            showToast(msg || 'Dosímetro asignado exitosamente');
+            fetchDosimeters();
+          }}
         />
       )}
     </div>

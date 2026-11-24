@@ -16,6 +16,10 @@ import { AssembleDosimeterUseCase } from './use-cases/assemble-dosimeter.use-cas
 import { DisassembleDosimeterUseCase } from './use-cases/disassemble-dosimeter.use-case';
 import { FindHoldersUseCase } from './use-cases/find-holders.use-case';
 import { FindTldCardsUseCase } from './use-cases/find-tld-cards.use-case';
+import { ValidateHolderBarcodeUseCase } from './use-cases/validate-holder-barcode.use-case';
+import { FindOneHolderUseCase } from './use-cases/find-one-holder.use-case';
+import { UpdateHolderUseCase } from './use-cases/update-holder.use-case';
+import { DeleteHolderUseCase } from './use-cases/delete-holder.use-case';
 import { RolesGuard } from '@common/guards/roles.guard';
 
 @Module({
@@ -37,6 +41,10 @@ import { RolesGuard } from '@common/guards/roles.guard';
     DisassembleDosimeterUseCase,
     FindHoldersUseCase,
     FindTldCardsUseCase,
+    ValidateHolderBarcodeUseCase,
+    FindOneHolderUseCase,
+    UpdateHolderUseCase,
+    DeleteHolderUseCase,
     RolesGuard,
   ],
   exports: [DosimetersService],

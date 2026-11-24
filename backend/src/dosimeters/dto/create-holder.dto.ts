@@ -1,24 +1,39 @@
 import {
+  IsBoolean,
   IsIn,
-  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateHolderDto {
-  @IsNotEmpty({ message: 'El código de barras es requerido' })
+  @ValidateIf((o: CreateHolderDto) => !o.auto_generate_barcode)
   @IsString({ message: 'El código de barras debe ser una cadena de texto' })
   @MinLength(3, { message: 'El código de barras debe tener al menos 3 caracteres' })
   @MaxLength(50, { message: 'El código de barras no puede superar 50 caracteres' })
-  barcode!: string;
+  barcode?: string;
 
-  @IsNotEmpty({ message: 'El número de serie del portadosímetro es requerido' })
+  @IsOptional()
+  @IsBoolean({ message: 'auto_generate_barcode debe ser booleano' })
+  auto_generate_barcode?: boolean;
+
+  @IsOptional()
   @IsString()
   @MinLength(3, { message: 'El número de serie debe tener al menos 3 caracteres' })
   @MaxLength(50, { message: 'El número de serie no puede superar 50 caracteres' })
-  serial_number!: string;
+  serial_number?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50, { message: 'El modelo no puede superar 50 caracteres' })
+  model?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100, { message: 'La ubicación no puede superar 100 caracteres' })
+  storage_location?: string;
 
   @IsOptional()
   @IsString()

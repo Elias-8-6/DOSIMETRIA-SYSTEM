@@ -19,6 +19,10 @@ export class AssembleDosimeterUseCase {
   ) {}
 
   async execute(dto: AssembleDosimeterDto, requestingUserId: string) {
+    if (!dto.dosimeter_id && !dto.tld_card_id) {
+      throw new BadRequestException('Debe proporcionar un dosimeter_id o un tld_card_id para ensamblar.');
+    }
+
     const supabase = this.supabase.getClient();
 
     // 1. Validar portadosímetro
@@ -42,22 +46,53 @@ export class AssembleDosimeterUseCase {
       );
     }
 
-    // 2. Validar tarjeta TLD
-    const { data: tldCard, error: tldErr } = await supabase
-      .from('tld_cards')
-      .select('id, serial_number, status')
-      .eq('id', dto.tld_card_id)
-      .maybeSingle();
+    // 2. Validar Dosímetro (si aplica)
+    let dosimeter: { id: string; serial_number: string; current_condition: string } | null = null;
+    if (dto.dosimeter_id) {
+      const { data: dos, error: dosErr } = await supabase
+        .from('dosimeters')
+        .select('id, serial_number, current_condition, status_id, dosimeter_statuses(code)')
+        .eq('id', dto.dosimeter_id)
+        .maybeSingle();
 
-    if (tldErr || !tldCard) throw new NotFoundException('Tarjeta TLD no encontrada');
+      if (dosErr || !dos) throw new NotFoundException('Dosímetro no encontrado');
 
-    if (tldCard.status !== 'disponible') {
-      throw new ConflictException(
-        `La tarjeta TLD '${tldCard.serial_number}' no está disponible (estado actual: ${tldCard.status})`,
-      );
+      const statusCode = (dos.dosimeter_statuses as { code?: string } | null)?.code;
+      if (statusCode && statusCode !== 'DISPONIBLE') {
+        throw new ConflictException(
+          `El dosímetro '${dos.serial_number}' no está disponible para ensamble (estado: ${statusCode})`,
+        );
+      }
+
+      if (['danado', 'contaminado', 'perdido'].includes(dos.current_condition)) {
+        throw new BadRequestException(
+          `El dosímetro presenta condición crítica (${dos.current_condition}) y no puede ensamblarse`,
+        );
+      }
+
+      dosimeter = { id: dos.id, serial_number: dos.serial_number, current_condition: dos.current_condition };
     }
 
-    // 3. Validar que ninguna parte esté en un ensamble activo
+    // 3. Validar tarjeta TLD (si aplica)
+    let tldCard: { id: string; serial_number: string } | null = null;
+    if (dto.tld_card_id) {
+      const { data: card, error: tldErr } = await supabase
+        .from('tld_cards')
+        .select('id, serial_number, status')
+        .eq('id', dto.tld_card_id)
+        .maybeSingle();
+
+      if (tldErr || !card) throw new NotFoundException('Tarjeta TLD no encontrada');
+
+      if (card.status !== 'disponible') {
+        throw new ConflictException(
+          `La tarjeta TLD '${card.serial_number}' no está disponible (estado actual: ${card.status})`,
+        );
+      }
+      tldCard = card;
+    }
+
+    // 4. Validar que ninguna parte esté en un ensamble activo
     const { data: activeHolder } = await supabase
       .from('holder_tld_assemblies')
       .select('id')
@@ -69,23 +104,39 @@ export class AssembleDosimeterUseCase {
       throw new ConflictException('El portadosímetro ya tiene un ensamble activo');
     }
 
-    const { data: activeTld } = await supabase
-      .from('holder_tld_assemblies')
-      .select('id')
-      .eq('tld_card_id', dto.tld_card_id)
-      .eq('is_active', true)
-      .maybeSingle();
+    if (dto.dosimeter_id) {
+      const { data: activeDos } = await supabase
+        .from('holder_tld_assemblies')
+        .select('id')
+        .eq('dosimeter_id', dto.dosimeter_id)
+        .eq('is_active', true)
+        .maybeSingle();
 
-    if (activeTld) {
-      throw new ConflictException('La tarjeta TLD ya está ensamblada en otro portadosímetro');
+      if (activeDos) {
+        throw new ConflictException('El dosímetro ya tiene un portadosímetro ensamblado');
+      }
     }
 
-    // 4. Registrar ensamble 1:1
+    if (dto.tld_card_id) {
+      const { data: activeTld } = await supabase
+        .from('holder_tld_assemblies')
+        .select('id')
+        .eq('tld_card_id', dto.tld_card_id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (activeTld) {
+        throw new ConflictException('La tarjeta TLD ya está ensamblada en otro portadosímetro');
+      }
+    }
+
+    // 5. Registrar ensamble 1:1
     const { data: assembly, error: assemblyErr } = await supabase
       .from('holder_tld_assemblies')
       .insert({
         holder_id: dto.holder_id,
-        tld_card_id: dto.tld_card_id,
+        dosimeter_id: dto.dosimeter_id ?? null,
+        tld_card_id: dto.tld_card_id ?? null,
         assembled_by: requestingUserId,
         is_active: true,
         notes: dto.notes ?? null,
@@ -98,16 +149,18 @@ export class AssembleDosimeterUseCase {
       throw new Error(`No se pudo crear el ensamble: ${assemblyErr?.message}`);
     }
 
-    // 5. Actualizar estados a 'ensamblado'
+    // 6. Actualizar estados
     await supabase
       .from('holder_dosimeters')
       .update({ status: 'ensamblado' })
       .eq('id', dto.holder_id);
 
-    await supabase
-      .from('tld_cards')
-      .update({ status: 'ensamblado' })
-      .eq('id', dto.tld_card_id);
+    if (dto.tld_card_id) {
+      await supabase
+        .from('tld_cards')
+        .update({ status: 'ensamblado' })
+        .eq('id', dto.tld_card_id);
+    }
 
     await this.audit.log({
       userId: requestingUserId,
@@ -116,7 +169,8 @@ export class AssembleDosimeterUseCase {
       action: 'CREATE',
       newValues: {
         holder_barcode: holder.barcode,
-        tld_serial: tldCard.serial_number,
+        dosimeter_serial: dosimeter?.serial_number ?? null,
+        tld_serial: tldCard?.serial_number ?? null,
         is_active: true,
       },
     });
@@ -125,7 +179,8 @@ export class AssembleDosimeterUseCase {
       message: 'Dosímetro ensamblado exitosamente',
       assembly_id: assembly.id,
       holder: { id: holder.id, barcode: holder.barcode, serial_number: holder.serial_number },
-      tld_card: { id: tldCard.id, serial_number: tldCard.serial_number },
+      dosimeter: dosimeter ? { id: dosimeter.id, serial_number: dosimeter.serial_number } : null,
+      tld_card: tldCard ? { id: tldCard.id, serial_number: tldCard.serial_number } : null,
       assembled_at: assembly.assembled_at,
     };
   }

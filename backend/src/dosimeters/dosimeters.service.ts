@@ -6,6 +6,7 @@ import { UpdateDosimeterStatusDto } from './dto/update-dosimeter-status.dto';
 import { AssignDosimeterDto } from './dto/assign-dosimeter.dto';
 import { ReturnDosimeterDto } from './dto/return-dosimeter.dto';
 import { CreateHolderDto } from './dto/create-holder.dto';
+import { UpdateHolderDto } from './dto/update-holder.dto';
 import { CreateTldCardDto } from './dto/create-tld-card.dto';
 import { AssembleDosimeterDto } from './dto/assemble-dosimeter.dto';
 import { DisassembleDosimeterDto } from './dto/disassemble-dosimeter.dto';
@@ -26,6 +27,10 @@ import { AssembleDosimeterUseCase } from './use-cases/assemble-dosimeter.use-cas
 import { DisassembleDosimeterUseCase } from './use-cases/disassemble-dosimeter.use-case';
 import { FindHoldersUseCase } from './use-cases/find-holders.use-case';
 import { FindTldCardsUseCase } from './use-cases/find-tld-cards.use-case';
+import { ValidateHolderBarcodeUseCase } from './use-cases/validate-holder-barcode.use-case';
+import { FindOneHolderUseCase } from './use-cases/find-one-holder.use-case';
+import { UpdateHolderUseCase } from './use-cases/update-holder.use-case';
+import { DeleteHolderUseCase } from './use-cases/delete-holder.use-case';
 
 @Injectable()
 export class DosimetersService {
@@ -45,6 +50,10 @@ export class DosimetersService {
     private readonly disassembleDosimeterUseCase: DisassembleDosimeterUseCase,
     private readonly findHoldersUseCase: FindHoldersUseCase,
     private readonly findTldCardsUseCase: FindTldCardsUseCase,
+    private readonly validateHolderBarcodeUseCase: ValidateHolderBarcodeUseCase,
+    private readonly findOneHolderUseCase: FindOneHolderUseCase,
+    private readonly updateHolderUseCase: UpdateHolderUseCase,
+    private readonly deleteHolderUseCase: DeleteHolderUseCase,
   ) {}
 
   findAll(
@@ -135,6 +144,22 @@ export class DosimetersService {
 
   findHolderByBarcode(barcode: string) {
     return this.findHoldersUseCase.findByBarcode(barcode);
+  }
+
+  validateHolderBarcode(barcode: string) {
+    return this.validateHolderBarcodeUseCase.execute(barcode);
+  }
+
+  findOneHolder(id: string) {
+    return this.findOneHolderUseCase.execute(id);
+  }
+
+  updateHolder(id: string, dto: UpdateHolderDto, requestingUserId: string) {
+    return this.updateHolderUseCase.execute(id, dto, requestingUserId);
+  }
+
+  deleteHolder(id: string, requestingUserId: string) {
+    return this.deleteHolderUseCase.execute(id, requestingUserId);
   }
 
   createTldCard(dto: CreateTldCardDto, requestingUserId: string) {

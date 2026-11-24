@@ -37,9 +37,9 @@ export function DosimeterAssemblyView() {
         getTldCards({ status: 'disponible' }),
         getWorkers({ limit: 100 }),
       ]);
-      const holdersArr: HolderDosimeter[] = Array.isArray(hList) ? hList : (hList as any)?.items || [];
-      const cardsArr: TldCard[] = Array.isArray(cList) ? cList : (cList as any)?.items || [];
-      const workersArr: Worker[] = Array.isArray(wList?.items) ? wList.items : Array.isArray(wList) ? wList : [];
+      const holdersArr: HolderDosimeter[] = hList.items || [];
+      const cardsArr: TldCard[] = Array.isArray(cList) ? cList : [];
+      const workersArr: Worker[] = wList.items || [];
 
       setHolders(holdersArr);
       setCards(cardsArr);
@@ -48,8 +48,9 @@ export function DosimeterAssemblyView() {
       if (holdersArr.length > 0) setSelectedHolderId(holdersArr[0].id);
       if (cardsArr.length > 0) setSelectedCardId(cardsArr[0].id);
       if (workersArr.length > 0) setSelectedWorkerId(workersArr[0].id);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Error al cargar catálogos de ensamblaje.');
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      setError(apiErr?.response?.data?.message || 'Error al cargar catálogos de ensamblaje.');
     } finally {
       setLoading(false);
     }
@@ -82,8 +83,9 @@ export function DosimeterAssemblyView() {
       });
       setSuccessMsg(`Dosímetro modular ensamblado exitosamente: S/N ${res.assembly?.dosimeter?.serial_number || 'OK'}`);
       loadData();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Error al ensamblar dosímetro.');
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      setError(apiErr?.response?.data?.message || 'Error al ensamblar dosímetro.');
     } finally {
       setLoading(false);
     }

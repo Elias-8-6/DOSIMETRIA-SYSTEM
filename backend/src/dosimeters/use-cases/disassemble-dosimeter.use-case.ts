@@ -23,7 +23,7 @@ export class DisassembleDosimeterUseCase {
     // 1. Buscar ensamble activo por id de ensamble o por id de portadosímetro
     let { data: assembly, error } = await supabase
       .from('holder_tld_assemblies')
-      .select('id, holder_id, tld_card_id, is_active')
+      .select('id, holder_id, tld_card_id, dosimeter_id, is_active')
       .eq('id', dto.assembly_id)
       .maybeSingle();
 
@@ -31,7 +31,7 @@ export class DisassembleDosimeterUseCase {
       // Buscar si el ID pasado es el del portadosímetro
       const { data: byHolder } = await supabase
         .from('holder_tld_assemblies')
-        .select('id, holder_id, tld_card_id, is_active')
+        .select('id, holder_id, tld_card_id, dosimeter_id, is_active')
         .eq('holder_id', dto.assembly_id)
         .eq('is_active', true)
         .maybeSingle();
@@ -73,10 +73,12 @@ export class DisassembleDosimeterUseCase {
       .update({ status: holderTargetStatus })
       .eq('id', assembly.holder_id);
 
-    await supabase
-      .from('tld_cards')
-      .update({ status: tldTargetStatus })
-      .eq('id', assembly.tld_card_id);
+    if (assembly.tld_card_id) {
+      await supabase
+        .from('tld_cards')
+        .update({ status: tldTargetStatus })
+        .eq('id', assembly.tld_card_id);
+    }
 
     await this.audit.log({
       userId: requestingUserId,

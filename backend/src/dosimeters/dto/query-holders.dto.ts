@@ -3,6 +3,10 @@ import { IsIn, IsNumberString, IsOptional, IsString } from 'class-validator';
 export class QueryHoldersDto {
   @IsOptional()
   @IsString()
+  barcode?: string;
+
+  @IsOptional()
+  @IsString()
   search?: string;
 
   @IsOptional()

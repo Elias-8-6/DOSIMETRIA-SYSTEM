@@ -240,6 +240,7 @@ BEGIN
     SELECT id FROM permissions
     WHERE code IN (
       'clients:read', 'workers:read', 'dosimeters:read', 'dosimeters:update',
+      'holders:read', 'holders:create', 'holders:update',
       'assignments:create', 'assignments:read', 'assignments:update',
       'service_orders:read', 'receptions:create', 'receptions:read',
       'lab_process:create', 'lab_process:read', 'lab_process:update',

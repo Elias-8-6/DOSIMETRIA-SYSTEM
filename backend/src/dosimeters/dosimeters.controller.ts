@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -13,6 +14,7 @@ import {
   HttpStatus,
   UseInterceptors,
   UploadedFile,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DosimetersService } from './dosimeters.service';
@@ -23,6 +25,7 @@ import { AssignDosimeterDto } from './dto/assign-dosimeter.dto';
 import { ReturnDosimeterDto } from './dto/return-dosimeter.dto';
 import { QueryDosimetersDto } from './dto/query-dosimeters.dto';
 import { CreateHolderDto } from './dto/create-holder.dto';
+import { UpdateHolderDto } from './dto/update-holder.dto';
 import { CreateTldCardDto } from './dto/create-tld-card.dto';
 import { AssembleDosimeterDto } from './dto/assemble-dosimeter.dto';
 import { DisassembleDosimeterDto } from './dto/disassemble-dosimeter.dto';
@@ -34,45 +37,96 @@ import { RolesGuard } from '@common/guards/roles.guard';
 import { CheckPermission } from '@common/decorators/check-permission.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { JwtPayload } from '@common/interfaces/jwt-payload.interface';
+import { OrganizationScopeService } from '@common/services/organization-scope.service';
 
 @Controller('dosimeters')
 @UseGuards(JwtGuard, PermissionsGuard, RolesGuard)
 export class DosimetersController {
-  constructor(private readonly dosimetersService: DosimetersService) {}
+  constructor(
+    private readonly dosimetersService: DosimetersService,
+    private readonly orgScope: OrganizationScopeService,
+  ) {}
+
+  private async ensureLaboratoryAccess(organizationId: string) {
+    const orgType = await this.orgScope.getOrganizationType(organizationId);
+    if (orgType !== 'laboratory') {
+      throw new ForbiddenException('Acceso restringido únicamente al laboratorio de dosimetría.');
+    }
+  }
 
   // ------------------------------------------------------------
   // Endpoints de Portadosímetros (Chasis Exterior con Código de Barras USB)
   // ------------------------------------------------------------
   @Get('holders')
-  @CheckPermission('dosimeters', 'read')
-  findHolders(@Query() query: QueryHoldersDto) {
+  @CheckPermission('holders', 'read')
+  async findHolders(@Query() query: QueryHoldersDto, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
     return this.dosimetersService.findHolders(query);
   }
 
+  @Get('holders/validate-barcode/:barcode')
+  @CheckPermission('holders', 'read')
+  async validateHolderBarcode(@Param('barcode') barcode: string, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
+    return this.dosimetersService.validateHolderBarcode(barcode);
+  }
+
   @Get('holders/barcode/:barcode')
-  @CheckPermission('dosimeters', 'read')
-  findHolderByBarcode(@Param('barcode') barcode: string) {
+  @CheckPermission('holders', 'read')
+  async findHolderByBarcode(@Param('barcode') barcode: string, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
     return this.dosimetersService.findHolderByBarcode(barcode);
   }
 
+  @Get('holders/:id')
+  @CheckPermission('holders', 'read')
+  async findOneHolder(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
+    return this.dosimetersService.findOneHolder(id);
+  }
+
   @Post('holders')
-  @CheckPermission('dosimeters', 'create')
-  createHolder(@Body() dto: CreateHolderDto, @CurrentUser() user: JwtPayload) {
+  @CheckPermission('holders', 'create')
+  async createHolder(@Body() dto: CreateHolderDto, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
     return this.dosimetersService.createHolder(dto, user.sub);
+  }
+
+  @Patch('holders/:id')
+  @CheckPermission('holders', 'update')
+  async updateHolder(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateHolderDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    await this.ensureLaboratoryAccess(user.organization_id);
+    return this.dosimetersService.updateHolder(id, dto, user.sub);
+  }
+
+  @Delete('holders/:id')
+  @CheckPermission('holders', 'delete')
+  async deleteHolder(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    await this.ensureLaboratoryAccess(user.organization_id);
+    return this.dosimetersService.deleteHolder(id, user.sub);
   }
 
   // ------------------------------------------------------------
   // Endpoints de Tarjetas TLD Internas (2 o 4 Pastillas)
   // ------------------------------------------------------------
   @Get('tld-cards')
-  @CheckPermission('dosimeters', 'read')
-  findTldCards(@Query() query: QueryTldCardsDto) {
+  @CheckPermission('holders', 'read')
+  async findTldCards(@Query() query: QueryTldCardsDto, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
     return this.dosimetersService.findTldCards(query);
   }
 
   @Post('tld-cards')
-  @CheckPermission('dosimeters', 'create')
-  createTldCard(@Body() dto: CreateTldCardDto, @CurrentUser() user: JwtPayload) {
+  @CheckPermission('holders', 'create')
+  async createTldCard(@Body() dto: CreateTldCardDto, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
     return this.dosimetersService.createTldCard(dto, user.sub);
   }
 
@@ -80,14 +134,16 @@ export class DosimetersController {
   // Endpoints de Ensamble y Desensamble 1:1
   // ------------------------------------------------------------
   @Post('assemble')
-  @CheckPermission('dosimeters', 'create')
-  assemble(@Body() dto: AssembleDosimeterDto, @CurrentUser() user: JwtPayload) {
+  @CheckPermission('holders', 'create')
+  async assemble(@Body() dto: AssembleDosimeterDto, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
     return this.dosimetersService.assemble(dto, user.sub);
   }
 
   @Post('disassemble')
-  @CheckPermission('dosimeters', 'update')
-  disassemble(@Body() dto: DisassembleDosimeterDto, @CurrentUser() user: JwtPayload) {
+  @CheckPermission('holders', 'update')
+  async disassemble(@Body() dto: DisassembleDosimeterDto, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
     return this.dosimetersService.disassemble(dto, user.sub);
   }
 

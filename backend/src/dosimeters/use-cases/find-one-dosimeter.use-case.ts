@@ -2,6 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
 import { OrganizationScopeService } from '@common/services/organization-scope.service';
 
+export interface HolderInfo {
+  id: string;
+  barcode: string;
+  serial_number: string;
+  holder_color?: string | null;
+  clip_type?: string | null;
+  model?: string | null;
+  status: string;
+  current_condition: string;
+  assembly_id?: string | null;
+  assembled_at?: string | null;
+}
+
 @Injectable()
 export class FindOneDosimeterUseCase {
   constructor(
@@ -71,6 +84,50 @@ export class FindOneDosimeterUseCase {
     const { data: openAssignment, error: assignmentError } = await assignmentQuery;
     if (assignmentError) throw new Error('Error al obtener la asignación del dosímetro');
 
-    return { ...data, dosimeter_assignments: openAssignment ?? [] };
+    // Resolver portadosímetro ensamblado actualmente
+    let activeHolder: HolderInfo | null = null;
+    const { data: assemblyData } = await supabase
+      .from('holder_tld_assemblies')
+      .select('id, assembled_at, holder_dosimeters(id, barcode, serial_number, holder_color, clip_type, model, status, current_condition)')
+      .eq('dosimeter_id', dosimeterId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (assemblyData?.holder_dosimeters) {
+      const h = assemblyData.holder_dosimeters as unknown as HolderInfo;
+      activeHolder = {
+        id: h.id,
+        barcode: h.barcode,
+        serial_number: h.serial_number,
+        holder_color: h.holder_color,
+        clip_type: h.clip_type,
+        model: h.model,
+        status: h.status,
+        current_condition: h.current_condition,
+        assembly_id: assemblyData.id,
+        assembled_at: assemblyData.assembled_at,
+      };
+    } else {
+      // Fallback por número de serie coincidente
+      const { data: hBySerial } = await supabase
+        .from('holder_dosimeters')
+        .select('id, barcode, serial_number, holder_color, clip_type, model, status, current_condition')
+        .eq('serial_number', data.serial_number)
+        .maybeSingle();
+
+      if (hBySerial) {
+        activeHolder = {
+          ...hBySerial,
+          assembly_id: null,
+          assembled_at: null,
+        };
+      }
+    }
+
+    return {
+      ...data,
+      dosimeter_assignments: openAssignment ?? [],
+      active_holder: activeHolder,
+    };
   }
 }

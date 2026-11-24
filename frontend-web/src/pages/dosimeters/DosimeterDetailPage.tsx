@@ -260,6 +260,53 @@ export default function DosimeterDetailPage() {
           )}
 
           <div>
+            <SectionHead label="Portadosímetro (Holder)" />
+            {dosimeter.active_holder ? (
+              <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-lg space-y-1.5 text-xs text-slate-700">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-blue-900 flex items-center gap-1.5">
+                    <span>🛡️</span> Portadosímetro Ensamblado
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                      dosimeter.active_holder.status === 'en_campo'
+                        ? 'bg-blue-100 text-blue-800 border-blue-200'
+                        : dosimeter.active_holder.status === 'en_triaje'
+                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                        : dosimeter.active_holder.status === 'baja'
+                        ? 'bg-red-100 text-red-800 border-red-200'
+                        : 'bg-green-100 text-green-800 border-green-200'
+                    }`}
+                  >
+                    {dosimeter.active_holder.status === 'en_campo'
+                      ? 'En Campo'
+                      : dosimeter.active_holder.status === 'en_triaje'
+                      ? 'En Triaje'
+                      : dosimeter.active_holder.status === 'baja'
+                      ? 'De Baja'
+                      : 'Apto en Laboratorio'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                  <div><span className="text-gray-500">Código de barras:</span> <strong className="font-mono text-gray-900">{dosimeter.active_holder.barcode}</strong></div>
+                  <div><span className="text-gray-500">Serie Chasis:</span> <strong>{dosimeter.active_holder.serial_number}</strong></div>
+                  <div><span className="text-gray-500">Color / Clip:</span> <strong className="capitalize">{dosimeter.active_holder.holder_color || 'Azul'} ({dosimeter.active_holder.clip_type || 'Cocodrilo'})</strong></div>
+                  <div><span className="text-gray-500">Condición:</span> <strong className="capitalize">{dosimeter.active_holder.current_condition || 'Íntegro'}</strong></div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-lg space-y-1 text-xs text-amber-900">
+                <div className="flex items-center gap-1.5 font-semibold">
+                  <span>⚠️</span> Sin Portadosímetro Ensamblado
+                </div>
+                <p className="text-[11px] text-amber-800">
+                  Por normativa física e ISO 17025, debe acoplarse un portadosímetro con código de barras antes de entregar este dosímetro a un trabajador.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div>
             <SectionHead label="Asignación actual" />
             {openAssignment ? (
               <div className="space-y-3">
@@ -280,7 +327,9 @@ export default function DosimeterDetailPage() {
               <div className="space-y-3">
                 <p className="text-sm text-gray-400">Sin asignación activa</p>
                 {canAssign && hasPermission('assignments', 'create') && (
-                  <Button onClick={() => setAssignModal(true)}>Asignar</Button>
+                  <Button onClick={() => setAssignModal(true)}>
+                    {dosimeter.active_holder ? 'Asignar a POE' : 'Asignar / Ensamblar con Lector USB'}
+                  </Button>
                 )}
               </div>
             )}
@@ -518,6 +567,8 @@ export default function DosimeterDetailPage() {
       {assignModal && (
         <AssignDosimeterModal
           dosimeterId={dosimeter.id}
+          dosimeterSerial={dosimeter.serial_number}
+          activeHolder={dosimeter.active_holder}
           onClose={() => setAssignModal(false)}
           onSuccess={fetchAll}
         />

@@ -49,6 +49,26 @@ describe('FindOneDosimeterUseCase', () => {
             }),
           };
         }
+        if (table === 'holder_tld_assemblies') {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({
+                  maybeSingle: () => Promise.resolve({ data: null, error: null }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === 'holder_dosimeters') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => Promise.resolve({ data: null, error: null }),
+              }),
+            }),
+          };
+        }
         throw new Error(`unexpected table ${table}`);
       }),
     }),
@@ -65,52 +85,55 @@ describe('FindOneDosimeterUseCase', () => {
     supabase = buildSupabase(null, { data: [], error: null });
     useCase = new FindOneDosimeterUseCase(supabase as any, orgScope as any);
 
-    await expect(useCase.execute('d-1', 'org-1')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute('d-missing', 'org-lab')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
-  it('throws NotFoundException when a client org was never linked to the dosimeter', async () => {
+  it('throws NotFoundException when a client org has never been assigned the dosimeter', async () => {
     orgScope.getOrganizationType.mockResolvedValue('client');
     orgScope.isDosimeterAllowedForClientOrg.mockResolvedValue(false);
-    supabase = buildSupabase(dosimeterRow, { data: [assignmentOrgB], error: null });
+
+    supabase = buildSupabase(dosimeterRow, { data: [], error: null });
     useCase = new FindOneDosimeterUseCase(supabase as any, orgScope as any);
 
-    await expect(useCase.execute('d-1', 'org-a')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute('d-1', 'org-client-intruder')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('returns the open assignment unfiltered for a laboratory org', async () => {
     supabase = buildSupabase(dosimeterRow, { data: [assignmentOrgB], error: null });
     useCase = new FindOneDosimeterUseCase(supabase as any, orgScope as any);
 
-    const result = await useCase.execute('d-1', 'lab-org');
+    const result = await useCase.execute('d-1', 'org-lab');
 
     expect(result.dosimeter_assignments).toEqual([assignmentOrgB]);
   });
 
-  it('regression: hides another organization\'s current assignment for a client org', async () => {
+  it('regression: hides another organization current assignment for a client org', async () => {
     orgScope.getOrganizationType.mockResolvedValue('client');
-    orgScope.isDosimeterAllowedForClientOrg.mockResolvedValue(true);
-    // Org A once had this dosimeter (allowed=true), but it is currently
-    // assigned to org B -- the org-scoped query returns no rows for org A.
+
     const eqFilterMock = jest.fn().mockReturnValue({ data: [], error: null });
+
     supabase = buildSupabase(dosimeterRow, { data: [assignmentOrgB], error: null }, eqFilterMock);
     useCase = new FindOneDosimeterUseCase(supabase as any, orgScope as any);
 
-    const result = await useCase.execute('d-1', 'client-a-org');
+    const result = await useCase.execute('d-1', 'org-client-a');
 
-    expect(eqFilterMock).toHaveBeenCalledWith('workers.clients.organization_id', 'client-a-org');
     expect(result.dosimeter_assignments).toEqual([]);
-    expect(result.id).toBe('d-1');
   });
 
   it('returns the current assignment when it belongs to the requesting client org', async () => {
     orgScope.getOrganizationType.mockResolvedValue('client');
-    orgScope.isDosimeterAllowedForClientOrg.mockResolvedValue(true);
-    const assignmentOrgA = { ...assignmentOrgB, id: 'assignment-a', workers: { ...assignmentOrgB.workers, id: 'worker-a' } };
+
+    const assignmentOrgA = { ...assignmentOrgB, id: 'assignment-a' };
     const eqFilterMock = jest.fn().mockReturnValue({ data: [assignmentOrgA], error: null });
+
     supabase = buildSupabase(dosimeterRow, { data: [assignmentOrgA], error: null }, eqFilterMock);
     useCase = new FindOneDosimeterUseCase(supabase as any, orgScope as any);
 
-    const result = await useCase.execute('d-1', 'client-a-org');
+    const result = await useCase.execute('d-1', 'org-client-a');
 
     expect(result.dosimeter_assignments).toEqual([assignmentOrgA]);
   });

@@ -29,7 +29,7 @@ export class ReturnDosimeterUseCase {
 
     const { data: openAssignment } = await supabase
       .from('dosimeter_assignments')
-      .select('id, notes')
+      .select('id, holder_id, notes')
       .eq('dosimeter_id', dosimeterId)
       .is('returned_at', null)
       .maybeSingle();
@@ -68,12 +68,52 @@ export class ReturnDosimeterUseCase {
         notes: dto.notes ?? openAssignment.notes,
       })
       .eq('id', openAssignment.id)
-      .select('id, dosimeter_id, worker_id, assigned_at, returned_at, status, notes')
+      .select('id, dosimeter_id, holder_id, worker_id, assigned_at, returned_at, status, notes')
       .single();
 
     if (assignmentError || !closedAssignment) {
       this.logger.error('Error al cerrar la asignación tras actualizar el dosímetro', assignmentError);
       throw new Error('No se pudo registrar la devolución');
+    }
+
+    // Actualizar estado del portadosímetro si estaba registrado
+    const holderId = openAssignment.holder_id;
+    if (holderId) {
+      let holderStatus = 'ensamblado';
+      let holderCondition: string | null = null;
+
+      if (dto.current_condition === 'perdido') {
+        holderStatus = 'baja';
+        holderCondition = 'perdido';
+
+        // Desactivar el ensamble activo para que el dosímetro liberado no quede bloqueado
+        await supabase
+          .from('holder_tld_assemblies')
+          .update({
+            is_active: false,
+            disassembled_at: dto.returned_at,
+            disassembled_by: requestingUserId,
+            notes: 'Desensamble automático por reporte de pérdida/extravío en devolución',
+          })
+          .eq('holder_id', holderId)
+          .eq('is_active', true);
+      } else if (dto.current_condition === 'danado') {
+        holderStatus = 'en_triaje';
+        holderCondition = 'danado_grave';
+      } else if (dto.current_condition === 'contaminado') {
+        holderStatus = 'en_triaje';
+        holderCondition = 'contaminado';
+      }
+
+      const holderUpdatePayload: Record<string, any> = { status: holderStatus };
+      if (holderCondition) {
+        holderUpdatePayload.current_condition = holderCondition;
+      }
+
+      await supabase
+        .from('holder_dosimeters')
+        .update(holderUpdatePayload)
+        .eq('id', holderId);
     }
 
     await this.audit.log({
@@ -82,7 +122,7 @@ export class ReturnDosimeterUseCase {
       entityId: closedAssignment.id,
       action: 'UPDATE',
       oldValues: { returned_at: null, status: 'activo' },
-      newValues: { returned_at: dto.returned_at, status: 'cerrado' },
+      newValues: { returned_at: dto.returned_at, status: 'cerrado', holder_id: holderId },
     });
 
     return closedAssignment;

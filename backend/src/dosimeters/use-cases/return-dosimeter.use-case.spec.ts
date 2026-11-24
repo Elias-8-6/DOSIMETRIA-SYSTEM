@@ -86,4 +86,57 @@ describe('ReturnDosimeterUseCase', () => {
       expect.objectContaining({ action: 'UPDATE', entityName: 'dosimeter_assignments' }),
     );
   });
+
+  it('updates holder status to baja and perdido when dosimeter is returned as perdido', async () => {
+    const dto = {
+      returned_at: '2026-03-20T10:00:00Z',
+      current_condition: 'perdido' as const,
+    };
+
+    const dosimeterUpdate = jest.fn(() => ({
+      eq: jest.fn(() => Promise.resolve({ error: null })),
+    }));
+    const holderUpdate = jest.fn(() => ({
+      eq: jest.fn(() => Promise.resolve({ error: null })),
+    }));
+
+    supabase.getClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeter_assignments') {
+          return {
+            select: () => ({
+              eq: () => ({ is: () => ({ maybeSingle: () => Promise.resolve({ data: { id: 'asg-2', holder_id: 'holder-1', notes: null } }) }) }),
+            }),
+            update: () => ({ eq: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'asg-2', holder_id: 'holder-1' }, error: null }) }) }) }),
+          };
+        }
+        if (table === 'dosimeters') {
+          return { update: dosimeterUpdate };
+        }
+        if (table === 'dosimeter_statuses') {
+          return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { id: 'status-disponible' }, error: null }) }) }) };
+        }
+        if (table === 'holder_dosimeters') {
+          return { update: holderUpdate };
+        }
+        if (table === 'holder_tld_assemblies') {
+          return {
+            update: () => ({
+              eq: () => ({
+                eq: () => Promise.resolve({ error: null }),
+              }),
+            }),
+          };
+        }
+        throw new Error(`unexpected table ${table}`);
+      }),
+    });
+
+    await useCase.execute('d-1', dto as any, 'org-1', 'user-1');
+
+    expect(holderUpdate).toHaveBeenCalledWith({
+      status: 'baja',
+      current_condition: 'perdido',
+    });
+  });
 });

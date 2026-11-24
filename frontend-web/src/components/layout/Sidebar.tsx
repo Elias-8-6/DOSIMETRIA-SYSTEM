@@ -81,6 +81,21 @@ export function Sidebar() {
               </NavLink>
 
               <div className="ml-4 pl-2 border-l border-gray-200 space-y-1">
+                {hasPermission('holders', 'read') && (
+                  <NavLink
+                    to="/dosimeters/holders"
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors duration-150 ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-700 font-medium'
+                          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    <span className="text-gray-400 text-xs">↳</span>
+                    <span>Portadosímetros</span>
+                  </NavLink>
+                )}
                 <NavLink
                   to="/dosimeters/assembly"
                   className={({ isActive }) =>

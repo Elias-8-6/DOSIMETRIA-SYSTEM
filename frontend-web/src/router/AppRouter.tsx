@@ -21,6 +21,7 @@ const ClientDetailPage = lazy(() => import('../pages/clients/ClientDetailPage'))
 const DosimetersPage = lazy(() => import('../pages/dosimeters/DosimetersPage'));
 const DosimeterDetailPage = lazy(() => import('../pages/dosimeters/DosimeterDetailPage'));
 const DosimeterAssemblyView = lazy(() => import('../pages/dosimeters/DosimeterAssemblyView'));
+const HoldersPage = lazy(() => import('../pages/dosimeters/HoldersPage'));
 const ServiceOrdersPage = lazy(() => import('../pages/service-orders/ServiceOrdersPage'));
 const ServiceOrderDetailPage = lazy(() => import('../pages/service-orders/ServiceOrderDetailPage'));
 const CreateServiceOrderPage = lazy(() => import('../pages/service-orders/CreateServiceOrderPage'));
@@ -141,6 +142,14 @@ export function AppRouter() {
             element={
               <PermissionRoute module="dosimeters" action="read">
                 <DosimetersPage />
+              </PermissionRoute>
+            }
+          />
+          <Route
+            path="dosimeters/holders"
+            element={
+              <PermissionRoute module="holders" action="read">
+                <HoldersPage />
               </PermissionRoute>
             }
           />
