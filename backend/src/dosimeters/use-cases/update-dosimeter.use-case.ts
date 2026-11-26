@@ -1,8 +1,9 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
 import { AuditService } from '@common/services/audit.service';
 import { OrganizationScopeService } from '@common/services/organization-scope.service';
 import { UpdateDosimeterDto } from '../dto/update-dosimeter.dto';
+import { isMissingBarcodeColumnError } from '../utils/barcode-column.util';
 
 export interface UpdatedDosimeterRecord {
   id: string;
@@ -28,6 +29,8 @@ export interface UpdatedDosimeterRecord {
 
 @Injectable()
 export class UpdateDosimeterUseCase {
+  private readonly logger = new Logger(UpdateDosimeterUseCase.name);
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly audit: AuditService,
@@ -47,11 +50,34 @@ export class UpdateDosimeterUseCase {
 
     const supabase = this.supabase.getClient();
 
-    const { data: existing } = await supabase
+    let { data: existing, error: existingError } = await supabase
       .from('dosimeters')
       .select('id, serial_number, barcode, internal_code')
       .eq('id', dosimeterId)
       .maybeSingle();
+
+    if (existingError && isMissingBarcodeColumnError(existingError)) {
+      const fallbackExisting = await supabase
+        .from('dosimeters')
+        .select('id, serial_number, internal_code')
+        .eq('id', dosimeterId)
+        .maybeSingle();
+
+      if (!fallbackExisting.error && fallbackExisting.data) {
+        existing = {
+          ...fallbackExisting.data,
+          barcode: fallbackExisting.data.serial_number,
+        };
+        existingError = null;
+      } else {
+        existingError = fallbackExisting.error;
+      }
+    }
+
+    if (existingError) {
+      this.logger.error(`Error consultando dosímetro ${dosimeterId}:`, existingError);
+      throw new Error(`Error al consultar dosímetro: ${existingError.message}`);
+    }
 
     if (!existing) throw new NotFoundException('Dosímetro no encontrado');
 
@@ -114,7 +140,7 @@ export class UpdateDosimeterUseCase {
       }
     }
 
-    const { data, error } = await supabase
+    let updateResult = await supabase
       .from('dosimeters')
       .update({
         ...(cleanSerial !== undefined && { serial_number: cleanSerial }),
@@ -150,6 +176,59 @@ export class UpdateDosimeterUseCase {
       `,
       )
       .single();
+
+    if (updateResult.error && isMissingBarcodeColumnError(updateResult.error)) {
+      this.logger.warn('Columna barcode ausente en BD al actualizar dosímetro. Actualizando sin barcode.');
+      const fallbackUpdate = await supabase
+        .from('dosimeters')
+        .update({
+          ...(cleanSerial !== undefined && { serial_number: cleanSerial }),
+          ...(dto.dosimeter_type_id !== undefined && { dosimeter_type_id: dto.dosimeter_type_id }),
+          ...(cleanInternalCode !== undefined && { internal_code: cleanInternalCode }),
+          ...(dto.lot_number !== undefined && { lot_number: dto.lot_number }),
+          ...(dto.manufacture_date !== undefined && { manufacture_date: dto.manufacture_date }),
+          ...(dto.commissioning_date !== undefined && {
+            commissioning_date: dto.commissioning_date,
+          }),
+          ...(dto.wear_period_days !== undefined && { wear_period_days: dto.wear_period_days }),
+          ...(dto.max_dose_limit !== undefined && { max_dose_limit: dto.max_dose_limit }),
+          ...(dto.last_annealing_date !== undefined && {
+            last_annealing_date: dto.last_annealing_date,
+          }),
+          ...(dto.current_condition !== undefined && { current_condition: dto.current_condition }),
+          ...(dto.reusable !== undefined && { reusable: dto.reusable }),
+          ...(dto.notes !== undefined && { notes: dto.notes }),
+          ...(dto.model !== undefined && { model: dto.model }),
+          ...(dto.manufacturer !== undefined && { manufacturer: dto.manufacturer }),
+          ...(dto.photo_url !== undefined && { photo_url: dto.photo_url }),
+        })
+        .eq('id', dosimeterId)
+        .select(
+          `
+          id, serial_number, internal_code, lot_number,
+          manufacture_date, commissioning_date, wear_period_days,
+          max_dose_limit, last_annealing_date, current_condition,
+          reusable, notes, model, manufacturer, photo_url, created_at,
+          dosimeter_types(id, code, name, technology),
+          dosimeter_statuses(id, code, name)
+        `,
+        )
+        .single();
+
+      if (!fallbackUpdate.error && fallbackUpdate.data) {
+        updateResult = {
+          data: {
+            ...fallbackUpdate.data,
+            barcode: (fallbackUpdate.data as any).serial_number,
+          },
+          error: null,
+        } as any;
+      } else {
+        updateResult = fallbackUpdate as any;
+      }
+    }
+
+    const { data, error } = updateResult;
 
     if (error) throw new Error(error.message);
 

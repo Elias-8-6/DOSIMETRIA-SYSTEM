@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
 import { OrganizationScopeService } from '@common/services/organization-scope.service';
+import { isMissingBarcodeColumnError } from '../utils/barcode-column.util';
 
 export interface HolderInfo {
   id: string;
@@ -15,8 +16,28 @@ export interface HolderInfo {
   assembled_at?: string | null;
 }
 
+const SELECT_FIELDS = `
+  id, serial_number, barcode, internal_code, lot_number,
+  manufacture_date, commissioning_date, wear_period_days,
+  max_dose_limit, last_annealing_date, current_condition,
+  reusable, notes, model, manufacturer, photo_url, created_at,
+  dosimeter_types(id, code, name, technology),
+  dosimeter_statuses(id, code, name)
+`;
+
+const FALLBACK_SELECT_FIELDS = `
+  id, serial_number, internal_code, lot_number,
+  manufacture_date, commissioning_date, wear_period_days,
+  max_dose_limit, last_annealing_date, current_condition,
+  reusable, notes, model, manufacturer, photo_url, created_at,
+  dosimeter_types(id, code, name, technology),
+  dosimeter_statuses(id, code, name)
+`;
+
 @Injectable()
 export class FindOneDosimeterUseCase {
+  private readonly logger = new Logger(FindOneDosimeterUseCase.name);
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly orgScope: OrganizationScopeService,
@@ -27,25 +48,37 @@ export class FindOneDosimeterUseCase {
 
     // Sin el embed de dosimeter_assignments: se resuelve por separado más
     // abajo, ya con el filtro por organización aplicado cuando corresponde.
-    // Traerlo embebido aquí obligaría a usar !inner para filtrar por
-    // organización, y eso colapsaría este registro entero (falso 404) si el
-    // dosímetro no tiene una asignación abierta que matchee el filtro.
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('dosimeters')
-      .select(
-        `
-        id, serial_number, barcode, internal_code, lot_number,
-        manufacture_date, commissioning_date, wear_period_days,
-        max_dose_limit, last_annealing_date, current_condition,
-        reusable, notes, model, manufacturer, photo_url, created_at,
-        dosimeter_types(id, code, name, technology),
-        dosimeter_statuses(id, code, name)
-      `,
-      )
+      .select(SELECT_FIELDS)
       .eq('id', dosimeterId)
       .maybeSingle();
 
-    if (error) throw new Error('Error al obtener el dosímetro');
+    if (error && isMissingBarcodeColumnError(error)) {
+      this.logger.warn(`Columna 'barcode' no encontrada en find-one-dosimeter. Usando campos base.`);
+      const fallback = await supabase
+        .from('dosimeters')
+        .select(FALLBACK_SELECT_FIELDS)
+        .eq('id', dosimeterId)
+        .maybeSingle();
+
+      if (!fallback.error) {
+        data = fallback.data
+          ? {
+              ...fallback.data,
+              barcode: (fallback.data as any).serial_number,
+            }
+          : null;
+        error = null;
+      } else {
+        error = fallback.error;
+      }
+    }
+
+    if (error) {
+      this.logger.error('Error al obtener el dosímetro:', error);
+      throw new Error('Error al obtener el dosímetro');
+    }
     if (!data) throw new NotFoundException('Dosímetro no encontrado');
 
     const orgType = await this.orgScope.getOrganizationType(organizationId);

@@ -116,4 +116,91 @@ describe('FindDosimeterByBarcodeUseCase', () => {
     expect(result.barcode).toBe('DOS-202611-1001');
     expect(result.active_holder?.barcode).toBe('HLD-001');
   });
+
+  it('activa fallback por serial_number cuando la columna barcode no existe en BD (42703)', async () => {
+    let dosimetersSelectCount = 0;
+    const legacyDosimeter = {
+      id: 'd-legacy',
+      serial_number: 'SN-LEGACY-01',
+      internal_code: null,
+      current_condition: 'normal',
+      reusable: true,
+      created_at: '2026-11-20T10:00:00Z',
+    };
+
+    supabase.getClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeters') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => {
+                  dosimetersSelectCount++;
+                  if (dosimetersSelectCount === 1) {
+                    return Promise.resolve({
+                      data: null,
+                      error: { code: '42703', message: 'column barcode does not exist' },
+                    });
+                  }
+                  return Promise.resolve({ data: legacyDosimeter, error: null });
+                },
+              }),
+            }),
+          };
+        }
+        if (table === 'dosimeter_assignments') {
+          return {
+            select: () => ({
+              eq: () => ({
+                is: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          };
+        }
+        if (table === 'holder_tld_assemblies' || table === 'holder_dosimeters') {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({
+                  maybeSingle: () => Promise.resolve({ data: null, error: null }),
+                }),
+                maybeSingle: () => Promise.resolve({ data: null, error: null }),
+              }),
+            }),
+          };
+        }
+        throw new Error(`unexpected table ${table}`);
+      }),
+    });
+
+    const result = await useCase.execute('SN-LEGACY-01', 'org-lab');
+    expect(result.id).toBe('d-legacy');
+    expect(result.barcode).toBe('SN-LEGACY-01');
+    expect(dosimetersSelectCount).toBe(2);
+  });
+
+  it('lanza Error cuando la búsqueda de fallback por serial_number falla en BD', async () => {
+    supabase.getClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeters') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: null,
+                    error: { code: '08006', message: 'connection dropped' },
+                  }),
+              }),
+            }),
+          };
+        }
+        throw new Error(`unexpected table ${table}`);
+      }),
+    });
+
+    await expect(useCase.execute('SN-ERR', 'org-lab')).rejects.toThrow(
+      'Error al obtener el dosímetro por código de barras',
+    );
+  });
 });

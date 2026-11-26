@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
 import { OrganizationScopeService } from '@common/services/organization-scope.service';
+import { isMissingBarcodeColumnError } from '../utils/barcode-column.util';
 
 export interface ValidatedDosimeterInfo {
   id: string;
@@ -65,7 +66,7 @@ export class ValidateDosimeterBarcodeUseCase {
 
     const supabase = this.supabase.getClient();
 
-    const { data: dosimeter, error } = await supabase
+    let { data: dosimeter, error } = await supabase
       .from('dosimeters')
       .select(`
         id, serial_number, barcode, internal_code, lot_number,
@@ -75,6 +76,35 @@ export class ValidateDosimeterBarcodeUseCase {
       `)
       .eq('barcode', cleanBarcode)
       .maybeSingle();
+
+    const shouldFallbackToSerial =
+      (!dosimeter && !error) || (error && isMissingBarcodeColumnError(error));
+
+    if (shouldFallbackToSerial) {
+      const fallback = await supabase
+        .from('dosimeters')
+        .select(`
+          id, serial_number, internal_code, lot_number,
+          model, manufacturer, current_condition, reusable,
+          dosimeter_statuses(code, name),
+          dosimeter_types(name)
+        `)
+        .eq('serial_number', cleanBarcode)
+        .maybeSingle();
+
+      if (fallback.error) {
+        error = fallback.error;
+      } else if (fallback.data) {
+        dosimeter = {
+          ...fallback.data,
+          barcode: (fallback.data as any).serial_number,
+        } as any;
+        error = null;
+      } else {
+        dosimeter = null;
+        error = null;
+      }
+    }
 
     if (error) {
       this.logger.error(`Error consultando dosimeters por barcode '${cleanBarcode}':`, error);

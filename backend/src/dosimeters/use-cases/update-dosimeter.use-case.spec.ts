@@ -111,4 +111,58 @@ describe('UpdateDosimeterUseCase', () => {
       }),
     );
   });
+
+  it('activa fallback en select y update cuando la columna barcode no existe en BD (42703)', async () => {
+    let selectCalls = 0;
+    let updateCalls = 0;
+
+    supabase.getClient.mockReturnValue({
+      from: jest.fn(() => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () => {
+              selectCalls++;
+              if (selectCalls === 1) {
+                // Primer select con barcode falla con 42703
+                return Promise.resolve({
+                  data: null,
+                  error: { code: '42703', message: 'column barcode does not exist' },
+                });
+              }
+              // Segundo select (fallback) tiene éxito
+              return Promise.resolve({
+                data: { id: 'd-1', serial_number: 'SN-FALLBACK', internal_code: null },
+                error: null,
+              });
+            },
+          }),
+        }),
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              single: () => {
+                updateCalls++;
+                if (updateCalls === 1) {
+                  return Promise.resolve({
+                    data: null,
+                    error: { code: '42703', message: 'column barcode does not exist' },
+                  });
+                }
+                return Promise.resolve({
+                  data: { id: 'd-1', serial_number: 'SN-FALLBACK', notes: 'Updated' },
+                  error: null,
+                });
+              },
+            }),
+          }),
+        }),
+      })),
+    });
+
+    const result = await useCase.execute('d-1', { notes: 'Updated' }, 'org-lab', 'user-1');
+
+    expect(result.barcode).toBe('SN-FALLBACK');
+    expect(selectCalls).toBe(2);
+    expect(updateCalls).toBe(2);
+  });
 });

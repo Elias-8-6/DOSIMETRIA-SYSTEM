@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '@config/supabase.config';
 import { OrganizationScopeService } from '@common/services/organization-scope.service';
+import { isMissingBarcodeColumnError } from '../utils/barcode-column.util';
 import { HolderInfo } from './find-one-dosimeter.use-case';
 
 export interface FoundDosimeterByBarcode {
@@ -44,7 +45,7 @@ export class FindDosimeterByBarcodeUseCase {
 
     const supabase = this.supabase.getClient();
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('dosimeters')
       .select(`
         id, serial_number, barcode, internal_code, lot_number,
@@ -56,6 +57,38 @@ export class FindDosimeterByBarcodeUseCase {
       `)
       .eq('barcode', safeBarcode)
       .maybeSingle();
+
+    const shouldFallbackToSerial =
+      (!data && !error) || (error && isMissingBarcodeColumnError(error));
+
+    if (shouldFallbackToSerial) {
+      // Búsqueda de respaldo por serial_number para dosímetros legacy o sin columna barcode
+      const fallback = await supabase
+        .from('dosimeters')
+        .select(`
+          id, serial_number, internal_code, lot_number,
+          manufacture_date, commissioning_date, wear_period_days,
+          max_dose_limit, last_annealing_date, current_condition,
+          reusable, notes, model, manufacturer, photo_url, created_at,
+          dosimeter_types(id, code, name, technology),
+          dosimeter_statuses(id, code, name)
+        `)
+        .eq('serial_number', safeBarcode)
+        .maybeSingle();
+
+      if (fallback.error) {
+        error = fallback.error;
+      } else if (fallback.data) {
+        data = {
+          ...fallback.data,
+          barcode: (fallback.data as any).serial_number,
+        };
+        error = null;
+      } else {
+        error = null;
+        data = null;
+      }
+    }
 
     if (error) {
       this.logger.error(`Error al buscar dosímetro por barcode '${safeBarcode}':`, error);

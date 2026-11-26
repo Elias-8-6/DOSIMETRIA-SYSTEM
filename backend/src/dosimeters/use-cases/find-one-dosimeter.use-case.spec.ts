@@ -137,4 +137,154 @@ describe('FindOneDosimeterUseCase', () => {
 
     expect(result.dosimeter_assignments).toEqual([assignmentOrgA]);
   });
+
+  it('debe activar fallback y mapear barcode = serial_number si falta la columna barcode en BD', async () => {
+    let callCount = 0;
+    const client = {
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeters') {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: { code: '42703', message: 'column dosimeters.barcode does not exist' },
+                    }),
+                }),
+              }),
+            };
+          }
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => Promise.resolve({ data: { id: 'd-1', serial_number: 'SN-FALLBACK' }, error: null }),
+              }),
+            }),
+          };
+        }
+        if (table === 'dosimeter_assignments') {
+          return {
+            select: () => ({
+              eq: () => ({
+                is: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          };
+        }
+        if (table === 'holder_tld_assemblies' || table === 'holder_dosimeters') {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({
+                  maybeSingle: () => Promise.resolve({ data: null, error: null }),
+                }),
+                maybeSingle: () => Promise.resolve({ data: null, error: null }),
+              }),
+            }),
+          };
+        }
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () => Promise.resolve({ data: null, error: null }),
+            }),
+          }),
+        };
+      }),
+    };
+
+    useCase = new FindOneDosimeterUseCase({ getClient: () => client } as any, orgScope as any);
+    const result = await useCase.execute('d-1', 'org-lab');
+
+    expect(result.barcode).toBe('SN-FALLBACK');
+  });
+
+  it('lanza NotFoundException cuando la columna barcode falta y el dosímetro no existe', async () => {
+    let callCount = 0;
+    const client = {
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeters') {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: { code: '42703', message: 'column dosimeters.barcode does not exist' },
+                    }),
+                }),
+              }),
+            };
+          }
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => Promise.resolve({ data: null, error: null }),
+              }),
+            }),
+          };
+        }
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () => Promise.resolve({ data: null, error: null }),
+            }),
+          }),
+        };
+      }),
+    };
+
+    useCase = new FindOneDosimeterUseCase({ getClient: () => client } as any, orgScope as any);
+    await expect(useCase.execute('non-existent', 'org-lab')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('lanza Error cuando la columna barcode falta y el query de fallback falla', async () => {
+    let callCount = 0;
+    const client = {
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeters') {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: { code: '42703', message: 'column dosimeters.barcode does not exist' },
+                    }),
+                }),
+              }),
+            };
+          }
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: null,
+                    error: { code: '08006', message: 'connection failure' },
+                  }),
+              }),
+            }),
+          };
+        }
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () => Promise.resolve({ data: null, error: null }),
+            }),
+          }),
+        };
+      }),
+    };
+
+    useCase = new FindOneDosimeterUseCase({ getClient: () => client } as any, orgScope as any);
+    await expect(useCase.execute('d-1', 'org-lab')).rejects.toThrow('Error al obtener el dosímetro');
+  });
 });

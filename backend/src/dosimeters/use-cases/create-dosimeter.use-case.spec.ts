@@ -184,4 +184,112 @@ describe('CreateDosimeterUseCase', () => {
 
     expect(result.barcode).toMatch(/^DOS-\d{6}-\w+/);
   });
+
+  it('lanza ConflictException ante colisión 23505 en insert y NUNCA activa fallback', async () => {
+    supabase.getClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeter_statuses') {
+          return {
+            select: () => ({
+              eq: () => ({
+                single: () => Promise.resolve({ data: { id: 'status-disp' }, error: null }),
+              }),
+            }),
+          };
+        }
+        if (table === 'dosimeters') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => Promise.resolve({ data: null, error: null }),
+              }),
+            }),
+            insert: () => ({
+              select: () => ({
+                single: () =>
+                  Promise.resolve({
+                    data: null,
+                    error: {
+                      code: '23505',
+                      message: 'duplicate key value violates unique constraint "dosimeters_barcode_key"',
+                    },
+                  }),
+              }),
+            }),
+          };
+        }
+        throw new Error(`unexpected table ${table}`);
+      }),
+    });
+
+    await expect(
+      useCase.execute(
+        { serial_number: 'SN-RACE', dosimeter_type_id: 'type-1', barcode: 'DOS-RACE' },
+        'org-lab',
+        'user-1',
+      ),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('ejecuta fallback insert sin barcode cuando la columna no existe en BD (42703)', async () => {
+    let insertCalls = 0;
+    supabase.getClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeter_statuses') {
+          return {
+            select: () => ({
+              eq: () => ({
+                single: () => Promise.resolve({ data: { id: 'status-disp' }, error: null }),
+              }),
+            }),
+          };
+        }
+        if (table === 'dosimeters') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => Promise.resolve({ data: null, error: null }),
+              }),
+            }),
+            insert: (payload: any) => {
+              insertCalls++;
+              if (insertCalls === 1) {
+                // Primer insert falla con 42703
+                return {
+                  select: () => ({
+                    single: () =>
+                      Promise.resolve({
+                        data: null,
+                        error: { code: '42703', message: 'column barcode does not exist' },
+                      }),
+                  }),
+                };
+              }
+              // Segundo insert (fallback) tiene éxito
+              return {
+                select: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: { id: 'd-fallback', ...payload },
+                      error: null,
+                    }),
+                }),
+              };
+            },
+          };
+        }
+        throw new Error(`unexpected table ${table}`);
+      }),
+    });
+
+    const result = await useCase.execute(
+      { serial_number: 'SN-NO-COL', dosimeter_type_id: 'type-1' },
+      'org-lab',
+      'user-1',
+    );
+
+    expect(result.id).toBe('d-fallback');
+    expect(result.barcode).toBe('SN-NO-COL');
+    expect(insertCalls).toBe(2);
+  });
 });

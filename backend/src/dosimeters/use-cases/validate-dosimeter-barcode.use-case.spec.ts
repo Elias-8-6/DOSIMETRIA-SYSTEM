@@ -135,4 +135,87 @@ describe('ValidateDosimeterBarcodeUseCase', () => {
     expect(result.dosimeter?.active_holder?.status).toBe('en_campo');
     expect(result.dosimeter?.active_assignment?.worker_name).toBe('Juan Perez');
   });
+
+  it('activa fallback por serial_number cuando la columna barcode no existe en BD (42703)', async () => {
+    let callCount = 0;
+    const legacyDosimeter = {
+      id: 'd-1',
+      serial_number: 'SN-FALLBACK-VAL',
+      internal_code: 'INT-VAL',
+      current_condition: 'normal',
+      reusable: true,
+      dosimeter_statuses: { code: 'DISPONIBLE', name: 'Disponible' },
+      dosimeter_types: { name: 'TLD' },
+    };
+
+    supabase.getClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeters') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => {
+                  callCount++;
+                  if (callCount === 1) {
+                    return Promise.resolve({
+                      data: null,
+                      error: { code: '42703', message: 'column barcode does not exist' },
+                    });
+                  }
+                  return Promise.resolve({ data: legacyDosimeter, error: null });
+                },
+              }),
+            }),
+          };
+        }
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: () => Promise.resolve({ data: null, error: null }),
+              }),
+              is: () => ({
+                order: () => ({
+                  limit: () => ({
+                    maybeSingle: () => Promise.resolve({ data: null, error: null }),
+                  }),
+                }),
+              }),
+            }),
+          }),
+        };
+      }),
+    });
+
+    const result = await useCase.execute('SN-FALLBACK-VAL', 'org-lab');
+    expect(result.exists).toBe(true);
+    expect(result.dosimeter?.serial_number).toBe('SN-FALLBACK-VAL');
+    expect(result.dosimeter?.barcode).toBe('SN-FALLBACK-VAL');
+    expect(callCount).toBe(2);
+  });
+
+  it('lanza Error cuando la búsqueda de fallback falla en BD y no informa disponibilidad falsa', async () => {
+    supabase.getClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'dosimeters') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: null,
+                    error: { code: '08006', message: 'database connection error' },
+                  }),
+              }),
+            }),
+          };
+        }
+        throw new Error(`unexpected table ${table}`);
+      }),
+    });
+
+    await expect(useCase.execute('DOS-ERR', 'org-lab')).rejects.toThrow(
+      'Error en base de datos al validar código de barras',
+    );
+  });
 });
