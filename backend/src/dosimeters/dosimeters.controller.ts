@@ -161,7 +161,21 @@ export class DosimetersController {
       query.current_condition,
       query.page ? parseInt(query.page) : 1,
       query.limit ? parseInt(query.limit) : 10,
+      query.barcode,
     );
+  }
+
+  @Get('validate-barcode/:barcode')
+  @CheckPermission('dosimeters', 'read')
+  async validateBarcode(@Param('barcode') barcode: string, @CurrentUser() user: JwtPayload) {
+    await this.ensureLaboratoryAccess(user.organization_id);
+    return this.dosimetersService.validateBarcode(barcode, user.organization_id);
+  }
+
+  @Get('barcode/:barcode')
+  @CheckPermission('dosimeters', 'read')
+  findByBarcode(@Param('barcode') barcode: string, @CurrentUser() user: JwtPayload) {
+    return this.dosimetersService.findByBarcode(barcode, user.organization_id);
   }
 
   @Get(':id')

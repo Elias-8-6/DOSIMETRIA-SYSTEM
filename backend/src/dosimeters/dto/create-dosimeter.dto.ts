@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDateString, Min, Max, IsInt, IsIn, IsBoolean, MinLength, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDateString, Min, Max, IsInt, IsIn, IsBoolean, MinLength, MaxLength, Matches } from 'class-validator';
 import { IsUUID } from '@common/validators/is-uuid.validator';
 
 export class CreateDosimeterDto {
@@ -6,7 +6,19 @@ export class CreateDosimeterDto {
   @IsString()
   @MinLength(3, { message: 'El número de serie debe tener al menos 3 caracteres' })
   @MaxLength(50, { message: 'El número de serie no puede superar 50 caracteres' })
+  @Matches(/\S/, { message: 'El número de serie no puede contener solo espacios en blanco' })
   serial_number!: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3, { message: 'El código de barras debe tener al menos 3 caracteres' })
+  @MaxLength(60, { message: 'El código de barras no puede superar 60 caracteres' })
+  @Matches(/\S/, { message: 'El código de barras no puede contener solo espacios en blanco' })
+  barcode?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  auto_generate_barcode?: boolean;
 
   @IsNotEmpty({ message: 'El tipo de dosímetro es obligatorio' })
   @IsUUID()
@@ -15,6 +27,7 @@ export class CreateDosimeterDto {
   @IsOptional()
   @IsString()
   @MaxLength(50, { message: 'El código interno no puede superar 50 caracteres' })
+  @Matches(/\S/, { message: 'El código interno no puede contener solo espacios en blanco' })
   internal_code?: string;
 
   @IsOptional()

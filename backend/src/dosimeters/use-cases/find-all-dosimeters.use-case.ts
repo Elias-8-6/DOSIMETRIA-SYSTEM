@@ -5,13 +5,18 @@ import { sanitizeSearchTerm } from '@common/utils/search.util';
 import { normalizePagination } from '@common/utils/pagination.util';
 
 const SELECT_FIELDS = `
-  id, serial_number, internal_code, lot_number,
+  id, serial_number, barcode, internal_code, lot_number,
   manufacture_date, commissioning_date, wear_period_days,
   max_dose_limit, last_annealing_date, current_condition,
   reusable, notes, model, manufacturer, photo_url, created_at,
   dosimeter_types(id, code, name, technology),
   dosimeter_statuses(id, code, name)
 `;
+
+export interface PaginatedDosimetersResult {
+  items: unknown[];
+  total: number;
+}
 
 @Injectable()
 export class FindAllDosimetersUseCase {
@@ -28,7 +33,8 @@ export class FindAllDosimetersUseCase {
     currentCondition?: string,
     page: number = 1,
     limit: number = 10,
-  ) {
+    barcode?: string,
+  ): Promise<PaginatedDosimetersResult> {
     const orgType = await this.orgScope.getOrganizationType(organizationId);
 
     let allowedIds: string[] | null = null;
@@ -57,9 +63,10 @@ export class FindAllDosimetersUseCase {
     if (dosimeterTypeId) query = query.eq('dosimeter_type_id', dosimeterTypeId);
     if (statusCode) query = query.eq('dosimeter_statuses.code', statusCode);
     if (currentCondition) query = query.eq('current_condition', currentCondition);
+    if (barcode) query = query.eq('barcode', barcode.trim());
     if (safeSearch) {
       query = query.or(
-        `serial_number.ilike.%${safeSearch}%,internal_code.ilike.%${safeSearch}%,lot_number.ilike.%${safeSearch}%,model.ilike.%${safeSearch}%,manufacturer.ilike.%${safeSearch}%`,
+        `serial_number.ilike.%${safeSearch}%,barcode.ilike.%${safeSearch}%,internal_code.ilike.%${safeSearch}%,lot_number.ilike.%${safeSearch}%,model.ilike.%${safeSearch}%,manufacturer.ilike.%${safeSearch}%`,
       );
     }
 

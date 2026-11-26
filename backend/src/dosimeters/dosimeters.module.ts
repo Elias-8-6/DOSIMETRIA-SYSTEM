@@ -20,6 +20,8 @@ import { ValidateHolderBarcodeUseCase } from './use-cases/validate-holder-barcod
 import { FindOneHolderUseCase } from './use-cases/find-one-holder.use-case';
 import { UpdateHolderUseCase } from './use-cases/update-holder.use-case';
 import { DeleteHolderUseCase } from './use-cases/delete-holder.use-case';
+import { ValidateDosimeterBarcodeUseCase } from './use-cases/validate-dosimeter-barcode.use-case';
+import { FindDosimeterByBarcodeUseCase } from './use-cases/find-dosimeter-by-barcode.use-case';
 import { RolesGuard } from '@common/guards/roles.guard';
 
 @Module({
@@ -45,6 +47,8 @@ import { RolesGuard } from '@common/guards/roles.guard';
     FindOneHolderUseCase,
     UpdateHolderUseCase,
     DeleteHolderUseCase,
+    ValidateDosimeterBarcodeUseCase,
+    FindDosimeterByBarcodeUseCase,
     RolesGuard,
   ],
   exports: [DosimetersService],

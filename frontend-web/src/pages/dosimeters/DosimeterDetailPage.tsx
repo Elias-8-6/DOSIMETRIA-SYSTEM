@@ -137,8 +137,11 @@ export default function DosimeterDetailPage() {
           </button>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{dosimeter.serial_number}</h1>
+            <span className="font-mono text-sm font-semibold bg-gray-100 text-gray-800 px-2.5 py-1 rounded-md border border-gray-300 flex items-center gap-1.5">
+              <span className="text-gray-400">🏷️</span> {dosimeter.barcode || dosimeter.serial_number}
+            </span>
             {dosimeter.internal_code && (
-              <span className="text-sm text-gray-400">{dosimeter.internal_code}</span>
+              <span className="text-sm text-gray-400">({dosimeter.internal_code})</span>
             )}
             <DosimeterStatusBadge
               code={dosimeter.dosimeter_statuses.code}
@@ -189,6 +192,7 @@ export default function DosimeterDetailPage() {
               </div>
             )}
             <div className="flex-1 grid grid-cols-2 gap-y-4 gap-x-6">
+              <Field label="Código de barras" value={dosimeter.barcode || dosimeter.serial_number} />
               <Field label="Tipo" value={dosimeter.dosimeter_types.name} />
               <Field label="Tecnología" value={dosimeter.dosimeter_types.technology} />
               <Field label="Fabricante" value={dosimeter.manufacturer} />

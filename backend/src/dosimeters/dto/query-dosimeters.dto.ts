@@ -7,6 +7,10 @@ export class QueryDosimetersDto {
   search?: string;
 
   @IsOptional()
+  @IsString()
+  barcode?: string;
+
+  @IsOptional()
   @IsUUID()
   dosimeter_type_id?: string;
 

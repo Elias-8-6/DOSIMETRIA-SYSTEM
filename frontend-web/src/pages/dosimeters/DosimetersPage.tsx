@@ -49,12 +49,13 @@ export default function DosimetersPage() {
       .catch(() => {});
   }, []);
 
-  const fetchDosimeters = useCallback(async () => {
+  const fetchDosimeters = useCallback(async (overrideSearch?: string) => {
     setLoading(true);
     setError('');
     try {
+      const activeSearch = overrideSearch !== undefined ? overrideSearch : debouncedSearch;
       const data = await getDosimeters({
-        search: debouncedSearch || undefined,
+        search: activeSearch || undefined,
         dosimeter_type_id: typeFilter || undefined,
         status_code: statusFilter || undefined,
         current_condition: conditionFilter || undefined,
@@ -117,11 +118,16 @@ export default function DosimetersPage() {
       <div className="flex gap-3 mb-4 flex-wrap">
         <input
           type="text"
-          placeholder="Buscar por serie, código, lote, modelo o fabricante..."
+          placeholder="Buscar o escanear por código de barras, serie, lote, modelo o fabricante... (Enter para buscar)"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              fetchDosimeters(search.trim());
+            }
+          }}
           className="flex-1 min-w-[220px] px-3 py-2 border border-gray-300 rounded-lg text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
         />
         <select
           value={typeFilter}
@@ -166,6 +172,7 @@ export default function DosimetersPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
+              <th className={TH_CLASS}>Código de barras</th>
               <th className={TH_CLASS}>Serie</th>
               <th className={TH_CLASS}>Código interno</th>
               <th className={TH_CLASS}>Tipo</th>
@@ -176,19 +183,33 @@ export default function DosimetersPage() {
           </thead>
           <tbody>
             {loading ? (
-              <TableStatusRow colSpan={6}>Cargando...</TableStatusRow>
+              <TableStatusRow colSpan={7}>Cargando...</TableStatusRow>
             ) : error ? (
-              <TableStatusRow colSpan={6}>
+              <TableStatusRow colSpan={7}>
                 <span className="text-red-600">{error}</span>
               </TableStatusRow>
             ) : dosimeters.length === 0 ? (
-              <TableStatusRow colSpan={6}>No se encontraron dosímetros</TableStatusRow>
+              <TableStatusRow colSpan={7}>No se encontraron dosímetros</TableStatusRow>
             ) : (
               dosimeters.map((dosimeter) => (
                 <tr
                   key={dosimeter.id}
                   className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
                 >
+                  <td className={`${TD_CLASS}`}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-400">🏷️</span>
+                      <span className="font-mono font-semibold text-gray-900 bg-gray-100 px-2 py-0.5 rounded text-xs">
+                        {dosimeter.barcode || '—'}
+                      </span>
+                    </div>
+                    {dosimeter.active_holder && (
+                      <div className="text-[11px] text-blue-600 font-medium mt-0.5 flex items-center gap-1">
+                        <span>🛡️ Chasis:</span>
+                        <span className="font-mono">{dosimeter.active_holder.barcode}</span>
+                      </div>
+                    )}
+                  </td>
                   <td className={`${TD_CLASS} font-medium text-gray-900`}>
                     <div>{dosimeter.serial_number}</div>
                     {(dosimeter.model || dosimeter.manufacturer) && (
@@ -234,6 +255,7 @@ export default function DosimetersPage() {
           types={types}
           onClose={() => setFormModalOpen(false)}
           onSuccess={handleFormSuccess}
+          onViewDetails={(id) => navigate(`/dosimeters/${id}`)}
         />
       )}
 

@@ -34,7 +34,7 @@ export class FindOneDosimeterUseCase {
       .from('dosimeters')
       .select(
         `
-        id, serial_number, internal_code, lot_number,
+        id, serial_number, barcode, internal_code, lot_number,
         manufacture_date, commissioning_date, wear_period_days,
         max_dose_limit, last_annealing_date, current_condition,
         reusable, notes, model, manufacturer, photo_url, created_at,

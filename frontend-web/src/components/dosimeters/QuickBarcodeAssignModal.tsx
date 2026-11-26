@@ -7,10 +7,12 @@ import { Textarea } from '../ui/Textarea';
 import { FormFooter } from '../ui/FormFooter';
 import type { Worker } from '../../api/workers.api';
 import { getWorkers } from '../../api/workers.api';
-import type { Dosimeter, HolderDosimeter } from '../../api/dosimeters.api';
+import type { Dosimeter, HolderDosimeter, HolderStatus } from '../../api/dosimeters.api';
 import {
   validateHolderBarcode,
+  validateDosimeterBarcode,
   getDosimeters,
+  getHolders,
   assignDosimeter,
 } from '../../api/dosimeters.api';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -87,77 +89,168 @@ export function QuickBarcodeAssignModal({ onClose, onSuccess }: Props) {
     const clean = code.trim();
     if (!clean) return;
 
+    setSelectedDosimeterId('');
     setValidating(true);
     setScanMessage(null);
     setError('');
     try {
+      // 1. Intentar resolver como Portadosímetro
       const res = await validateHolderBarcode(clean);
-      if (!res.exists || !res.holder) {
-        setScanMessage({
-          success: false,
-          text: `El código '${clean}' no existe en el catálogo de portadosímetros. Regístrelo primero.`,
-        });
-        setHolder(null);
-        setActiveDosimeter(null);
-        return;
-      }
+      if (res.exists && res.holder) {
+        const h = res.holder;
+        if (['en_campo', 'baja', 'en_triaje', 'danado'].includes(h.status)) {
+          setScanMessage({
+            success: false,
+            text: `El portadosímetro '${h.barcode}' no se encuentra apto para despacho (estado actual: ${h.status}).`,
+          });
+          setHolder(null);
+          setActiveDosimeter(null);
+          return;
+        }
 
-      const h = res.holder;
-      if (['en_campo', 'baja', 'en_triaje', 'danado'].includes(h.status)) {
-        setScanMessage({
-          success: false,
-          text: `El portadosímetro '${h.barcode}' no se encuentra apto para despacho (estado actual: ${h.status}).`,
-        });
-        setHolder(null);
-        setActiveDosimeter(null);
-        return;
-      }
+        if (['danado_grave', 'contaminado', 'perdido'].includes(h.current_condition)) {
+          setScanMessage({
+            success: false,
+            text: `El portadosímetro presenta condición crítica (${h.current_condition}). No puede ser asignado.`,
+          });
+          setHolder(null);
+          setActiveDosimeter(null);
+          return;
+        }
 
-      if (['danado_grave', 'contaminado', 'perdido'].includes(h.current_condition)) {
-        setScanMessage({
-          success: false,
-          text: `El portadosímetro presenta condición crítica (${h.current_condition}). No puede ser asignado.`,
-        });
-        setHolder(null);
-        setActiveDosimeter(null);
-        return;
-      }
+        setHolder(h);
 
-      setHolder(h);
-
-      // Check if holder has an active assembly with a dosimeter
-      if (h.active_assembly?.dosimeter) {
-        setActiveDosimeter({
-          id: h.active_assembly.dosimeter.id,
-          serial_number: h.active_assembly.dosimeter.serial_number,
-          type: h.active_assembly.dosimeter.model,
-        });
-        setScanMessage({
-          success: true,
-          text: `Portadosímetro reconocido con dosímetro ensamblado (${h.active_assembly.dosimeter.serial_number}).`,
-        });
-      } else {
-        // Query dosimeters to check if one matches serial or is already assembled and available
-        const { items } = await getDosimeters({ search: h.serial_number, status_code: 'DISPONIBLE', limit: 10 });
-        const matchingDos = items.find((d) => d.serial_number === h.serial_number);
-        if (matchingDos) {
+        if (h.active_assembly?.dosimeter) {
           setActiveDosimeter({
-            id: matchingDos.id,
-            serial_number: matchingDos.serial_number,
-            type: matchingDos.dosimeter_types?.name,
+            id: h.active_assembly.dosimeter.id,
+            serial_number: h.active_assembly.dosimeter.serial_number,
+            type: h.active_assembly.dosimeter.model,
           });
           setScanMessage({
             success: true,
-            text: `Portadosímetro emparejado con dosímetro ${matchingDos.serial_number}.`,
+            text: `Portadosímetro reconocido con dosímetro acoplado (${h.active_assembly.dosimeter.serial_number}).`,
           });
         } else {
+          const { items } = await getDosimeters({ search: h.serial_number, status_code: 'DISPONIBLE', limit: 10 });
+          const matchingDos = items.find((d) => d.serial_number === h.serial_number);
+          if (matchingDos) {
+            setActiveDosimeter({
+              id: matchingDos.id,
+              serial_number: matchingDos.serial_number,
+              type: matchingDos.dosimeter_types?.name,
+            });
+            setScanMessage({
+              success: true,
+              text: `Portadosímetro emparejado con dosímetro ${matchingDos.serial_number}.`,
+            });
+          } else {
+            setActiveDosimeter(null);
+            setScanMessage({
+              success: true,
+              text: `Portadosímetro '${h.barcode}' libre. Seleccione el dosímetro a acoplar:`,
+            });
+          }
+        }
+        return;
+      }
+
+      // 2. Si no es un portadosímetro, intentar resolver como Dosímetro directo
+      const dosRes = await validateDosimeterBarcode(clean);
+      if (dosRes.exists && dosRes.dosimeter) {
+        const d = dosRes.dosimeter;
+        if (d.status_code && d.status_code !== 'DISPONIBLE') {
+          setScanMessage({
+            success: false,
+            text: `El dosímetro '${d.serial_number}' no está disponible (estado actual: ${d.status_name || d.status_code}).`,
+          });
+          setHolder(null);
           setActiveDosimeter(null);
+          return;
+        }
+
+        if (['danado', 'contaminado', 'perdido'].includes(d.current_condition)) {
+          setScanMessage({
+            success: false,
+            text: `El dosímetro presenta condición física '${d.current_condition}'. No apto para despacho.`,
+          });
+          setHolder(null);
+          setActiveDosimeter(null);
+          return;
+        }
+
+        setActiveDosimeter({
+          id: d.id,
+          serial_number: d.serial_number,
+          type: d.dosimeter_type_name,
+        });
+
+        if (d.active_holder) {
+          if (['en_campo', 'baja', 'en_triaje', 'danado'].includes(d.active_holder.status)) {
+            setScanMessage({
+              success: false,
+              text: `El portadosímetro acoplado '${d.active_holder.barcode}' no se encuentra apto (estado: ${d.active_holder.status}).`,
+            });
+            setHolder(null);
+            setActiveDosimeter(null);
+            return;
+          }
+
+          if (['danado_grave', 'contaminado', 'perdido'].includes(d.active_holder.current_condition || '')) {
+            setScanMessage({
+              success: false,
+              text: `El portadosímetro acoplado presenta condición crítica (${d.active_holder.current_condition}). No puede ser asignado.`,
+            });
+            setHolder(null);
+            setActiveDosimeter(null);
+            return;
+          }
+
+          setHolder({
+            id: d.active_holder.id,
+            barcode: d.active_holder.barcode,
+            serial_number: d.active_holder.serial_number,
+            holder_color: d.active_holder.holder_color || 'azul',
+            clip_type: d.active_holder.clip_type || 'pinza_cocodrilo',
+            model: d.active_holder.model || undefined,
+            current_condition: d.active_holder.current_condition || 'integro',
+            status: d.active_holder.status as HolderStatus,
+          });
           setScanMessage({
             success: true,
-            text: `Portadosímetro '${h.barcode}' libre. Seleccione el dosímetro a colocar en este chasis:`,
+            text: `Dosímetro ${d.serial_number} detectado con portadosímetro activo (${d.active_holder.barcode}).`,
           });
+        } else {
+          // Si no tiene holder ensamblado, buscar holder disponible por serial
+          const holdersRes = await getHolders({ search: d.serial_number, limit: 10 });
+          const matchingHolder = (holdersRes.items || []).find(
+            (h) => h.serial_number === d.serial_number && h.status === 'disponible',
+          );
+          if (matchingHolder) {
+            setHolder(matchingHolder);
+            setScanMessage({
+              success: true,
+              text: `Dosímetro ${d.serial_number} emparejado con portadosímetro disponible ${matchingHolder.barcode}.`,
+            });
+          } else {
+            setHolder(null);
+            setScanMessage({
+              success: false,
+              text: `Dosímetro ${d.serial_number} detectado sin portadosímetro disponible. Ensámblele un chasis o escanee el portadosímetro primero.`,
+            });
+            setActiveDosimeter(null);
+            return;
+          }
         }
+        return;
       }
+
+      // 3. No encontrado en ninguno
+      setScanMessage({
+        success: false,
+        text: `El código '${clean}' no existe como portadosímetro ni como dosímetro registrado.`,
+      });
+      setHolder(null);
+      setActiveDosimeter(null);
     } catch {
       setScanMessage({
         success: false,
@@ -205,7 +298,7 @@ export function QuickBarcodeAssignModal({ onClose, onSuccess }: Props) {
         holder_barcode: holder?.barcode,
       });
 
-      onSuccess(`Dosímetro asignado exitosamente con portadosímetro ${holder?.barcode}`);
+      onSuccess(`Dosímetro asignado exitosamente${holder?.barcode ? ` con portadosímetro ${holder.barcode}` : ''}`);
       onClose();
     } catch (err) {
       setError(extractApiError(err, 'Error al procesar asignación rápida'));
@@ -221,10 +314,10 @@ export function QuickBarcodeAssignModal({ onClose, onSuccess }: Props) {
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-        {/* ESCÁNER DE PORTADOSÍMETRO */}
+        {/* ESCÁNER DE PORTADOSÍMETRO / DOSÍMETRO */}
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2">
           <label className="block text-xs font-semibold text-slate-800 uppercase tracking-wide">
-            1. Escanear Portadosímetro (Lector USB)
+            1. Escanear Portadosímetro o Dosímetro (Lector USB)
           </label>
           <div className="flex gap-2">
             <input
@@ -233,7 +326,7 @@ export function QuickBarcodeAssignModal({ onClose, onSuccess }: Props) {
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Dispare el lector sobre el portadosímetro..."
+              placeholder="Dispare el lector sobre el portadosímetro o dosímetro..."
               disabled={validating}
               className="flex-1 px-3 py-1.5 border border-blue-400 rounded-md text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

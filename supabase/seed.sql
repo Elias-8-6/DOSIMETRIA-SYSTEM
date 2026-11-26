@@ -508,6 +508,9 @@ BEGIN
     -- Dosímetro dado de baja (dañado)
     ('00000000-0000-0000-0000-000000000240', v_tld_p_id, v_baja, 'TF-8807-999001', 'LAB-BAJA-001', 'LOT-2022-A', '2022-01-01', '2022-02-01', 'danado', false, 30, 50, 'Harshaw 8807', 'Thermo Fisher Scientific');
 
+  -- Asignar barcode a los dosímetros si no vino especificado
+  UPDATE dosimeters SET barcode = serial_number WHERE barcode IS NULL;
+
 END;
 $$;
 

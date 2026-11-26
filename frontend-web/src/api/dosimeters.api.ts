@@ -66,6 +66,7 @@ export interface DosimeterHistoryResponse {
 export interface Dosimeter {
   id: string;
   serial_number: string;
+  barcode: string;
   internal_code: string | null;
   lot_number: string | null;
   manufacture_date: string | null;
@@ -95,6 +96,8 @@ export interface DosimeterDetail extends Dosimeter {
 
 export interface CreateDosimeterPayload {
   serial_number: string;
+  barcode?: string;
+  auto_generate_barcode?: boolean;
   dosimeter_type_id: string;
   internal_code?: string;
   lot_number?: string;
@@ -127,8 +130,46 @@ export interface ReturnDosimeterPayload {
   notes?: string;
 }
 
+export interface ValidatedDosimeterInfo {
+  id: string;
+  serial_number: string;
+  barcode: string;
+  internal_code?: string | null;
+  lot_number?: string | null;
+  model?: string | null;
+  manufacturer?: string | null;
+  current_condition: string;
+  reusable: boolean;
+  status_code?: string;
+  status_name?: string;
+  dosimeter_type_name?: string;
+  active_holder?: {
+    id: string;
+    barcode: string;
+    serial_number: string;
+    holder_color?: string | null;
+    clip_type?: string | null;
+    model?: string | null;
+    current_condition?: string;
+    status: HolderStatus;
+  } | null;
+  active_assignment?: {
+    id: string;
+    assigned_at: string;
+    worker_name?: string;
+    client_name?: string;
+  } | null;
+}
+
+export interface ValidateDosimeterBarcodeResponse {
+  exists: boolean;
+  dosimeter: ValidatedDosimeterInfo | null;
+  message: string;
+}
+
 export const getDosimeters = async (params?: {
   search?: string;
+  barcode?: string;
   dosimeter_type_id?: string;
   status_code?: string;
   current_condition?: string;
@@ -136,6 +177,22 @@ export const getDosimeters = async (params?: {
   limit?: number;
 }): Promise<{ items: Dosimeter[]; total: number }> => {
   const { data } = await api.get<{ items: Dosimeter[]; total: number }>('/dosimeters', { params });
+  return data;
+};
+
+export const validateDosimeterBarcode = async (
+  barcode: string,
+): Promise<ValidateDosimeterBarcodeResponse> => {
+  const cleanBarcode = encodeURIComponent(barcode.trim());
+  const { data } = await api.get<ValidateDosimeterBarcodeResponse>(
+    `/dosimeters/validate-barcode/${cleanBarcode}`,
+  );
+  return data;
+};
+
+export const getDosimeterByBarcode = async (barcode: string): Promise<DosimeterDetail> => {
+  const cleanBarcode = encodeURIComponent(barcode.trim());
+  const { data } = await api.get<DosimeterDetail>(`/dosimeters/barcode/${cleanBarcode}`);
   return data;
 };
 
@@ -258,6 +315,15 @@ export interface HolderAssemblyRecord {
   } | null;
 }
 
+export type HolderStatus =
+  | 'disponible'
+  | 'ensamblado'
+  | 'en_campo'
+  | 'en_triaje'
+  | 'danado'
+  | 'baja'
+  | string;
+
 export interface HolderDosimeter {
   id: string;
   barcode: string;
@@ -267,7 +333,7 @@ export interface HolderDosimeter {
   model?: string | null;
   storage_location?: string | null;
   current_condition: string;
-  status: string;
+  status: HolderStatus;
   notes?: string | null;
   photo_url?: string | null;
   created_at?: string;

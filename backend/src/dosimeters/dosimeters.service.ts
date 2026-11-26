@@ -31,6 +31,8 @@ import { ValidateHolderBarcodeUseCase } from './use-cases/validate-holder-barcod
 import { FindOneHolderUseCase } from './use-cases/find-one-holder.use-case';
 import { UpdateHolderUseCase } from './use-cases/update-holder.use-case';
 import { DeleteHolderUseCase } from './use-cases/delete-holder.use-case';
+import { ValidateDosimeterBarcodeUseCase } from './use-cases/validate-dosimeter-barcode.use-case';
+import { FindDosimeterByBarcodeUseCase } from './use-cases/find-dosimeter-by-barcode.use-case';
 
 @Injectable()
 export class DosimetersService {
@@ -54,6 +56,8 @@ export class DosimetersService {
     private readonly findOneHolderUseCase: FindOneHolderUseCase,
     private readonly updateHolderUseCase: UpdateHolderUseCase,
     private readonly deleteHolderUseCase: DeleteHolderUseCase,
+    private readonly validateDosimeterBarcodeUseCase: ValidateDosimeterBarcodeUseCase,
+    private readonly findDosimeterByBarcodeUseCase: FindDosimeterByBarcodeUseCase,
   ) {}
 
   findAll(
@@ -64,6 +68,7 @@ export class DosimetersService {
     currentCondition?: string,
     page: number = 1,
     limit: number = 10,
+    barcode?: string,
   ) {
     return this.findAllDosimetersUseCase.execute(
       organizationId,
@@ -73,7 +78,16 @@ export class DosimetersService {
       currentCondition,
       page,
       limit,
+      barcode,
     );
+  }
+
+  validateBarcode(barcode: string, organizationId: string) {
+    return this.validateDosimeterBarcodeUseCase.execute(barcode, organizationId);
+  }
+
+  findByBarcode(barcode: string, organizationId: string) {
+    return this.findDosimeterByBarcodeUseCase.execute(barcode, organizationId);
   }
 
   findOne(dosimeterId: string, organizationId: string) {
