@@ -4,8 +4,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { ProfileModal } from '../users/ProfileModal';
 
 /**
- * Sidebar — barra de navegación lateral.
- * El nombre del usuario abre el ProfileModal.
+ * Sidebar — barra de navegación lateral fija y responsiva.
+ * Mantiene la altura 100% de la ventana (100dvh), logo fijo arriba,
+ * scroll interior en los links de navegación, y perfil/logout anclado al fondo.
  */
 export function Sidebar() {
   const { user, logout, hasPermission } = useAuth();
@@ -24,14 +25,22 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col">
-        {/* Logo */}
-        <div className="px-5 py-5 border-b border-gray-200">
-          <h1 className="text-base font-bold text-gray-900">Dosimetría</h1>
+      <aside className="w-60 h-dvh bg-white border-r border-gray-200 flex flex-col flex-shrink-0 select-none z-20 print:hidden">
+        {/* Logo superior fijo */}
+        <div className="px-5 py-4 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+              DS
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-gray-900 leading-tight">Dosimetría</h1>
+              <p className="text-[11px] text-gray-400">Sistema Integral</p>
+            </div>
+          </div>
         </div>
 
-        {/* Navegación */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        {/* Navegación con scroll interior contenido */}
+        <nav className="flex-1 min-h-0 px-3 py-3 space-y-1 overflow-y-auto">
           <NavLink to="/dashboard" className={navClass}>
             <span>Dashboard</span>
           </NavLink>
@@ -144,11 +153,11 @@ export function Sidebar() {
           </NavLink>
         </nav>
 
-        {/* Info del usuario — click abre el modal de perfil */}
-        <div className="px-4 py-4 border-t border-gray-200">
+        {/* Info del usuario — fijo al pie */}
+        <div className="px-4 py-3.5 border-t border-gray-200 flex-shrink-0 bg-white">
           <button
             onClick={() => setShowProfile(true)}
-            className="w-full text-left mb-3 group cursor-pointer"
+            className="w-full text-left mb-2 group cursor-pointer"
           >
             <p
               className="text-sm font-medium text-gray-800 truncate
@@ -159,7 +168,7 @@ export function Sidebar() {
             <p className="text-xs text-gray-400 truncate">{user?.email}</p>
             {user?.roles[0] && (
               <span
-                className="inline-block mt-1 text-xs bg-blue-50 text-blue-600
+                className="inline-block mt-1 text-[11px] bg-blue-50 text-blue-600 font-medium
                                px-2 py-0.5 rounded-full"
               >
                 {user.roles[0].name}
@@ -169,8 +178,8 @@ export function Sidebar() {
 
           <button
             onClick={handleLogout}
-            className="w-full text-left text-sm text-red-500 hover:text-red-700
-                       transition-colors duration-150 cursor-pointer"
+            className="w-full text-left text-xs text-red-500 hover:text-red-700 font-medium
+                       transition-colors duration-150 cursor-pointer pt-0.5"
           >
             Cerrar sesión
           </button>

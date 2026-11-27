@@ -8,7 +8,7 @@ import { DosimeterFormModal } from '../../components/dosimeters/DosimeterFormMod
 import { QuickBarcodeAssignModal } from '../../components/dosimeters/QuickBarcodeAssignModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useToast } from '../../hooks/useToast';
-import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
+import { DataTable, TableScrollContainer, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
 import { DosimeterStatusBadge } from '../../components/ui/DosimeterStatusBadge';
 import { Button } from '../../components/ui/Button';
@@ -34,6 +34,7 @@ export default function DosimetersPage() {
   const [conditionFilter, setConditionFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [quickAssignModalOpen, setQuickAssignModalOpen] = useState(false);
   const [modalKey, setModalKey] = useState(0);
@@ -63,7 +64,8 @@ export default function DosimetersPage() {
         limit: PAGE_SIZE,
       });
       setDosimeters(data.items);
-      setTotalPages(Math.ceil(data.total / PAGE_SIZE));
+      setTotal(data.total);
+      setTotalPages(Math.max(1, Math.ceil(data.total / PAGE_SIZE)));
     } catch {
       setError('No se pudo cargar el listado de dosímetros');
     } finally {
@@ -85,93 +87,96 @@ export default function DosimetersPage() {
   }, [fetchDosimeters, showToast]);
 
   return (
-    <div className="p-6">
-      <PageHeader
-        title="Dosímetros"
-        subtitle="Inventario y asignación de dosímetros"
-        action={
-          <div className="flex gap-2.5">
-            {hasPermission('assignments', 'create') && (
-              <Button
-                variant="secondary"
-                onClick={() => setQuickAssignModalOpen(true)}
-                className="flex items-center gap-1.5 border border-slate-300"
-              >
-                <span>⚡</span> Asignación Rápida con Escáner
-              </Button>
-            )}
-            {hasPermission('dosimeters', 'create') && (
-              <Button
-                onClick={() => {
-                  setModalKey((k) => k + 1);
-                  setFormModalOpen(true);
-                }}
-              >
-                Nuevo dosímetro
-              </Button>
-            )}
-          </div>
-        }
-      />
-
-      {/* Filtros */}
-      <div className="flex gap-3 mb-4 flex-wrap">
-        <input
-          type="text"
-          placeholder="Buscar o escanear por código de barras, serie, lote, modelo o fabricante... (Enter para buscar)"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              fetchDosimeters(search.trim());
-            }
-          }}
-          className="flex-1 min-w-[220px] px-3 py-2 border border-gray-300 rounded-lg text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
+    <div className="p-4 sm:p-6 w-full min-h-full sm:h-full flex flex-col space-y-4">
+      <div className="flex-shrink-0">
+        <PageHeader
+          title="Dosímetros"
+          subtitle="Inventario y asignación de dosímetros"
+          action={
+            <div className="flex gap-2.5">
+              {hasPermission('assignments', 'create') && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setQuickAssignModalOpen(true)}
+                  className="flex items-center gap-1.5 border border-slate-300"
+                >
+                  <span>⚡</span> Asignación Rápida con Escáner
+                </Button>
+              )}
+              {hasPermission('dosimeters', 'create') && (
+                <Button
+                  onClick={() => {
+                    setModalKey((k) => k + 1);
+                    setFormModalOpen(true);
+                  }}
+                >
+                  Nuevo dosímetro
+                </Button>
+              )}
+            </div>
+          }
         />
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Todos los tipos</option>
-          {types.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Todos los estados</option>
-          {statuses.map((s) => (
-            <option key={s.id} value={s.code}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={conditionFilter}
-          onChange={(e) => setConditionFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Todas las condiciones</option>
-          {Object.entries(CONDITION_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+
+        {/* Filtros */}
+        <div className="flex gap-3 mb-4 flex-wrap">
+          <input
+            type="text"
+            placeholder="Buscar o escanear por código de barras, serie, lote, modelo o fabricante... (Enter para buscar)"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                fetchDosimeters(search.trim());
+              }
+            }}
+            className="flex-1 min-w-[220px] px-3 py-2 border border-gray-300 rounded-lg text-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
+          />
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Todos los tipos</option>
+            {types.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Todos los estados</option>
+            {statuses.map((s) => (
+              <option key={s.id} value={s.code}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={conditionFilter}
+            onChange={(e) => setConditionFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Todas las condiciones</option>
+            {Object.entries(CONDITION_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Tabla */}
-      <DataTable>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
+      <DataTable className="flex-1 min-h-[320px]">
+        <TableScrollContainer>
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-gray-50 z-10 border-b border-gray-200 shadow-[inset_0_-1px_0_#e5e7eb]">
+              <tr className="bg-gray-50">
               <th className={TH_CLASS}>Código de barras</th>
               <th className={TH_CLASS}>Serie</th>
               <th className={TH_CLASS}>Código interno</th>
@@ -244,8 +249,16 @@ export default function DosimetersPage() {
             )}
           </tbody>
         </table>
+        </TableScrollContainer>
 
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={total}
+          itemName="dosímetros"
+          disabled={loading}
+        />
       </DataTable>
 
       {/* Modal crear dosímetro */}

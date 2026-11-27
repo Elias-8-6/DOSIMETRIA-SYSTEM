@@ -4,9 +4,32 @@ import type { ReactNode } from 'react';
 export const TH_CLASS = 'text-left px-4 py-3 font-medium text-gray-600';
 export const TD_CLASS = 'px-4 py-3';
 
-export function DataTable({ children }: { children: ReactNode }) {
+interface DataTableProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function DataTable({ children, className = '' }: DataTableProps) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">{children}</div>
+    <div
+      className={`bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col min-h-0 ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function TableScrollContainer({
+  children,
+  className = '',
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex-1 min-h-0 overflow-auto ${className}`}>
+      {children}
+    </div>
   );
 }
 

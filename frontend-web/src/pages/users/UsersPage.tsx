@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useToast } from '../../hooks/useToast';
 import { UserFormModal } from '../../components/users/UserFormModal';
-import { DataTable, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
+import { DataTable, TableScrollContainer, TableStatusRow, TH_CLASS, TD_CLASS } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
@@ -81,109 +81,115 @@ export function UsersPage() {
     setModalKey((k) => k + 1);
   };
 
-  // Al guardar exitosamente, recarga la lista completa desde el backend.
-  // Esto garantiza que los datos (incluyendo roles[]) estén siempre frescos.
   const handleSuccess = useCallback(() => {
-    showToast(editingUser ? 'Personal de laboratorio actualizado correctamente' : 'Personal de laboratorio registrado correctamente');
+    showToast(
+      editingUser
+        ? 'Personal de laboratorio actualizado correctamente'
+        : 'Personal de laboratorio registrado correctamente',
+    );
     fetchUsers();
   }, [fetchUsers, showToast, editingUser]);
 
   return (
-    <div>
-      <PageHeader
-        title="Personal de Laboratorio"
-        subtitle="Gestión de analistas y personal técnico del laboratorio (ISO 17025)"
-        action={
-          hasPermission('users', 'create') && (
-            <Button onClick={handleOpenCreate}>+ Nuevo Personal / Analista</Button>
-          )
-        }
-      />
-
-      {/* Filtros */}
-      <div className="flex gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="Buscar por nombre o email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    <div className="p-4 sm:p-6 w-full min-h-full sm:h-full flex flex-col space-y-4">
+      <div className="flex-shrink-0">
+        <PageHeader
+          title="Personal de Laboratorio"
+          subtitle="Gestión de analistas y personal técnico del laboratorio (ISO 17025)"
+          action={
+            hasPermission('users', 'create') && (
+              <Button onClick={handleOpenCreate}>+ Nuevo Personal / Analista</Button>
+            )
+          }
         />
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
-        >
-          <option value="">Todos los estados</option>
-          <option value="active">Activos</option>
-          <option value="inactive">Inactivos</option>
-        </select>
+
+        {/* Filtros */}
+        <div className="flex gap-3 mb-4 flex-wrap">
+          <input
+            type="text"
+            placeholder="Buscar por nombre o email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg text-sm
+                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm
+                       focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
+          >
+            <option value="">Todos los estados</option>
+            <option value="active">Activos</option>
+            <option value="inactive">Inactivos</option>
+          </select>
+        </div>
       </div>
 
       {/* Tabla */}
-      <DataTable>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <th className={TH_CLASS}>Nombre</th>
-              <th className={TH_CLASS}>Email</th>
-              <th className={TH_CLASS}>Rol</th>
-              <th className={TH_CLASS}>Estado</th>
-              <th className="px-6 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <TableStatusRow colSpan={5}>Cargando personal de laboratorio...</TableStatusRow>
-            ) : error ? (
-              <TableStatusRow colSpan={5}>
-                <span className="text-red-600">{error}</span>
-              </TableStatusRow>
-            ) : users.length === 0 ? (
-              <TableStatusRow colSpan={5}>No se encontró personal de laboratorio</TableStatusRow>
-            ) : (
-              users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className={`${TD_CLASS} font-medium text-gray-900`}>{user.full_name}</td>
-                  <td className={`${TD_CLASS} text-gray-600`}>{user.email}</td>
-                  <td className={`${TD_CLASS} text-gray-600`}>{user.roles[0]?.name ?? '—'}</td>
-                  <td className={TD_CLASS}>
-                    <StatusBadge active={user.status === 'active'} />
-                  </td>
-                  <td className={`${TD_CLASS} text-right`}>
-                    <div className="flex items-center justify-end gap-3">
-                      {hasPermission('users', 'update') && (
+      <DataTable className="flex-1 min-h-[320px]">
+        <TableScrollContainer>
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-gray-50 z-10 border-b border-gray-200 shadow-[inset_0_-1px_0_#e5e7eb]">
+              <tr className="bg-gray-50">
+                <th className={TH_CLASS}>Nombre</th>
+                <th className={TH_CLASS}>Email</th>
+                <th className={TH_CLASS}>Rol</th>
+                <th className={TH_CLASS}>Estado</th>
+                <th className="px-6 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <TableStatusRow colSpan={5}>Cargando personal de laboratorio...</TableStatusRow>
+              ) : error ? (
+                <TableStatusRow colSpan={5}>
+                  <span className="text-red-600">{error}</span>
+                </TableStatusRow>
+              ) : users.length === 0 ? (
+                <TableStatusRow colSpan={5}>No se encontró personal de laboratorio</TableStatusRow>
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    <td className={`${TD_CLASS} font-medium text-gray-900`}>{user.full_name}</td>
+                    <td className={`${TD_CLASS} text-gray-600`}>{user.email}</td>
+                    <td className={`${TD_CLASS} text-gray-600`}>{user.roles[0]?.name ?? '—'}</td>
+                    <td className={TD_CLASS}>
+                      <StatusBadge active={user.status === 'active'} />
+                    </td>
+                    <td className={`${TD_CLASS} text-right`}>
+                      <div className="flex items-center justify-end gap-3">
+                        {hasPermission('users', 'update') && (
+                          <button
+                            onClick={() => handleOpenEdit(user)}
+                            className="text-gray-500 hover:text-gray-800 text-sm cursor-pointer"
+                          >
+                            Editar
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleOpenEdit(user)}
-                          className="text-gray-500 hover:text-gray-800 text-sm cursor-pointer"
+                          onClick={() => navigate(`/users/${user.id}`)}
+                          className="text-blue-600 hover:text-blue-800 text-sm cursor-pointer"
                         >
-                          Editar
+                          Permisos
                         </button>
-                      )}
-                      <button
-                        onClick={() => navigate(`/users/${user.id}`)}
-                        className="text-blue-600 hover:text-blue-800 text-sm cursor-pointer"
-                      >
-                        Permisos
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </TableScrollContainer>
 
-        {!loading && !error && total > 0 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 text-sm text-gray-600">
-            <span>
-              {total} usuario{total === 1 ? '' : 's'}
-            </span>
-          </div>
-        )}
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={total}
+          itemName="usuarios"
+          disabled={loading}
+        />
       </DataTable>
 
       {showModal && (

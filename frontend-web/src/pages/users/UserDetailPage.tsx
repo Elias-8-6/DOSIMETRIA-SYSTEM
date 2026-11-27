@@ -128,7 +128,7 @@ export function UserDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <Link to="/users" className="text-sm text-blue-600 hover:text-blue-800">

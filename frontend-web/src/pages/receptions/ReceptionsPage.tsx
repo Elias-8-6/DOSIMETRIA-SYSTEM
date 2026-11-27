@@ -101,69 +101,71 @@ export default function ReceptionsPage() {
 
       {/* Tabla de Recepciones */}
       <DataTable>
-        <thead>
-          <tr>
-            <th className={TH_CLASS}>Código Triaje</th>
-            <th className={TH_CLASS}>Orden de Servicio</th>
-            <th className={TH_CLASS}>Cliente</th>
-            <th className={TH_CLASS}>Fecha de Ingreso</th>
-            <th className={TH_CLASS}>Condición Empaque</th>
-            <th className={TH_CLASS}>Dosímetros</th>
-            <th className={TH_CLASS}>Receptor</th>
-            <th className={TH_CLASS}>Acciones</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {loading ? (
-            <TableStatusRow colSpan={8}>Cargando recepciones...</TableStatusRow>
-          ) : receptions.length === 0 ? (
-            <TableStatusRow colSpan={8}>
-              No se encontraron recepciones con los filtros aplicados.
-            </TableStatusRow>
-          ) : (
-            receptions.map((rec) => (
-              <tr key={rec.id} className="hover:bg-gray-50 transition-colors">
-                <td className={`${TD_CLASS} font-medium text-blue-600 cursor-pointer`}
-                    onClick={() => navigate(`/receptions/${rec.id}`)}>
-                  {rec.reception_code}
-                </td>
-                <td className={TD_CLASS}>
-                  <span
-                    className="hover:underline cursor-pointer font-medium text-gray-800"
-                    onClick={() => navigate(`/service-orders/${rec.service_order_id}`)}
-                  >
-                    {rec.service_orders?.order_number ?? '—'}
-                  </span>
-                </td>
-                <td className={TD_CLASS}>
-                  {rec.service_orders?.clients?.name ?? '—'}
-                </td>
-                <td className={TD_CLASS}>
-                  {formatDate(rec.received_at)}
-                </td>
-                <td className={TD_CLASS}>
-                  <PackagingConditionBadge condition={rec.packaging_condition} />
-                </td>
-                <td className={TD_CLASS}>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    {rec.items_count} dosímetro{rec.items_count !== 1 ? 's' : ''}
-                  </span>
-                </td>
-                <td className={TD_CLASS}>
-                  {rec.users?.full_name ?? '—'}
-                </td>
-                <td className={TD_CLASS}>
-                  <Button
-                    variant="secondary"
-                    onClick={() => navigate(`/receptions/${rec.id}`)}
-                  >
-                    Ver Detalle
-                  </Button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <th className={TH_CLASS}>Código Triaje</th>
+              <th className={TH_CLASS}>Orden de Servicio</th>
+              <th className={TH_CLASS}>Cliente</th>
+              <th className={TH_CLASS}>Fecha de Ingreso</th>
+              <th className={TH_CLASS}>Condición Empaque</th>
+              <th className={TH_CLASS}>Dosímetros</th>
+              <th className={TH_CLASS}>Receptor</th>
+              <th className={TH_CLASS}>Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {loading ? (
+              <TableStatusRow colSpan={8}>Cargando recepciones...</TableStatusRow>
+            ) : receptions.length === 0 ? (
+              <TableStatusRow colSpan={8}>
+                No se encontraron recepciones con los filtros aplicados.
+              </TableStatusRow>
+            ) : (
+              receptions.map((rec) => (
+                <tr key={rec.id} className="hover:bg-gray-50 transition-colors">
+                  <td className={`${TD_CLASS} font-medium text-blue-600 cursor-pointer`}
+                      onClick={() => navigate(`/receptions/${rec.id}`)}>
+                    {rec.reception_code}
+                  </td>
+                  <td className={TD_CLASS}>
+                    <span
+                      className="hover:underline cursor-pointer font-medium text-gray-800"
+                      onClick={() => navigate(`/service-orders/${rec.service_order_id}`)}
+                    >
+                      {rec.service_orders?.order_number ?? '—'}
+                    </span>
+                  </td>
+                  <td className={TD_CLASS}>
+                    {rec.service_orders?.clients?.name ?? '—'}
+                  </td>
+                  <td className={TD_CLASS}>
+                    {formatDate(rec.received_at)}
+                  </td>
+                  <td className={TD_CLASS}>
+                    <PackagingConditionBadge condition={rec.packaging_condition} />
+                  </td>
+                  <td className={TD_CLASS}>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {rec.items_count} dosímetro{rec.items_count !== 1 ? 's' : ''}
+                    </span>
+                  </td>
+                  <td className={TD_CLASS}>
+                    {rec.users?.full_name ?? '—'}
+                  </td>
+                  <td className={TD_CLASS}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigate(`/receptions/${rec.id}`)}
+                    >
+                      Ver Detalle
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </DataTable>
 
       {!loading && totalPages > 1 && (

@@ -100,12 +100,12 @@ export default function HoldersPage() {
   const totalPages = Math.ceil(total / limit) || 1;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 w-full min-h-full sm:h-full flex flex-col space-y-3 sm:space-y-4">
       {/* Encabezado y acciones principales */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-5">
+      <div className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-200 pb-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Portadosímetros</h1>
-          <p className="text-xs text-gray-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Portadosímetros</h1>
+          <p className="text-xs text-gray-500 mt-0.5">
             Gestión y trazabilidad de chasis exteriores con código de barras y compatibilidad con lector USB.
           </p>
         </div>
@@ -130,27 +130,27 @@ export default function HoldersPage() {
       </div>
 
       {/* Tarjetas de Métricas (KPIs) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+      <div className="flex-shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
           <span className="text-xs text-gray-500 font-medium block">Total Registrados</span>
-          <span className="text-2xl font-bold text-gray-900 mt-1 block">{totalHolders}</span>
+          <span className="text-xl font-bold text-gray-900 mt-0.5 block">{totalHolders}</span>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+        <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
           <span className="text-xs text-green-600 font-medium block">Disponibles (Libres)</span>
-          <span className="text-2xl font-bold text-green-700 mt-1 block">{availableHolders}</span>
+          <span className="text-xl font-bold text-green-700 mt-0.5 block">{availableHolders}</span>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+        <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
           <span className="text-xs text-blue-600 font-medium block">Ensamblados (Con TLD)</span>
-          <span className="text-2xl font-bold text-blue-700 mt-1 block">{assembledHolders}</span>
+          <span className="text-xl font-bold text-blue-700 mt-0.5 block">{assembledHolders}</span>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+        <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
           <span className="text-xs text-amber-600 font-medium block">Triaje / Dañados</span>
-          <span className="text-2xl font-bold text-amber-700 mt-1 block">{damagedHolders}</span>
+          <span className="text-xl font-bold text-amber-700 mt-0.5 block">{damagedHolders}</span>
         </div>
       </div>
 
       {/* Barra de Búsqueda y Filtros */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs space-y-3">
+      <div className="flex-shrink-0 bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
         <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-3">
           {/* Input de lector / búsqueda */}
           <div className="relative flex-1">
@@ -223,16 +223,16 @@ export default function HoldersPage() {
 
       {/* Alerta de Error */}
       {error && (
-        <div className="p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded">
+        <div className="flex-shrink-0 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded">
           {error}
         </div>
       )}
 
       {/* Tabla de Portadosímetros */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="flex-1 min-h-[320px] flex flex-col bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-gray-50/80 text-gray-600 font-semibold border-b border-gray-200">
+            <thead className="sticky top-0 bg-gray-50 z-10 text-gray-600 font-semibold border-b border-gray-200 shadow-[inset_0_-1px_0_#e5e7eb]">
               <tr>
                 <th className="py-3 px-4">Código / Serie</th>
                 <th className="py-3 px-4">Color / Clip</th>
@@ -365,7 +365,7 @@ export default function HoldersPage() {
         </div>
 
         {/* Paginación */}
-        <div className="p-3 border-t border-gray-200 bg-gray-50/50 flex items-center justify-between text-xs text-gray-500">
+        <div className="flex-shrink-0 p-3 border-t border-gray-200 bg-white flex items-center justify-between text-xs text-gray-500 select-none">
           <span>
             Mostrando {holders.length} de {total} portadosímetros (Página {page} de {totalPages})
           </span>
